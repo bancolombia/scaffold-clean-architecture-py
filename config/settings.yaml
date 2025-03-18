@@ -1,0 +1,30 @@
+application:
+  name: "clean-architecture-service"
+  environment: ${ENVIRONMENT:development}
+
+api:
+  debug: false
+  host: "0.0.0.0"
+  port: 5001
+
+database:
+  enabled: ${DB_ENABLE:true}
+  host: ${DB_HOST:localhost}
+  port: ${DB_PORT:5432}
+  database: ${DB_NAME:postgres}
+  user: ${DB_USER:postgres}
+  password: ${DB_PASSWORD:postgres}
+  params:
+    sslmode: ${DB_SSL_MODE:prefer}
+    connect_timeout: "30"
+
+logging:
+  level: ${LOG_LEVEL:INFO}
+  json_format: true
+  file_path: ${LOG_FILE_PATH:logs}
+
+monitoring:
+  enabled: ${MONITORING_ENABLED:false}
+  dynatrace:
+    tenant_url: ${DYNATRACE_URL}
+    api_token: ${DYNATRACE_TOKEN}

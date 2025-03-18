@@ -1,0 +1,22 @@
+application:
+  environment: "test"
+
+api:
+  debug: true
+  port: 5001
+
+database:
+  host: "localhost"
+  port: 5432
+  database: "test_db"
+  user: "test_user"
+  password: "test_password"
+  params:
+    sslmode: "prefer"
+
+logging:
+  level: "DEBUG"
+  json_format: false
+
+monitoring:
+  enabled: false

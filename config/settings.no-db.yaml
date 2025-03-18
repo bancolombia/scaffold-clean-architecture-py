@@ -1,0 +1,24 @@
+application:
+  environment: "development"
+
+api:
+  debug: true
+  port: 5001
+
+database:
+  enabled: false
+  host: "localhost"
+  port: 5432
+  database: "postgres"
+  user: "postgres"
+  password: "postgres"
+  params:
+    sslmode: "prefer"
+    connect_timeout: "30"
+
+logging:
+  level: "DEBUG"
+  json_format: true
+
+monitoring:
+  enabled: false

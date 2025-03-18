@@ -1,0 +1,28 @@
+
+application:
+  environment: "development"
+
+api:
+  debug: true
+  port: 5001
+
+database:
+  enabled: true
+  host: "aws-0-us-west-1.pooler.supabase.com"
+  port: 6543
+  database: "postgres"
+  user: "postgres.kqibjxbgzkwqovtrtiab"
+  password: "1067903661"
+  params:
+    sslmode: "require"
+    connect_timeout: "30"
+    gssencmode: "disable"
+    client_encoding: "UTF8"
+    application_name: "scaffold-app"
+
+logging:
+  level: "DEBUG"
+  json_format: true
+
+monitoring:
+  enabled: false
