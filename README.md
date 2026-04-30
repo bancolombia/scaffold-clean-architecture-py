@@ -209,12 +209,12 @@ scaffold update-project --dry-run
 
 ## Contributing
 
-1. Fork the upstream repository on GitHub: https://github.com/bancolombia/scaffold-clean-architecture-py
+1. Fork the upstream repository on GitHub: https://github.com/santicalleg/scaffold-ca-python
 2. Clone your fork.
 
 ```bash
-git clone https://github.com/YOUR-USER/scaffold-clean-architecture-py.git
-cd scaffold-clean-architecture-py
+git clone https://github.com/YOUR-USER/scaffold-ca-python.git
+cd scaffold-ca-python
 ```
 
 3. Set up the development environment.
