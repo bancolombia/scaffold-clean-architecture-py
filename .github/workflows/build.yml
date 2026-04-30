@@ -20,7 +20,8 @@ on:
 env:
   UV_NO_SYNC: true
 
-permissions: {}
+permissions:
+  contents: read
 
 jobs:
   lint:
