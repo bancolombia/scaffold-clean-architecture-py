@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-_NAME_RE = re.compile(r"^[a-z][a-z0-9]*([_-][a-z0-9]+)*$")
+NAME_RE = re.compile(r"^[a-z][a-z0-9]*([_-][a-z0-9]+)*$")
 
 # Matches transitions: lowercase→uppercase and letter→digit boundary runs
 _CAMEL_BOUNDARY_RE = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
@@ -25,7 +25,7 @@ def validate_name(name: str) -> str:
     Raises :class:`ScaffoldError` with a hint if the name is invalid.
     Returns the original name unchanged when valid.
     """
-    if not _NAME_RE.match(name):
+    if not NAME_RE.match(name):
         raise ScaffoldError(
             f"Invalid name {name!r}. Use kebab-case (e.g., 'my-project') or snake_case (e.g., 'my_project')."
         )
@@ -41,8 +41,19 @@ def to_snake_case(name: str) -> str:
     return s.lower()
 
 
+def to_kebab_case(name: str) -> str:
+    """Convert *name* (PascalCase, snake_case, or already kebab-case) to kebab-case."""
+    # Normalise underscores to hyphens first (snake_case support)
+    name = name.replace("_", "-")
+    # Insert hyphens at camelCase / PascalCase boundaries
+    s = _CAMEL_BOUNDARY_RE.sub("-", name)
+    return s.lower()
+
+
 def to_pascal_case(name: str) -> str:
-    """Convert *name* (snake_case, PascalCase, or single word) to PascalCase."""
+    """Convert *name* (snake_case, kebab-case, PascalCase, or single word) to PascalCase."""
+    # Normalise hyphens to underscores first (kebab-case support)
+    name = name.replace("-", "_")
     # Use [0].upper() + [1:] instead of capitalize() to preserve inner case
     # e.g. "MyOrder" → "MyOrder" (not "Myorder")
     return "".join(part[0].upper() + part[1:] for part in name.split("_") if part)

@@ -2,7 +2,13 @@
 
 import pytest
 
-from scaffold_ca_python.core.name_utils import ScaffoldError, to_pascal_case, to_snake_case, validate_name
+from scaffold_ca_python.core.name_utils import (
+    ScaffoldError,
+    to_kebab_case,
+    to_pascal_case,
+    to_snake_case,
+    validate_name,
+)
 
 # ---------------------------------------------------------------------------
 # to_snake_case
@@ -36,6 +42,31 @@ def test_to_snake_case_from_kebab() -> None:
 
 def test_to_snake_case_multi_word_kebab() -> None:
     assert to_snake_case("my-order-service") == "my_order_service"
+
+
+# ---------------------------------------------------------------------------
+# to_kebab_case
+# ---------------------------------------------------------------------------
+
+
+def test_kebab_case_from_snake() -> None:
+    assert to_kebab_case("my_order") == "my-order"
+
+
+def test_kebab_case_from_pascal() -> None:
+    assert to_kebab_case("MyOrder") == "my-order"
+
+
+def test_kebab_case_already_kebab() -> None:
+    assert to_kebab_case("my-order") == "my-order"
+
+
+def test_kebab_case_from_all_caps() -> None:
+    assert to_kebab_case("HTTPClient") == "http-client"
+
+
+def test_kebab_case_single_word() -> None:
+    assert to_kebab_case("order") == "order"
 
 
 # ---------------------------------------------------------------------------
