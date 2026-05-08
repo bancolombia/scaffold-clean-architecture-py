@@ -1,0 +1,41 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - trunk
+      - main
+      - master
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    name: Create Release PR
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - name: Dump GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: echo "$GITHUB_CONTEXT"
+
+      - uses: tibdex/github-app-token@v2
+        id: app-token
+        with:
+          app_id: ${{ secrets.PYPI_APP_ID }}
+          private_key: ${{ secrets.PYPI_KEY }}
+
+      - name: Create Release PR
+        id: release
+        uses: google-github-actions/release-please-action@v4
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          release-type: python
+          package-name: scaffold-ca-python
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json

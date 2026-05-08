@@ -1,70 +1,121 @@
-name: Build
+name: Test
 
 on:
   push:
     branches:
+      - trunk
       - main
+      - master
       - feature/*
       - fix/*
-
   pull_request:
     branches:
+      - trunk
       - main
+      - master
+    types:
+      - opened
+      - synchronize
+
+env:
+  UV_NO_SYNC: true
+
+permissions:
+  contents: read
 
 jobs:
-  build:
-    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+  lint:
+    name: Lint & Type Check
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      id-token: write
-      pull-requests: write
-      issues: write
     steps:
+      - name: Dump GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: echo "$GITHUB_CONTEXT"
+
       - uses: actions/checkout@v4
         with:
-            token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Verify Conventional Commits
-        uses: amannn/action-semantic-pull-request@0723387faaf9b38adef4775cd42cfd5155ed6017 # v5.5.3
-        if: github.event_name == 'pull_request' || github.event_name == 'pull_request_target'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version-file: ".python-version"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install virtualenv
-          sudo apt-get update
-          sudo apt-get install openssh-client -y
+        run: uv sync --locked --group dev
 
-      - name: Run Unit Test
-        run: |
-          python -m virtualenv _venv
-          source _venv/bin/activate
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements_test.txt
-          python -m pytest -x --cov=src --cov-config=.coveragerc 
-          python -m coverage report -m
-          python -m coverage xml
+      - name: Ruff lint
+        run: uv run ruff check src/ tests/
 
-      # - name: Run analysis on SonarQube
-      #   if: ${{ github.event.pull_request.head.repo.fork == false }}
-      #   uses: SonarSource/sonarqube-scan-action@v2
-      #   env:
-      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      #     SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-      #   with:
-      #     args: >
-      #       -Dsonar.organization=grupo-bancolombia
-      #       -Dsonar.projectKeyscaffold-clean-architecture-py
-      #       -Dsonar.python.coverage.reportPaths=coverage.xml
-      #       -Dsonar.language=py
-      #       -Dsonar.verbose=true
-      #       -Dsonar.exclusions=**/test/**,**/example/**,**setup.py**,**hello_world**,**Dockerfile**,**/coverage/**
-      #       -Dsonar.coverage.exclusions=**/test/**,**/example/**,**setup.py**,**hello_world**,**Dockerfile/**,**/coverage/**
+      - name: Ruff format check
+        run: uv run ruff format --check src/ tests/
+
+      - name: Type check with mypy
+        run: uv run mypy src/
+
+  test:
+    name: Tests & Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dump GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: echo "$GITHUB_CONTEXT"
+
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: ".python-version"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
+
+      - name: Install dependencies
+        run: uv sync --locked --group dev
+
+      - name: Run tests with coverage
+        run: uv run pytest
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: .coverage
+          if-no-files-found: ignore
+
+  check:
+    name: Check Status
+    if: always()
+    needs:
+      - lint
+      - test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dump GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: echo "$GITHUB_CONTEXT"
+
+      - name: Decide whether the needed jobs succeeded or failed
+        uses: re-actors/alls-green@v1.2.2
+        with:
+          jobs: ${{ toJSON(needs) }}
