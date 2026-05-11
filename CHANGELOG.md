@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/bancolombia/scaffold-clean-architecture-py/compare/v0.1.0...v0.1.1) (2026-05-11)
+
+
+### Bug Fixes
+
+* simplify PyPI publish command by removing explicit publish URL ([dd42379](https://github.com/bancolombia/scaffold-clean-architecture-py/commit/dd423799c2a35cea3ddf295ad8ec2cecade03237))
+
 ## 0.1.0 (2026-05-11)
 
 
