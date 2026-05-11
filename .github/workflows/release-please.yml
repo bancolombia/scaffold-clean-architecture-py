@@ -27,8 +27,8 @@ jobs:
       - uses: tibdex/github-app-token@v2
         id: app-token
         with:
-          app_id: ${{ secrets.PYPI_APP_ID }}
-          private_key: ${{ secrets.PYPI_KEY }}
+          app_id: ${{ secrets.APP_ID_ADMIN_GITHUB }}
+          private_key: ${{ secrets.APP_PRIVATE_KEY_ADMIN_GITHUB }}
 
       - name: Create Release PR
         id: release
