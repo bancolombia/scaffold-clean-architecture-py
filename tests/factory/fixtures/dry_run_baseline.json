@@ -18,17 +18,24 @@
     "src/my_app/infrastructure/entry_points/agent/__init__.py",
     "src/my_app/infrastructure/entry_points/agent/agent.py",
     "src/my_app/infrastructure/entry_points/agent/card.py",
+    "src/my_app/main.py",
     "src/tests/infrastructure/entry_points/agent/test_agent.py"
   ],
   "gep:generic": [
     "src/my_app/infrastructure/entry_points/generic/__init__.py",
     "src/my_app/infrastructure/entry_points/generic/entry_point.py",
+    "src/my_app/main.py",
     "src/tests/infrastructure/entry_points/generic/test_entry_point.py"
   ],
   "gep:mcp": [
+    "src/my_app/application/app.py",
+    "src/my_app/application/config/config.py",
     "src/my_app/infrastructure/entry_points/mcp_server/__init__.py",
-    "src/my_app/infrastructure/entry_points/mcp_server/server.py",
-    "src/tests/infrastructure/entry_points/mcp_server/test_server.py"
+    "src/my_app/infrastructure/entry_points/mcp_server/tools.py",
+    "src/my_app/main.py",
+    "src/my_app/server.py",
+    "src/tests/infrastructure/entry_points/mcp_server/test_app.py",
+    "src/tests/infrastructure/entry_points/mcp_server/test_tools.py"
   ],
   "gep:restapi": [
     "src/my_app/application/app.py",

@@ -178,8 +178,8 @@ scaffold update-project --dry-run
 |----------------|---------|------|
 | Python | >=3.13 | Runtime |
 | uv | latest | Dependency management, build, and publish |
-| Typer | >=0.16.0 | CLI framework |
-| Rich | >=14.1.0 | Terminal output formatting |
+| Typer | >=0.25.1 | CLI framework |
+| Rich | >=15.0.0 | Terminal output formatting |
 | Jinja2 | >=3.1 | Template engine for code generation |
 | Pydantic v2 | >=2.0 | Runtime validation of template context |
 | hatchling | latest | Build backend |
@@ -209,12 +209,12 @@ scaffold update-project --dry-run
 
 ## Contributing
 
-1. Fork the upstream repository on GitHub: https://github.com/santicalleg/scaffold-ca-python
+1. Fork the upstream repository on GitHub: https://github.com/bancolombia/scaffold-clean-architecture-py
 2. Clone your fork.
 
 ```bash
-git clone https://github.com/YOUR-USER/scaffold-ca-python.git
-cd scaffold-ca-python
+git clone https://github.com/YOUR-USER/scaffold-clean-architecture-py.git
+cd scaffold-clean-architecture-py
 ```
 
 3. Set up the development environment.

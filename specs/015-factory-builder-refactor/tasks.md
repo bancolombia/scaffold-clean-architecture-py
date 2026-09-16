@@ -78,8 +78,8 @@ command tests pass with no modifications.
  [x] T027 [P] [US2] Implement `DrivenAdapterSecrets` in `src/scaffold_ca_python/factory/driven_adapters/da_secrets.py`
  [x] T028 [P] [US2] Write failing tests for `DrivenAdapterGeneric.build()` in `tests/factory/driven_adapters/test_da_generic.py`
  [x] T029 [P] [US2] Implement `DrivenAdapterGeneric` in `src/scaffold_ca_python/factory/driven_adapters/da_generic.py`
-- [ ] T030 [US2] Refactor `src/scaffold_ca_python/commands/generate_driven_adapter.py` to thin + `_REGISTRY`; remove FileWriter/TemplateRenderer/pyproject_writer imports
-- [ ] T031 [US2] Run `uv run pytest tests/commands/ --no-cov -q` and confirm zero regressions (no test file modified)
+- [x] T030 [US2] Refactor `src/scaffold_ca_python/commands/generate_driven_adapter.py` to thin + `_REGISTRY`; remove FileWriter/TemplateRenderer/pyproject_writer imports
+- [x] T031 [US2] Run `uv run pytest tests/commands/ --no-cov -q` and confirm zero regressions (no test file modified)
 
 ---
 
@@ -111,20 +111,20 @@ command in scope uses only `ModuleBuilder`. After this phase, no command file im
 
 **Independent test**: `uv run pytest tests/factory/test_registry.py tests/factory/test_dry_run_parity.py --no-cov -q`
 
-- [ ] T042 [US4] Write `tests/factory/test_registry.py` — assert `_REGISTRY` for `gep` contains exactly {restapi, agent, mcp, generic}; assert `_REGISTRY` for `gda` contains exactly {rest-consumer, secrets, generic}; assert all 6 simple commands have `_REGISTRY` with their respective types; assert unknown type lookup produces error listing valid keys
-- [ ] T043 [US4] Write `tests/factory/test_dry_run_parity.py` — for each type in both commands, compare dry-run preview path set against a captured pre-refactor baseline fixture
-- [ ] T044 [US4] Write SC-002 extensibility proof test in `tests/factory/test_extensibility.py` — define a stub factory inline, register it under a new key in a patched `_REGISTRY`, invoke the command with the stub type, assert factory was called; zero existing command files modified
+- [x] T042 [US4] Write `tests/factory/test_registry.py` — assert `_REGISTRY` for `gep` contains exactly {restapi, agent, mcp, generic}; assert `_REGISTRY` for `gda` contains exactly {rest-consumer, secrets, generic}; assert all 6 simple commands have `_REGISTRY` with their respective types; assert unknown type lookup produces error listing valid keys
+- [x] T043 [US4] Write `tests/factory/test_dry_run_parity.py` — for each type in both commands, compare dry-run preview path set against a captured pre-refactor baseline fixture
+- [x] T044 [US4] Write SC-002 extensibility proof test in `tests/factory/test_extensibility.py` — define a stub factory inline, register it under a new key in a patched `_REGISTRY`, invoke the command with the stub type, assert factory was called; zero existing command files modified
 
 ---
 
 ## Phase 7 — Polish & Quality Gates
 
-- [ ] T045 Run `uv run pytest` and confirm all tests pass with ≥ 95% coverage
-- [ ] T045b Assert template immutability: `git diff HEAD -- src/scaffold_ca_python/templates/` must be empty — no template file modified during implementation (FR-009)
-- [ ] T045c Assert model immutability: confirm no new files exist under `src/scaffold_ca_python/models/` beyond the pre-refactor baseline (FR-010)
-- [ ] T046 [P] Run `uv run ruff check src/ tests/` and fix any violations
-- [ ] T047 [P] Run `uv run ruff format src/ tests/` to normalise formatting
-- [ ] T048 [P] Run `uv run mypy src/` and confirm 0 new errors under strict mode
+- [x] T045 Run `uv run pytest` and confirm all tests pass with ≥ 95% coverage
+- [x] T045b Assert template immutability: `git diff HEAD -- src/scaffold_ca_python/templates/` must be empty — no template file modified during implementation (FR-009)
+- [x] T045c Assert model immutability: confirm no new files exist under `src/scaffold_ca_python/models/` beyond the pre-refactor baseline (FR-010)
+- [x] T046 [P] Run `uv run ruff check src/ tests/` and fix any violations
+- [x] T047 [P] Run `uv run ruff format src/ tests/` to normalise formatting
+- [x] T048 [P] Run `uv run mypy src/` and confirm 0 new errors under strict mode
 
 ---
 
