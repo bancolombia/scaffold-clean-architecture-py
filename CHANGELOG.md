@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/bancolombia/scaffold-clean-architecture-py/compare/v0.1.1...v0.1.2) (2026-09-16)
+
+
+### Documentation
+
+* Update README with uvx command usage ([6b417b5](https://github.com/bancolombia/scaffold-clean-architecture-py/commit/6b417b5a127336140a46b8cd0eae43b2a3d55278))
+
 ## [0.1.1](https://github.com/bancolombia/scaffold-clean-architecture-py/compare/v0.1.0...v0.1.1) (2026-05-11)
 
 
