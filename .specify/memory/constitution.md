@@ -258,4 +258,4 @@ dependencies listed in Principle III, installed via `uv` at generation time.
 - Compliance reviews MUST occur at the start of each new feature branch and before
   merging to `main`.
 
-**Version**: 1.0.0 | **Ratified**: 2026-03-25 | **Last Amended**: 2026-03-25
+**Version**: 2.0.3 | **Ratified**: 2026-03-25 | **Last Amended**: 2026-04-10

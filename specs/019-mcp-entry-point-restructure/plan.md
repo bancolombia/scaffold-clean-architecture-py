@@ -1,7 +1,7 @@
 # Implementation Plan: MCP Entry Point Restructure
 
-**Branch**: `019-mcp-entry-point-restructure` | **Date**: 2026-04-16 | **Spec**: [spec.md](../018-mcp-entry-point-restructure/spec.md)  
-**Input**: Feature specification from `/specs/018-mcp-entry-point-restructure/spec.md`
+**Branch**: `019-mcp-entry-point-restructure` | **Date**: 2026-04-16 | **Spec**: [spec.md](spec.md)  
+**Input**: Feature specification from `/specs/019-mcp-entry-point-restructure/spec.md`
 
 ## Summary
 
