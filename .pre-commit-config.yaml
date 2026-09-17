@@ -1,5 +1,10 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
+
+# SDD documentation and Spec-Kit tooling are authored artifacts, not source code:
+# keep the fixer/formatter hooks out of them so runs stay scoped to code changes.
+exclude: '^(\.specify/|specs/|\.github/agents/)'
+
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
