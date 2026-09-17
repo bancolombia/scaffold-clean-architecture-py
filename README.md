@@ -24,6 +24,14 @@ Install with `uv`:
 uv add scaffold-ca-python
 ```
 
+You could also use `uvx`:
+
+```bash
+uvx scaffold-ca-python [command]
+```
+
+Use `--help` to see all available command.
+
 ## Quick Start
 
 1. Create a new Clean Architecture project.
