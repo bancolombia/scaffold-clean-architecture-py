@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/bancolombia/scaffold-clean-architecture-py/compare/v0.1.2...v0.1.3) (2026-09-17)
+
+
+### Documentation
+
+* clean up SDD specification audit artifacts ([1a0374e](https://github.com/bancolombia/scaffold-clean-architecture-py/commit/1a0374e5895864718b9c6ee7b0990023942441fa))
+
 ## [0.1.2](https://github.com/bancolombia/scaffold-clean-architecture-py/compare/v0.1.1...v0.1.2) (2026-09-16)
 
 
