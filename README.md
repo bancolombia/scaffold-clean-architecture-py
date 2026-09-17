@@ -186,7 +186,7 @@ scaffold update-project --dry-run
 |----------------|---------|------|
 | Python | >=3.13 | Runtime |
 | uv | latest | Dependency management, build, and publish |
-| Typer | >=0.25.1 | CLI framework |
+| Typer | >=0.27.2 | CLI framework |
 | Rich | >=15.0.0 | Terminal output formatting |
 | Jinja2 | >=3.1 | Template engine for code generation |
 | Pydantic v2 | >=2.0 | Runtime validation of template context |
