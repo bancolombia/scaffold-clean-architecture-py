@@ -98,7 +98,13 @@ def test_invalid_name_exits_nonzero(project_root: Path) -> None:
 def test_pascal_case_name_exits_1(project_root: Path) -> None:
     result = runner.invoke(app, ["gm", "--name", "InvalidModel"])
     assert result.exit_code == 1
-    assert "kebab-case" in result.output
+    assert "snake_case" in result.output
+
+
+def test_kebab_name_exits_1(project_root: Path) -> None:
+    result = runner.invoke(app, ["gm", "--name", "my-model"])
+    assert result.exit_code == 1
+    assert "snake_case" in result.output
 
 
 def test_no_project_root_exits_1(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -107,8 +113,8 @@ def test_no_project_root_exits_1(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     assert result.exit_code == 1
 
 
-def test_kebab_name_generates_pascal_class(project_root: Path) -> None:
-    result = runner.invoke(app, ["gm", "--name", "my-model"], catch_exceptions=False)
+def test_snake_name_generates_pascal_class(project_root: Path) -> None:
+    result = runner.invoke(app, ["gm", "--name", "my_model"], catch_exceptions=False)
     assert result.exit_code == 0
     content = (project_root / "src" / "my_app" / "domain" / "model" / "my_model.py").read_text()
     assert "class MyModel" in content

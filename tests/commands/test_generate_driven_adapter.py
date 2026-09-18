@@ -102,7 +102,7 @@ def test_secrets_creates_test(project_root: Path) -> None:
 
 
 def test_generic_creates_init(project_root: Path) -> None:
-    result = runner.invoke(app, ["gda", "--type", "generic", "--name", "cache-store"], catch_exceptions=False)
+    result = runner.invoke(app, ["gda", "--type", "generic", "--name", "cache_store"], catch_exceptions=False)
     assert result.exit_code == 0
     assert (
         project_root / "src" / "my_app" / "infrastructure" / "driven_adapters" / "cache_store" / "__init__.py"
@@ -110,7 +110,7 @@ def test_generic_creates_init(project_root: Path) -> None:
 
 
 def test_generic_creates_impl(project_root: Path) -> None:
-    result = runner.invoke(app, ["gda", "--type", "generic", "--name", "cache-store"], catch_exceptions=False)
+    result = runner.invoke(app, ["gda", "--type", "generic", "--name", "cache_store"], catch_exceptions=False)
     assert result.exit_code == 0
     assert (
         project_root
@@ -124,7 +124,7 @@ def test_generic_creates_impl(project_root: Path) -> None:
 
 
 def test_generic_creates_test(project_root: Path) -> None:
-    result = runner.invoke(app, ["gda", "--type", "generic", "--name", "cache-store"], catch_exceptions=False)
+    result = runner.invoke(app, ["gda", "--type", "generic", "--name", "cache_store"], catch_exceptions=False)
     assert result.exit_code == 0
     assert (
         project_root
@@ -138,7 +138,7 @@ def test_generic_creates_test(project_root: Path) -> None:
 
 
 def test_generic_impl_contains_class_name(project_root: Path) -> None:
-    runner.invoke(app, ["gda", "--type", "generic", "--name", "cache-store"], catch_exceptions=False)
+    runner.invoke(app, ["gda", "--type", "generic", "--name", "cache_store"], catch_exceptions=False)
     content = (
         project_root
         / "src"
@@ -182,7 +182,7 @@ def test_dry_run_prints_paths(project_root: Path) -> None:
 def test_dry_run_generic_writes_nothing(project_root: Path) -> None:
     result = runner.invoke(
         app,
-        ["gda", "--type", "generic", "--name", "cache-store", "--dry-run"],
+        ["gda", "--type", "generic", "--name", "cache_store", "--dry-run"],
         catch_exceptions=False,
     )
     assert result.exit_code == 0
@@ -250,7 +250,7 @@ def test_secrets_injects_boto3(project_root: Path) -> None:
 
 def test_generic_injects_nothing(project_root: Path) -> None:
     original = (project_root / "pyproject.toml").read_text()
-    runner.invoke(app, ["gda", "--type", "generic", "--name", "cache-store"], catch_exceptions=False)
+    runner.invoke(app, ["gda", "--type", "generic", "--name", "cache_store"], catch_exceptions=False)
     assert (project_root / "pyproject.toml").read_text() == original
 
 
@@ -320,4 +320,10 @@ def test_gda_no_args_shows_type_option() -> None:
 def test_pascal_case_name_exits_1(project_root: Path) -> None:
     result = runner.invoke(app, ["gda", "--type", "generic", "--name", "InvalidAdapter"])
     assert result.exit_code == 1
-    assert "kebab-case" in result.output
+    assert "snake_case" in result.output
+
+
+def test_kebab_name_exits_1(project_root: Path) -> None:
+    result = runner.invoke(app, ["gda", "--type", "generic", "--name", "cache-store"])
+    assert result.exit_code == 1
+    assert "snake_case" in result.output

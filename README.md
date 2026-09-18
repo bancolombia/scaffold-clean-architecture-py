@@ -49,7 +49,7 @@ cd my-app
 3. Generate a domain model.
 
 ```bash
-scaffold gm --name Order
+scaffold gm --name order
 ```
 
 4. Validate the project structure.
@@ -77,11 +77,11 @@ scaffold ca --name my-project --dry-run
 Scaffold a Pydantic v2 domain model and its test stub.
 
 ```bash
-scaffold gm --name Order
+scaffold gm --name order
 ```
 
 ```bash
-scaffold gm --name Order --dry-run
+scaffold gm --name order --dry-run
 ```
 
 ### scaffold guc
@@ -89,11 +89,11 @@ scaffold gm --name Order --dry-run
 Scaffold a use case in `domain/usecase/`.
 
 ```bash
-scaffold guc --name CreateOrder
+scaffold guc --name create_order
 ```
 
 ```bash
-scaffold guc --name CreateOrder --dry-run
+scaffold guc --name create_order --dry-run
 ```
 
 ### scaffold gda
@@ -105,7 +105,7 @@ scaffold gda --type rest-consumer
 ```
 
 ```bash
-scaffold gda --type generic --name MyAdapter --dry-run
+scaffold gda --type generic --name my_adapter --dry-run
 ```
 
 ### scaffold gep
@@ -125,11 +125,11 @@ scaffold gep --type mcp --with-resources --with-prompts --dry-run
 Scaffold a helper utility module and its test stub.
 
 ```bash
-scaffold gh --name JsonParser
+scaffold gh --name json_parser
 ```
 
 ```bash
-scaffold gh --name JsonParser --dry-run
+scaffold gh --name json_parser --dry-run
 ```
 
 ### scaffold gpipe
@@ -161,11 +161,11 @@ scaffold vs --dry-run
 Delete a previously generated module and its mirrored test file.
 
 ```bash
-scaffold dm --name Order
+scaffold dm --name order
 ```
 
 ```bash
-scaffold dm --name Order --dry-run
+scaffold dm --name order --dry-run
 ```
 
 ### scaffold up

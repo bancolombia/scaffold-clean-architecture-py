@@ -13,7 +13,7 @@ from rich.console import Console
 from rich.tree import Tree
 
 from scaffold_ca_python.core.module_builder import ModuleBuilder
-from scaffold_ca_python.core.name_utils import ScaffoldError
+from scaffold_ca_python.core.name_utils import ScaffoldError, to_snake_case
 from scaffold_ca_python.core.project_detector import find_project_root
 from scaffold_ca_python.factory import ModuleFactory
 from scaffold_ca_python.factory.entry_points.ep_agent import EntryPointAgent
@@ -59,7 +59,7 @@ def _load_project_context(project_root: Path) -> ProjectContext:
     pyproject_path = project_root / "pyproject.toml"
     with open(pyproject_path, "rb") as f:
         data = tomllib.load(f)
-    project_name = data.get("project", {}).get("name", "project").replace("-", "_")
+    project_name = to_snake_case(data.get("project", {}).get("name", "project"))
     return ProjectContext(name=project_name)
 
 

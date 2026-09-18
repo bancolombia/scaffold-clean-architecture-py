@@ -11,7 +11,7 @@ from rich.console import Console
 from rich.tree import Tree
 
 from scaffold_ca_python.core.module_builder import ModuleBuilder
-from scaffold_ca_python.core.name_utils import ScaffoldError, to_snake_case, validate_name
+from scaffold_ca_python.core.name_utils import ScaffoldError, to_snake_case, validate_module_name
 from scaffold_ca_python.core.project_detector import find_project_root
 from scaffold_ca_python.factory import ModuleFactory
 from scaffold_ca_python.factory.driven_adapters.da_generic import DrivenAdapterGeneric
@@ -37,7 +37,7 @@ _GDA_EPILOG = (
     " ==================================================\n\n"
     "Examples:\n\n"
     "  * scaffold gda --type rest-consumer\n\n"
-    "  * scaffold generate-driven-adapter --type generic --name MyAdapter\n\n"
+    "  * scaffold generate-driven-adapter --type generic --name my_adapter\n\n"
 )
 
 
@@ -55,7 +55,7 @@ def _generate_driven_adapter_impl(type_: str, name: str | None, dry_run: bool) -
     # --- Validate name if provided ---
     if name:
         try:
-            validate_name(name)
+            validate_module_name(name)
         except ScaffoldError as exc:
             console.print(f"[red]Error:[/red] {exc}")
             raise typer.Exit(code=1) from None
@@ -146,7 +146,7 @@ def register(app: typer.Typer) -> None:
             str | None,
             typer.Option(
                 "--name",
-                help="Adapter name (required for --type generic).",
+                help="Adapter name in snake_case, e.g. my_adapter (required for --type generic).",
                 rich_help_panel="Options",
             ),
         ] = None,

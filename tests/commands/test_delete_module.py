@@ -34,7 +34,7 @@ def project_root_with_helper(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
     runner.invoke(app, ["ca", "--name", "my-app"], catch_exceptions=False)
     project_dir = tmp_path / "my-app"
     monkeypatch.chdir(project_dir)
-    runner.invoke(app, ["gh", "--name", "log-helper"], catch_exceptions=False)
+    runner.invoke(app, ["gh", "--name", "log_helper"], catch_exceptions=False)
     return project_dir
 
 
@@ -111,13 +111,13 @@ def test_dry_run_with_confirm_takes_precedence(project_root: Path) -> None:
 
 
 def test_confirm_deletes_helper_dir(project_root_with_helper: Path) -> None:
-    result = runner.invoke(app, ["dm", "--name", "log-helper", "--confirm"], catch_exceptions=False)
+    result = runner.invoke(app, ["dm", "--name", "log_helper", "--confirm"], catch_exceptions=False)
     assert result.exit_code == 0
     assert not (project_root_with_helper / "src" / "my_app" / "infrastructure" / "helpers" / "log_helper").exists()
 
 
 def test_confirm_deletes_helper_test_file(project_root_with_helper: Path) -> None:
-    runner.invoke(app, ["dm", "--name", "log-helper", "--confirm"], catch_exceptions=False)
+    runner.invoke(app, ["dm", "--name", "log_helper", "--confirm"], catch_exceptions=False)
     assert not (
         project_root_with_helper / "src" / "tests" / "infrastructure" / "helpers" / "log_helper" / "test_log_helper.py"
     ).exists()
@@ -173,7 +173,13 @@ def test_no_project_root_error_message(tmp_path: Path, monkeypatch: pytest.Monke
 def test_pascal_case_name_exits_1(project_root: Path) -> None:
     result = runner.invoke(app, ["dm", "--name", "InvalidModule"])
     assert result.exit_code == 1
-    assert "kebab-case" in result.output
+    assert "snake_case" in result.output
+
+
+def test_kebab_name_exits_1(project_root: Path) -> None:
+    result = runner.invoke(app, ["dm", "--name", "log-helper"])
+    assert result.exit_code == 1
+    assert "snake_case" in result.output
 
 
 # ---------------------------------------------------------------------------
