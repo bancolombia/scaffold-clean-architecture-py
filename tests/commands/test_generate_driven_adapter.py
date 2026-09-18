@@ -237,9 +237,19 @@ def test_no_project_root_exits_1(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 
 
 def test_rest_consumer_injects_httpx(project_root: Path) -> None:
+    import tomllib
+
     runner.invoke(app, ["gda", "--type", "rest-consumer"], catch_exceptions=False)
     content = (project_root / "pyproject.toml").read_text()
     assert "httpx" in content
+
+    # respx must be in [dependency-groups.test], not in runtime deps
+    with (project_root / "pyproject.toml").open("rb") as fh:
+        data = tomllib.load(fh)
+    runtime: list[str] = data.get("project", {}).get("dependencies", [])
+    assert not any("respx" in d for d in runtime), "respx must not be in runtime deps"
+    test_entries = [e for e in data.get("dependency-groups", {}).get("test", []) if isinstance(e, str)]
+    assert any("respx" in e for e in test_entries), f"respx not found in [dependency-groups.test]: {test_entries}"
 
 
 def test_secrets_injects_boto3(project_root: Path) -> None:
@@ -266,6 +276,7 @@ def test_rest_consumer_inject_is_idempotent(project_root: Path) -> None:
     runner.invoke(app, ["gda", "--type", "rest-consumer"], catch_exceptions=False)
     content = (project_root / "pyproject.toml").read_text()
     assert content.count("httpx") == 1
+    assert content.count("respx") == 1
 
 
 def test_dry_run_does_not_inject_deps(project_root: Path) -> None:
@@ -277,6 +288,7 @@ def test_dry_run_does_not_inject_deps(project_root: Path) -> None:
 def test_dry_run_prints_deps_to_inject(project_root: Path) -> None:
     result = runner.invoke(app, ["gda", "--type", "rest-consumer", "--dry-run"], catch_exceptions=False)
     assert "httpx" in result.output
+    assert "respx" in result.output
 
 
 # ---------------------------------------------------------------------------

@@ -87,3 +87,22 @@ def test_project_resource_container_has_declarative_container() -> None:
         _ctx().model_dump(),
     )
     assert "DeclarativeContainer" in out
+
+
+def test_pyproject_template_has_test_group_with_pytest() -> None:
+    """[dependency-groups.test] must list pytest*, no respx."""
+    out = renderer.render_string(_tmpl("project/pyproject_toml.jinja2"), _ctx().model_dump())
+    assert "[dependency-groups]" in out
+    assert "pytest==" in out
+
+
+def test_pyproject_template_dev_group_includes_test() -> None:
+    """[dependency-groups.dev] must include the test group via include-group."""
+    out = renderer.render_string(_tmpl("project/pyproject_toml.jinja2"), _ctx().model_dump())
+    assert "include-group" in out
+
+
+def test_pyproject_template_no_respx_in_base() -> None:
+    """respx must NOT appear in the base template (injected only on rest-consumer)."""
+    out = renderer.render_string(_tmpl("project/pyproject_toml.jinja2"), _ctx().model_dump())
+    assert "respx" not in out

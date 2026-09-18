@@ -118,6 +118,8 @@ def _generate_driven_adapter_impl(type_: str, name: str | None, dry_run: bool) -
         console.print(tree)
         if builder._dependencies:
             console.print(f"[dim]Would add to [project.dependencies]: {', '.join(builder._dependencies)}[/dim]")
+        for grp, pkgs in builder._group_dependencies.items():
+            console.print(f"[dim]Would add to [dependency-groups.{grp}]: {', '.join(pkgs)}[/dim]")
         return
 
     console.print(f"[green]✓[/green] Driven adapter [bold]{subdir}[/bold] created. Created {len(created)} file(s).")

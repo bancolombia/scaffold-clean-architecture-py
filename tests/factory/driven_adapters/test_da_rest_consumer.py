@@ -24,6 +24,15 @@ def _write_minimal_pyproject(root: Path) -> None:
 name = "demo"
 version = "0.1.0"
 dependencies = []
+
+[dependency-groups]
+test = [
+    "pytest==9.0.3",
+]
+dev = [
+    "ruff==0.15.10",
+    {include-group = "test"},
+]
 """.strip()
         + "\n",
         encoding="utf-8",
@@ -61,7 +70,9 @@ def test_rest_consumer_files_queued_in_dry_run(tmp_path: Path) -> None:
 
 
 def test_rest_consumer_dependencies_injected(tmp_path: Path) -> None:
-    """T024: Verify DrivenAdapterRestConsumer adds httpx dependency."""
+    """T024: Verify DrivenAdapterRestConsumer adds httpx (runtime) and respx (test group)."""
+    import tomllib
+
     _write_minimal_pyproject(tmp_path)
     project = _project_ctx()
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, module_ctx=_module_ctx(project), dry_run=False)
@@ -72,7 +83,21 @@ def test_rest_consumer_dependencies_injected(tmp_path: Path) -> None:
     factory.build(builder)
 
     _ = builder.persist()
-    pyproject = (tmp_path / "pyproject.toml").read_text(encoding="utf-8")
+    pyproject_text = (tmp_path / "pyproject.toml").read_text(encoding="utf-8")
 
-    # Verify httpx dep is present
-    assert "httpx>=0.27" in pyproject, "Expected httpx>=0.27 in pyproject.toml"
+    # Verify httpx runtime dep is present
+    assert "httpx>=0.27" in pyproject_text, "Expected httpx>=0.27 in [project.dependencies]"
+
+    # Verify respx is injected into [dependency-groups.test]
+    with (tmp_path / "pyproject.toml").open("rb") as fh:
+        data = tomllib.load(fh)
+    test_entries = data.get("dependency-groups", {}).get("test", [])
+    test_strings = [e for e in test_entries if isinstance(e, str)]
+    assert any("respx" in e for e in test_strings), f"Expected respx in [dependency-groups.test], got: {test_strings}"
+
+    # Verify include-group in dev group was preserved
+    dev_entries = data.get("dependency-groups", {}).get("dev", [])
+    include_entries = [e for e in dev_entries if isinstance(e, dict)]
+    assert any(e.get("include-group") == "test" for e in include_entries), (
+        "include-group entry was lost from [dependency-groups.dev]"
+    )
