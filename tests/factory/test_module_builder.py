@@ -250,3 +250,30 @@ def test_add_dependency_with_group_dry_run_does_not_write(tmp_path: Path) -> Non
     _ = builder.persist()
 
     assert pyproject.read_bytes() == original
+
+
+def test_pending_dependencies_properties_expose_queued_deps(tmp_path: Path) -> None:
+    project = _project_ctx()
+    builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, dry_run=True)
+
+    builder.add_dependency("httpx>=0.27")
+    builder.add_dependency("respx>=0.22", group="test")
+
+    assert builder.pending_dependencies == ["httpx>=0.27"]
+    assert builder.pending_group_dependencies == {"test": ["respx>=0.22"]}
+
+
+def test_pending_properties_return_copies(tmp_path: Path) -> None:
+    project = _project_ctx()
+    builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, dry_run=True)
+
+    builder.add_dependency("httpx>=0.27")
+    builder.add_dependency("respx>=0.22", group="test")
+
+    # Mutating the returned values must not affect internal state.
+    builder.pending_dependencies.append("evil>=9")
+    builder.pending_group_dependencies["test"].append("evil>=9")
+    builder.pending_group_dependencies["new"] = ["evil>=9"]
+
+    assert builder.pending_dependencies == ["httpx>=0.27"]
+    assert builder.pending_group_dependencies == {"test": ["respx>=0.22"]}

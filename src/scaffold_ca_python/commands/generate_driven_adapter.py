@@ -8,6 +8,7 @@ from typing import Annotated
 
 import typer
 from rich.console import Console
+from rich.markup import escape
 from rich.tree import Tree
 
 from scaffold_ca_python.core.module_builder import ModuleBuilder
@@ -116,10 +117,12 @@ def _generate_driven_adapter_impl(type_: str, name: str | None, dry_run: bool) -
         for p in sorted(created):
             tree.add(str(p.relative_to(project_root)))
         console.print(tree)
-        if builder._dependencies:
-            console.print(f"[dim]Would add to [project.dependencies]: {', '.join(builder._dependencies)}[/dim]")
-        for grp, pkgs in builder._group_dependencies.items():
-            console.print(f"[dim]Would add to [dependency-groups.{grp}]: {', '.join(pkgs)}[/dim]")
+        if builder.pending_dependencies:
+            target = escape("[project.dependencies]")
+            console.print(f"[dim]Would add to {target}: {', '.join(builder.pending_dependencies)}[/dim]")
+        for grp, pkgs in builder.pending_group_dependencies.items():
+            target = escape(f"[dependency-groups.{grp}]")
+            console.print(f"[dim]Would add to {target}: {', '.join(pkgs)}[/dim]")
         return
 
     console.print(f"[green]✓[/green] Driven adapter [bold]{subdir}[/bold] created. Created {len(created)} file(s).")

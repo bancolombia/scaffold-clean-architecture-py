@@ -289,6 +289,9 @@ def test_dry_run_prints_deps_to_inject(project_root: Path) -> None:
     result = runner.invoke(app, ["gda", "--type", "rest-consumer", "--dry-run"], catch_exceptions=False)
     assert "httpx" in result.output
     assert "respx" in result.output
+    # The bracket labels must render literally (not swallowed as Rich markup).
+    assert "[project.dependencies]" in result.output
+    assert "[dependency-groups.test]" in result.output
 
 
 # ---------------------------------------------------------------------------

@@ -10,6 +10,7 @@ from typing import Annotated
 import typer
 import yaml
 from rich.console import Console
+from rich.markup import escape
 from rich.tree import Tree
 
 from scaffold_ca_python.core.module_builder import ModuleBuilder
@@ -190,9 +191,10 @@ def _generate_entry_point_impl(
             tree.add(str(p.relative_to(project_root)))
         console.print(tree)
 
-        # Check if dependencies were collected by looking at builder internals
-        if builder._dependencies:
-            console.print(f"[dim]Would add to [project.dependencies]: {', '.join(builder._dependencies)}[/dim]")
+        # Report any runtime dependencies queued for injection
+        if builder.pending_dependencies:
+            target = escape("[project.dependencies]")
+            console.print(f"[dim]Would add to {target}: {', '.join(builder.pending_dependencies)}[/dim]")
 
         if type_ == "restapi":
             main_py = project_root / "src" / pkg / "main.py"

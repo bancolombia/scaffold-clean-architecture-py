@@ -110,6 +110,16 @@ class ModuleBuilder:
         else:
             self._group_dependencies.setdefault(group, []).append(package)
 
+    @property
+    def pending_dependencies(self) -> list[str]:
+        """Runtime dependencies queued for injection (read-only copy)."""
+        return list(self._dependencies)
+
+    @property
+    def pending_group_dependencies(self) -> dict[str, list[str]]:
+        """Dependency-group deps queued for injection, keyed by group (read-only copy)."""
+        return {group: list(pkgs) for group, pkgs in self._group_dependencies.items()}
+
     def add_param(self, key: str, value: object) -> None:
         """Store an ad-hoc value used by factories/commands."""
         self._params[key] = value
