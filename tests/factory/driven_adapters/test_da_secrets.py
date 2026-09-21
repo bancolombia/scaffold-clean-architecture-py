@@ -75,4 +75,4 @@ def test_secrets_dependencies_injected(tmp_path: Path) -> None:
     pyproject = (tmp_path / "pyproject.toml").read_text(encoding="utf-8")
 
     # Verify boto3 dep is present
-    assert "boto3>=1.34" in pyproject, "Expected boto3>=1.34 in pyproject.toml"
+    assert "boto3~=1.43.98" in pyproject, "Expected boto3~=1.43.98 in pyproject.toml"

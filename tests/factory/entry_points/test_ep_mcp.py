@@ -142,11 +142,11 @@ def test_mcp_dependencies_injected(tmp_path: Path) -> None:
 
     pyproject = (tmp_path / "pyproject.toml").read_text(encoding="utf-8")
     expected_deps = [
-        "mcp>=1.0",
-        "uvicorn[standard]>=0.20",
-        "starlette>=0.40",
-        "dependency-injector>=4.49.0",
-        "pydantic-settings>=2.13.1",
+        "mcp~=1.30.0",
+        "uvicorn[standard]~=0.53.0",
+        "starlette~=1.6.0",
+        "dependency-injector~=4.49.1",
+        "pydantic-settings~=2.15.0",
     ]
     for dep in expected_deps:
         assert dep in pyproject, f"Missing dep: {dep}"

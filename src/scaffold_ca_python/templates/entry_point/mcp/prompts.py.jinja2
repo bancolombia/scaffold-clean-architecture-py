@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from dependency_injector.wiring import Provide, inject
+from dependency_injector.wiring import Provide, inject  # noqa: F401
 from mcp.server.fastmcp import FastMCP
 
-from {{ project.python_package }}.application.config.container import Container
+from {{ project.python_package }}.application.config.container import Container  # noqa: F401
 
 
 @inject

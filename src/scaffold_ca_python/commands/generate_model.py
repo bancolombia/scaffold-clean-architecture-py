@@ -11,7 +11,7 @@ from rich.console import Console
 from rich.tree import Tree
 
 from scaffold_ca_python.core.module_builder import ModuleBuilder
-from scaffold_ca_python.core.name_utils import ScaffoldError, validate_name
+from scaffold_ca_python.core.name_utils import ScaffoldError, validate_module_name
 from scaffold_ca_python.core.project_detector import find_project_root
 from scaffold_ca_python.factory import ModuleFactory
 from scaffold_ca_python.factory.simple.model_factory import ModelFactory
@@ -24,13 +24,13 @@ _REGISTRY: dict[str, type[ModuleFactory]] = {
     "model": ModelFactory,
 }
 _GM_HELP = "Scaffold a Pydantic v2 domain model and test stub. Alias 'gm'."
-_GM_EPILOG = "Example:\n\n  * scaffold gm --name Order\n\n  * scaffold generate-model --name Order\n\n"
+_GM_EPILOG = "Example:\n\n  * scaffold gm --name order\n\n  * scaffold generate-model --name order\n\n"
 
 
 def _generate_model_impl(name: str, dry_run: bool) -> None:
     # --- Validate name ---
     try:
-        validate_name(name)
+        validate_module_name(name)
     except ScaffoldError as exc:
         console.print(f"[red]Error:[/red] {exc}")
         raise typer.Exit(code=1) from None
@@ -100,7 +100,7 @@ def register(app: typer.Typer) -> None:
     def generate_model(
         ctx: typer.Context,
         name: Annotated[
-            str | None, typer.Option("--name", help="Model name (PascalCase).", rich_help_panel="Required")
+            str | None, typer.Option("--name", help="Model name (snake_case).", rich_help_panel="Required")
         ] = None,
         dry_run: Annotated[
             bool,

@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import httpx
 import pytest
 import respx
-import httpx
 
 from {{ project.python_package }}.infrastructure.driven_adapters.rest_consumer.rest_consumer import (
     RestConsumerAdapter,

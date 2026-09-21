@@ -42,7 +42,7 @@ def test_workflow_gm_creates_model(workflow_root: Path) -> None:
 
 
 def test_workflow_guc_creates_use_case(workflow_root: Path) -> None:
-    result = runner.invoke(app, ["guc", "--name", "create-order"], catch_exceptions=False)
+    result = runner.invoke(app, ["guc", "--name", "create_order"], catch_exceptions=False)
     assert result.exit_code == 0
     assert (workflow_root / "src" / "order_service" / "domain" / "usecase" / "create_order.py").exists()
 
@@ -91,10 +91,10 @@ def full_walkthrough_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Pa
 def test_full_walkthrough_complete(full_walkthrough_root: Path) -> None:
     steps = [
         (["gm", "--name", "product"], "gm"),
-        (["guc", "--name", "create-product"], "guc"),
+        (["guc", "--name", "create_product"], "guc"),
         (["gda", "--type", "rest-consumer"], "gda"),
         (["gep", "--type", "restapi"], "gep"),
-        (["gh", "--name", "log-helper"], "gh"),
+        (["gh", "--name", "log_helper"], "gh"),
         (["gpipe", "--provider", "azure"], "gpipe"),
         (["vs"], "vs"),
         (["dm", "--name", "product", "--confirm"], "dm"),

@@ -9,9 +9,11 @@ from pydantic import BaseModel
 
 from scaffold_ca_python.core.file_writer import FileWriter
 from scaffold_ca_python.core.pyproject_writer import (
+    dry_run_group_inject,
     dry_run_inject,
     dry_run_scripts_update,
     inject_dependencies,
+    inject_group_dependencies,
     update_project_scripts,
 )
 from scaffold_ca_python.core.template_renderer import TemplateRenderer
@@ -48,6 +50,7 @@ class ModuleBuilder:
 
         self._operations: list[FileOperation] = []
         self._dependencies: list[str] = []
+        self._group_dependencies: dict[str, list[str]] = {}
         self._params: dict[str, object] = {}
 
     def add_file(
@@ -89,9 +92,33 @@ class ModuleBuilder:
         """Render a template through the shared renderer."""
         return self._renderer.render(template_name, context)
 
-    def add_dependency(self, package: str) -> None:
-        """Queue a package dependency to inject into pyproject.toml."""
-        self._dependencies.append(package)
+    def add_dependency(self, package: str, *, group: str | None = None) -> None:
+        """Queue a package dependency to inject into pyproject.toml.
+
+        Parameters
+        ----------
+        package:
+            Package specifier, e.g. ``"httpx>=0.27"`` or ``"respx>=0.22"``.
+        group:
+            When ``None`` (default) the package is injected into
+            ``[project.dependencies]`` (runtime). When set to a group name such as
+            ``"test"``, the package is injected into
+            ``[dependency-groups.<group>]`` instead.
+        """
+        if group is None:
+            self._dependencies.append(package)
+        else:
+            self._group_dependencies.setdefault(group, []).append(package)
+
+    @property
+    def pending_dependencies(self) -> list[str]:
+        """Runtime dependencies queued for injection (read-only copy)."""
+        return list(self._dependencies)
+
+    @property
+    def pending_group_dependencies(self) -> dict[str, list[str]]:
+        """Dependency-group deps queued for injection, keyed by group (read-only copy)."""
+        return {group: list(pkgs) for group, pkgs in self._group_dependencies.items()}
 
     def add_param(self, key: str, value: object) -> None:
         """Store an ad-hoc value used by factories/commands."""
@@ -114,6 +141,12 @@ class ModuleBuilder:
                 dry_run_inject(self.project_root, self._dependencies)
             else:
                 inject_dependencies(self.project_root, self._dependencies)
+
+        for grp, pkgs in self._group_dependencies.items():
+            if self.dry_run:
+                dry_run_group_inject(self.project_root, grp, pkgs)
+            else:
+                inject_group_dependencies(self.project_root, grp, pkgs)
 
         # Optional script update hook used by entry-point factory implementations.
         if bool(self._params.get("scripts_entry", False)):

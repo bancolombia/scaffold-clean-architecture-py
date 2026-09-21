@@ -7,6 +7,7 @@ from scaffold_ca_python.core.name_utils import (
     to_kebab_case,
     to_pascal_case,
     to_snake_case,
+    validate_module_name,
     validate_name,
 )
 
@@ -166,3 +167,31 @@ def test_validate_name_rejects_leading_hyphen() -> None:
 def test_validate_name_rejects_trailing_underscore() -> None:
     with pytest.raises(ScaffoldError, match="kebab-case"):
         validate_name("myproject_")
+
+
+# ---------------------------------------------------------------------------
+# validate_module_name (snake_case only)
+# ---------------------------------------------------------------------------
+
+
+def test_validate_module_name_accepts_snake_case() -> None:
+    assert validate_module_name("create_order") == "create_order"
+
+
+def test_validate_module_name_accepts_single_word() -> None:
+    assert validate_module_name("order") == "order"
+
+
+def test_validate_module_name_rejects_kebab_case() -> None:
+    with pytest.raises(ScaffoldError, match="snake_case"):
+        validate_module_name("create-order")
+
+
+def test_validate_module_name_rejects_pascal_case() -> None:
+    with pytest.raises(ScaffoldError, match="snake_case"):
+        validate_module_name("CreateOrder")
+
+
+def test_validate_module_name_rejects_camel_case() -> None:
+    with pytest.raises(ScaffoldError, match="snake_case"):
+        validate_module_name("createOrder")

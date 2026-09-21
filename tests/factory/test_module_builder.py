@@ -176,3 +176,104 @@ def test_insert_after_real_persist_modifies_file(tmp_path: Path) -> None:
     log_idx = next(i for i, line in enumerate(lines) if "LOG_LEVEL" in line)
     assert "HOST" in lines[log_idx + 1]
     assert "PORT" in lines[log_idx + 2]
+
+
+# ---------------------------------------------------------------------------
+# add_dependency with group
+# ---------------------------------------------------------------------------
+
+
+def _write_pyproject_with_groups(root: Path) -> None:
+    (root / "pyproject.toml").write_text(
+        """
+[project]
+name = "demo"
+version = "0.1.0"
+dependencies = []
+
+[dependency-groups]
+test = [
+    "pytest==9.1.1",
+]
+dev = [
+    "ruff==0.16.8",
+    {include-group = "test"},
+]
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def test_add_dependency_with_group_injects_into_group(tmp_path: Path) -> None:
+    import tomllib
+
+    _write_pyproject_with_groups(tmp_path)
+    project = _project_ctx()
+    builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, dry_run=False)
+
+    builder.add_dependency("respx>=0.22", group="test")
+
+    _ = builder.persist()
+
+    with (tmp_path / "pyproject.toml").open("rb") as fh:
+        data = tomllib.load(fh)
+    test_entries = [e for e in data.get("dependency-groups", {}).get("test", []) if isinstance(e, str)]
+    assert any("respx" in e for e in test_entries), f"respx not in test group: {test_entries}"
+
+
+def test_add_dependency_with_group_does_not_touch_runtime_deps(tmp_path: Path) -> None:
+    import tomllib
+
+    _write_pyproject_with_groups(tmp_path)
+    project = _project_ctx()
+    builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, dry_run=False)
+
+    builder.add_dependency("respx>=0.22", group="test")
+
+    _ = builder.persist()
+
+    with (tmp_path / "pyproject.toml").open("rb") as fh:
+        data = tomllib.load(fh)
+    runtime_deps: list[str] = data.get("project", {}).get("dependencies", [])
+    assert not any("respx" in d for d in runtime_deps), "respx must not appear in runtime deps"
+
+
+def test_add_dependency_with_group_dry_run_does_not_write(tmp_path: Path) -> None:
+    _write_pyproject_with_groups(tmp_path)
+    pyproject = tmp_path / "pyproject.toml"
+    original = pyproject.read_bytes()
+    project = _project_ctx()
+    builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, dry_run=True)
+
+    builder.add_dependency("respx>=0.22", group="test")
+    _ = builder.persist()
+
+    assert pyproject.read_bytes() == original
+
+
+def test_pending_dependencies_properties_expose_queued_deps(tmp_path: Path) -> None:
+    project = _project_ctx()
+    builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, dry_run=True)
+
+    builder.add_dependency("httpx>=0.27")
+    builder.add_dependency("respx>=0.22", group="test")
+
+    assert builder.pending_dependencies == ["httpx>=0.27"]
+    assert builder.pending_group_dependencies == {"test": ["respx>=0.22"]}
+
+
+def test_pending_properties_return_copies(tmp_path: Path) -> None:
+    project = _project_ctx()
+    builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, dry_run=True)
+
+    builder.add_dependency("httpx>=0.27")
+    builder.add_dependency("respx>=0.22", group="test")
+
+    # Mutating the returned values must not affect internal state.
+    builder.pending_dependencies.append("evil>=9")
+    builder.pending_group_dependencies["test"].append("evil>=9")
+    builder.pending_group_dependencies["new"] = ["evil>=9"]
+
+    assert builder.pending_dependencies == ["httpx>=0.27"]
+    assert builder.pending_group_dependencies == {"test": ["respx>=0.22"]}

@@ -86,7 +86,7 @@ def test_gm_dry_run_does_not_change_fs(project_root: Path) -> None:
 
 def test_guc_dry_run_does_not_change_fs(project_root: Path) -> None:
     before = _dir_hash(project_root)
-    runner.invoke(app, ["guc", "--name", "create-order", "--dry-run"], catch_exceptions=False)
+    runner.invoke(app, ["guc", "--name", "create_order", "--dry-run"], catch_exceptions=False)
     after = _dir_hash(project_root)
     assert before == after
 
@@ -122,7 +122,7 @@ def test_gep_dry_run_does_not_change_fs(project_root: Path) -> None:
 
 def test_gh_dry_run_does_not_change_fs(project_root: Path) -> None:
     before = _dir_hash(project_root)
-    runner.invoke(app, ["gh", "--name", "log-helper", "--dry-run"], catch_exceptions=False)
+    runner.invoke(app, ["gh", "--name", "log_helper", "--dry-run"], catch_exceptions=False)
     after = _dir_hash(project_root)
     assert before == after
 

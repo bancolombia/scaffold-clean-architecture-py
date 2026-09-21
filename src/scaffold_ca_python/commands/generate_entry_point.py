@@ -10,10 +10,11 @@ from typing import Annotated
 import typer
 import yaml
 from rich.console import Console
+from rich.markup import escape
 from rich.tree import Tree
 
 from scaffold_ca_python.core.module_builder import ModuleBuilder
-from scaffold_ca_python.core.name_utils import ScaffoldError
+from scaffold_ca_python.core.name_utils import ScaffoldError, to_snake_case
 from scaffold_ca_python.core.project_detector import find_project_root
 from scaffold_ca_python.factory import ModuleFactory
 from scaffold_ca_python.factory.entry_points.ep_agent import EntryPointAgent
@@ -59,7 +60,7 @@ def _load_project_context(project_root: Path) -> ProjectContext:
     pyproject_path = project_root / "pyproject.toml"
     with open(pyproject_path, "rb") as f:
         data = tomllib.load(f)
-    project_name = data.get("project", {}).get("name", "project").replace("-", "_")
+    project_name = to_snake_case(data.get("project", {}).get("name", "project"))
     return ProjectContext(name=project_name)
 
 
@@ -190,9 +191,10 @@ def _generate_entry_point_impl(
             tree.add(str(p.relative_to(project_root)))
         console.print(tree)
 
-        # Check if dependencies were collected by looking at builder internals
-        if builder._dependencies:
-            console.print(f"[dim]Would add to [project.dependencies]: {', '.join(builder._dependencies)}[/dim]")
+        # Report any runtime dependencies queued for injection
+        if builder.pending_dependencies:
+            target = escape("[project.dependencies]")
+            console.print(f"[dim]Would add to {target}: {', '.join(builder.pending_dependencies)}[/dim]")
 
         if type_ == "restapi":
             main_py = project_root / "src" / pkg / "main.py"

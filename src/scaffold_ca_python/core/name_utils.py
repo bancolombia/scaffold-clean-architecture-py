@@ -6,6 +6,9 @@ import re
 
 NAME_RE = re.compile(r"^[a-z][a-z0-9]*([_-][a-z0-9]+)*$")
 
+# Stricter pattern for module/class-generating commands: snake_case only (no hyphens).
+MODULE_NAME_RE = re.compile(r"^[a-z][a-z0-9]*(_[a-z0-9]+)*$")
+
 # Matches transitions: lowercase→uppercase and letter→digit boundary runs
 _CAMEL_BOUNDARY_RE = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
 
@@ -29,6 +32,17 @@ def validate_name(name: str) -> str:
         raise ScaffoldError(
             f"Invalid name {name!r}. Use kebab-case (e.g., 'my-project') or snake_case (e.g., 'my_project')."
         )
+    return name
+
+
+def validate_module_name(name: str) -> str:
+    """Validate *name* for module/class-generating commands: snake_case only.
+
+    Raises :class:`ScaffoldError` with a hint if the name is not snake_case.
+    Returns the original name unchanged when valid.
+    """
+    if not MODULE_NAME_RE.match(name):
+        raise ScaffoldError(f"Invalid name {name!r}. Use snake_case (e.g., 'create_order').")
     return name
 
 

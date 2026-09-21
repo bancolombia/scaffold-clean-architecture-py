@@ -102,7 +102,7 @@ def test_secrets_creates_test(project_root: Path) -> None:
 
 
 def test_generic_creates_init(project_root: Path) -> None:
-    result = runner.invoke(app, ["gda", "--type", "generic", "--name", "cache-store"], catch_exceptions=False)
+    result = runner.invoke(app, ["gda", "--type", "generic", "--name", "cache_store"], catch_exceptions=False)
     assert result.exit_code == 0
     assert (
         project_root / "src" / "my_app" / "infrastructure" / "driven_adapters" / "cache_store" / "__init__.py"
@@ -110,7 +110,7 @@ def test_generic_creates_init(project_root: Path) -> None:
 
 
 def test_generic_creates_impl(project_root: Path) -> None:
-    result = runner.invoke(app, ["gda", "--type", "generic", "--name", "cache-store"], catch_exceptions=False)
+    result = runner.invoke(app, ["gda", "--type", "generic", "--name", "cache_store"], catch_exceptions=False)
     assert result.exit_code == 0
     assert (
         project_root
@@ -124,7 +124,7 @@ def test_generic_creates_impl(project_root: Path) -> None:
 
 
 def test_generic_creates_test(project_root: Path) -> None:
-    result = runner.invoke(app, ["gda", "--type", "generic", "--name", "cache-store"], catch_exceptions=False)
+    result = runner.invoke(app, ["gda", "--type", "generic", "--name", "cache_store"], catch_exceptions=False)
     assert result.exit_code == 0
     assert (
         project_root
@@ -138,7 +138,7 @@ def test_generic_creates_test(project_root: Path) -> None:
 
 
 def test_generic_impl_contains_class_name(project_root: Path) -> None:
-    runner.invoke(app, ["gda", "--type", "generic", "--name", "cache-store"], catch_exceptions=False)
+    runner.invoke(app, ["gda", "--type", "generic", "--name", "cache_store"], catch_exceptions=False)
     content = (
         project_root
         / "src"
@@ -182,7 +182,7 @@ def test_dry_run_prints_paths(project_root: Path) -> None:
 def test_dry_run_generic_writes_nothing(project_root: Path) -> None:
     result = runner.invoke(
         app,
-        ["gda", "--type", "generic", "--name", "cache-store", "--dry-run"],
+        ["gda", "--type", "generic", "--name", "cache_store", "--dry-run"],
         catch_exceptions=False,
     )
     assert result.exit_code == 0
@@ -237,9 +237,19 @@ def test_no_project_root_exits_1(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 
 
 def test_rest_consumer_injects_httpx(project_root: Path) -> None:
+    import tomllib
+
     runner.invoke(app, ["gda", "--type", "rest-consumer"], catch_exceptions=False)
     content = (project_root / "pyproject.toml").read_text()
     assert "httpx" in content
+
+    # respx must be in [dependency-groups.test], not in runtime deps
+    with (project_root / "pyproject.toml").open("rb") as fh:
+        data = tomllib.load(fh)
+    runtime: list[str] = data.get("project", {}).get("dependencies", [])
+    assert not any("respx" in d for d in runtime), "respx must not be in runtime deps"
+    test_entries = [e for e in data.get("dependency-groups", {}).get("test", []) if isinstance(e, str)]
+    assert any("respx" in e for e in test_entries), f"respx not found in [dependency-groups.test]: {test_entries}"
 
 
 def test_secrets_injects_boto3(project_root: Path) -> None:
@@ -250,7 +260,7 @@ def test_secrets_injects_boto3(project_root: Path) -> None:
 
 def test_generic_injects_nothing(project_root: Path) -> None:
     original = (project_root / "pyproject.toml").read_text()
-    runner.invoke(app, ["gda", "--type", "generic", "--name", "cache-store"], catch_exceptions=False)
+    runner.invoke(app, ["gda", "--type", "generic", "--name", "cache_store"], catch_exceptions=False)
     assert (project_root / "pyproject.toml").read_text() == original
 
 
@@ -265,7 +275,8 @@ def test_rest_consumer_inject_is_idempotent(project_root: Path) -> None:
     )
     runner.invoke(app, ["gda", "--type", "rest-consumer"], catch_exceptions=False)
     content = (project_root / "pyproject.toml").read_text()
-    assert content.count("httpx") == 1
+    assert content.count("httpx~=") == 1, "httpx must appear exactly once as a dependency (not duplicated)"
+    assert content.count("respx~=") == 1, "respx must appear exactly once as a dependency (not duplicated)"
 
 
 def test_dry_run_does_not_inject_deps(project_root: Path) -> None:
@@ -277,6 +288,10 @@ def test_dry_run_does_not_inject_deps(project_root: Path) -> None:
 def test_dry_run_prints_deps_to_inject(project_root: Path) -> None:
     result = runner.invoke(app, ["gda", "--type", "rest-consumer", "--dry-run"], catch_exceptions=False)
     assert "httpx" in result.output
+    assert "respx" in result.output
+    # The bracket labels must render literally (not swallowed as Rich markup).
+    assert "[project.dependencies]" in result.output
+    assert "[dependency-groups.test]" in result.output
 
 
 # ---------------------------------------------------------------------------
@@ -320,4 +335,10 @@ def test_gda_no_args_shows_type_option() -> None:
 def test_pascal_case_name_exits_1(project_root: Path) -> None:
     result = runner.invoke(app, ["gda", "--type", "generic", "--name", "InvalidAdapter"])
     assert result.exit_code == 1
-    assert "kebab-case" in result.output
+    assert "snake_case" in result.output
+
+
+def test_kebab_name_exits_1(project_root: Path) -> None:
+    result = runner.invoke(app, ["gda", "--type", "generic", "--name", "cache-store"])
+    assert result.exit_code == 1
+    assert "snake_case" in result.output

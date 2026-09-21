@@ -6,9 +6,11 @@ from pathlib import Path
 import pytest
 
 from scaffold_ca_python.core.pyproject_writer import (
+    dry_run_group_inject,
     dry_run_inject,
     dry_run_scripts_update,
     inject_dependencies,
+    inject_group_dependencies,
     update_project_scripts,
 )
 from scaffold_ca_python.models.context import ProjectContext
@@ -101,6 +103,12 @@ def test_inject_partial_list_only_adds_missing(tmp_path: Path) -> None:
 def test_inject_returns_empty_when_all_present(tmp_path: Path) -> None:
     _make_pyproject(tmp_path, deps=["fastapi>=0.100", "httpx>=0.27"])
     added = inject_dependencies(tmp_path, ["fastapi>=0.100", "httpx>=0.27"])
+    assert added == []
+
+
+def test_inject_dedupes_across_operators(tmp_path: Path) -> None:
+    _make_pyproject(tmp_path, deps=["dependency-injector==4.49.1"])
+    added = inject_dependencies(tmp_path, ["dependency-injector~=4.49.1"])
     assert added == []
 
 
@@ -268,6 +276,116 @@ def test_dry_run_scripts_update_never_writes_to_disk(tmp_path: Path) -> None:
     before = pyproject.read_bytes()
     dry_run_scripts_update(tmp_path, ProjectContext(name="my-app"))
     assert pyproject.read_bytes() == before
+
+
+# ---------------------------------------------------------------------------
+# inject_group_dependencies — writes
+# ---------------------------------------------------------------------------
+
+
+def _make_pyproject_with_dep_groups(tmp_path: Path, *, test: list[str] | None = None) -> Path:
+    """Write a pyproject.toml with [dependency-groups] optionally pre-populated."""
+    test_entries = "\n".join(f'    "{d}",' for d in (test or []))
+    content = f"""\
+[project]
+name = "my-project"
+dependencies = []
+
+[dependency-groups]
+test = [
+{test_entries}
+]
+dev = [
+    "ruff==0.16.8",
+    {{include-group = "test"}},
+]
+
+[tool.scaffold-ca-python]
+name = "MyProject"
+"""
+    path = tmp_path / "pyproject.toml"
+    path.write_text(content, encoding="utf-8")
+    return path
+
+
+def _read_group(pyproject: Path, group: str) -> list[str]:
+    with pyproject.open("rb") as fh:
+        data = tomllib.load(fh)
+    entries = data.get("dependency-groups", {}).get(group, [])
+    return [e for e in entries if isinstance(e, str)]
+
+
+def test_inject_group_adds_new_package(tmp_path: Path) -> None:
+    pyproject = _make_pyproject_with_dep_groups(tmp_path)
+    added = inject_group_dependencies(tmp_path, "test", ["respx>=0.22"])
+    assert added == ["respx>=0.22"]
+    assert "respx>=0.22" in _read_group(pyproject, "test")
+
+
+def test_inject_group_skips_duplicate(tmp_path: Path) -> None:
+    _make_pyproject_with_dep_groups(tmp_path, test=["respx>=0.22"])
+    added = inject_group_dependencies(tmp_path, "test", ["respx>=0.22"])
+    assert added == []
+
+
+def test_inject_group_skips_duplicate_by_name_prefix(tmp_path: Path) -> None:
+    _make_pyproject_with_dep_groups(tmp_path, test=["respx==0.21.0"])
+    added = inject_group_dependencies(tmp_path, "test", ["respx>=0.22"])
+    assert added == []
+
+
+def test_inject_group_creates_group_when_absent(tmp_path: Path) -> None:
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_text('[project]\nname = "my-project"\n', encoding="utf-8")
+    added = inject_group_dependencies(tmp_path, "test", ["respx>=0.22"])
+    assert added == ["respx>=0.22"]
+    assert "respx>=0.22" in _read_group(pyproject, "test")
+
+
+def test_inject_group_preserves_include_group_entries(tmp_path: Path) -> None:
+    """include-group dicts in [dev] must survive the round-trip."""
+    pyproject = _make_pyproject_with_dep_groups(tmp_path)
+    inject_group_dependencies(tmp_path, "test", ["respx>=0.22"])
+    with pyproject.open("rb") as fh:
+        data = tomllib.load(fh)
+    dev_entries = data.get("dependency-groups", {}).get("dev", [])
+    include_entries = [e for e in dev_entries if isinstance(e, dict)]
+    assert any(e.get("include-group") == "test" for e in include_entries), (
+        "include-group entry was lost after inject_group_dependencies"
+    )
+
+
+def test_inject_group_multiple_packages(tmp_path: Path) -> None:
+    pyproject = _make_pyproject_with_dep_groups(tmp_path)
+    added = inject_group_dependencies(tmp_path, "test", ["respx>=0.22", "pytest-mock>=3.0"])
+    assert added == ["respx>=0.22", "pytest-mock>=3.0"]
+    group = _read_group(pyproject, "test")
+    assert "respx>=0.22" in group
+    assert "pytest-mock>=3.0" in group
+
+
+# ---------------------------------------------------------------------------
+# dry_run_group_inject — never writes
+# ---------------------------------------------------------------------------
+
+
+def test_dry_run_group_returns_packages_that_would_be_added(tmp_path: Path) -> None:
+    _make_pyproject_with_dep_groups(tmp_path)
+    would_add = dry_run_group_inject(tmp_path, "test", ["respx>=0.22"])
+    assert would_add == ["respx>=0.22"]
+
+
+def test_dry_run_group_never_writes_to_disk(tmp_path: Path) -> None:
+    pyproject = _make_pyproject_with_dep_groups(tmp_path)
+    original = pyproject.read_bytes()
+    dry_run_group_inject(tmp_path, "test", ["respx>=0.22"])
+    assert pyproject.read_bytes() == original
+
+
+def test_dry_run_group_skips_already_present_packages(tmp_path: Path) -> None:
+    _make_pyproject_with_dep_groups(tmp_path, test=["respx>=0.22"])
+    would_add = dry_run_group_inject(tmp_path, "test", ["respx>=0.22"])
+    assert would_add == []
 
 
 # ---------------------------------------------------------------------------

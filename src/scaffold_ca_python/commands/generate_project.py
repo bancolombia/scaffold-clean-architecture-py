@@ -151,7 +151,7 @@ def register(app: typer.Typer) -> None:
             str,
             typer.Option(
                 "--name",
-                help="Project name (PascalCase or snake_case).",
+                help="Project name (kebab-case or snake_case).",
                 rich_help_panel="Required",
             ),
         ] = None,  # type: ignore[assignment]

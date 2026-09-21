@@ -10,7 +10,7 @@ import typer
 from rich.console import Console
 
 from scaffold_ca_python.core.module_builder import ModuleBuilder
-from scaffold_ca_python.core.name_utils import ScaffoldError, to_snake_case, validate_name
+from scaffold_ca_python.core.name_utils import ScaffoldError, to_snake_case, validate_module_name
 from scaffold_ca_python.core.project_detector import find_project_root, resolve_tests_root
 from scaffold_ca_python.factory import ModuleFactory
 from scaffold_ca_python.factory.simple.delete_module_factory import DeleteModuleFactory
@@ -24,7 +24,7 @@ _REGISTRY: dict[str, type[ModuleFactory]] = {
 }
 
 _DM_HELP = "Delete a previously generated module and its test mirror. Alias 'dm'."
-_DM_EPILOG = "Examples:\n\n  * scaffold dm --name Order\n\n  * scaffold delete-module --name MyAdapter\n\n"
+_DM_EPILOG = "Examples:\n\n  * scaffold dm --name order\n\n  * scaffold delete-module --name my_adapter\n\n"
 
 
 # ---------------------------------------------------------------------------
@@ -32,7 +32,7 @@ _DM_EPILOG = "Examples:\n\n  * scaffold dm --name Order\n\n  * scaffold delete-m
 # ---------------------------------------------------------------------------
 
 
-def _find_module_targets(project_root: Path, snake: str) -> list[tuple[Path, Path | None]]:
+def _find_module_targets(pkg: str, project_root: Path, snake: str) -> list[tuple[Path, Path | None]]:
     """Return a list of (target_path, test_path_or_None) for all matches of *snake*.
 
     Searches across:
@@ -42,7 +42,6 @@ def _find_module_targets(project_root: Path, snake: str) -> list[tuple[Path, Pat
       4. infrastructure/entry_points/<snake>/
       5. infrastructure/helpers/<snake>/
     """
-    pkg = _get_python_package(project_root)
     src_root = project_root / "src" / pkg
     tests_root = resolve_tests_root(project_root)
 
@@ -77,20 +76,6 @@ def _find_module_targets(project_root: Path, snake: str) -> list[tuple[Path, Pat
     return candidates
 
 
-def _get_python_package(root: Path) -> str:
-    pyproject = root / "pyproject.toml"
-    with pyproject.open("rb") as fh:
-        data = tomllib.load(fh)
-    section = data.get("tool", {}).get("scaffold-ca-python", {})
-    name = section.get("name", root.name)
-    import re
-
-    s = name.replace("-", "_")
-    s = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", s)
-    s = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", s)
-    return s.lower()
-
-
 # ---------------------------------------------------------------------------
 # Implementation
 # ---------------------------------------------------------------------------
@@ -99,7 +84,7 @@ def _get_python_package(root: Path) -> str:
 def _delete_module_impl(name: str, confirm: bool, dry_run: bool) -> None:
     # Validate name
     try:
-        validate_name(name)
+        validate_module_name(name)
     except ScaffoldError as exc:
         console.print(f"[red]Error:[/red] {exc}")
         raise typer.Exit(code=1) from None
@@ -118,7 +103,7 @@ def _delete_module_impl(name: str, confirm: bool, dry_run: bool) -> None:
 
     # Find targets
     snake = to_snake_case(name)
-    targets = _find_module_targets(project_root, snake)
+    targets = _find_module_targets(project_ctx.python_package, project_root, snake)
 
     if not targets:
         console.print(
@@ -174,7 +159,7 @@ def register(app: typer.Typer) -> None:
     def delete_module(
         ctx: typer.Context,
         name: Annotated[
-            str | None, typer.Option("--name", help="Module name (PascalCase).", rich_help_panel="Required")
+            str | None, typer.Option("--name", help="Module name (snake_case).", rich_help_panel="Required")
         ] = None,
         confirm: Annotated[
             bool,

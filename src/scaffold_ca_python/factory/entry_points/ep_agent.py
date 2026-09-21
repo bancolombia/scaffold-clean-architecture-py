@@ -27,7 +27,7 @@ class EntryPointAgent(ModuleFactory):
         - src/main.py (if exists)
 
         Injects:
-        - a2a-sdk>=0.1
+        - a2a-sdk~=1.1.4
         """
         project_root = builder.project_root
         pkg = builder.project_ctx.python_package
@@ -88,4 +88,4 @@ class EntryPointAgent(ModuleFactory):
         )
 
         # Add dependency
-        builder.add_dependency("a2a-sdk>=0.1")
+        builder.add_dependency("a2a-sdk~=1.1.4")

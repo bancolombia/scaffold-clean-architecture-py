@@ -32,19 +32,19 @@ def project_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 
 def test_creates_init(project_root: Path) -> None:
-    result = runner.invoke(app, ["gh", "--name", "date-utils"], catch_exceptions=False)
+    result = runner.invoke(app, ["gh", "--name", "date_utils"], catch_exceptions=False)
     assert result.exit_code == 0
     assert (project_root / "src" / "my_app" / "infrastructure" / "helpers" / "date_utils" / "__init__.py").exists()
 
 
 def test_creates_implementation_file(project_root: Path) -> None:
-    result = runner.invoke(app, ["gh", "--name", "date-utils"], catch_exceptions=False)
+    result = runner.invoke(app, ["gh", "--name", "date_utils"], catch_exceptions=False)
     assert result.exit_code == 0
     assert (project_root / "src" / "my_app" / "infrastructure" / "helpers" / "date_utils" / "date_utils.py").exists()
 
 
 def test_creates_test_file(project_root: Path) -> None:
-    result = runner.invoke(app, ["gh", "--name", "date-utils"], catch_exceptions=False)
+    result = runner.invoke(app, ["gh", "--name", "date_utils"], catch_exceptions=False)
     assert result.exit_code == 0
     assert (
         project_root / "src" / "tests" / "infrastructure" / "helpers" / "date_utils" / "test_date_utils.py"
@@ -52,13 +52,13 @@ def test_creates_test_file(project_root: Path) -> None:
 
 
 def test_implementation_contains_class(project_root: Path) -> None:
-    runner.invoke(app, ["gh", "--name", "date-utils"], catch_exceptions=False)
+    runner.invoke(app, ["gh", "--name", "date_utils"], catch_exceptions=False)
     impl = (project_root / "src" / "my_app" / "infrastructure" / "helpers" / "date_utils" / "date_utils.py").read_text()
     assert "class DateUtils" in impl
 
 
 def test_test_file_imports_class(project_root: Path) -> None:
-    runner.invoke(app, ["gh", "--name", "date-utils"], catch_exceptions=False)
+    runner.invoke(app, ["gh", "--name", "date_utils"], catch_exceptions=False)
     test_src = (
         project_root / "src" / "tests" / "infrastructure" / "helpers" / "date_utils" / "test_date_utils.py"
     ).read_text()
@@ -66,7 +66,7 @@ def test_test_file_imports_class(project_root: Path) -> None:
 
 
 def test_success_exit_code(project_root: Path) -> None:
-    result = runner.invoke(app, ["gh", "--name", "log-helper"], catch_exceptions=False)
+    result = runner.invoke(app, ["gh", "--name", "log_helper"], catch_exceptions=False)
     assert result.exit_code == 0
 
 
@@ -76,13 +76,13 @@ def test_success_exit_code(project_root: Path) -> None:
 
 
 def test_dry_run_writes_nothing(project_root: Path) -> None:
-    result = runner.invoke(app, ["gh", "--name", "date-utils", "--dry-run"], catch_exceptions=False)
+    result = runner.invoke(app, ["gh", "--name", "date_utils", "--dry-run"], catch_exceptions=False)
     assert result.exit_code == 0
     assert not (project_root / "src" / "my_app" / "infrastructure" / "helpers" / "date_utils").exists()
 
 
 def test_dry_run_prints_paths(project_root: Path) -> None:
-    result = runner.invoke(app, ["gh", "--name", "date-utils", "--dry-run"], catch_exceptions=False)
+    result = runner.invoke(app, ["gh", "--name", "date_utils", "--dry-run"], catch_exceptions=False)
     assert result.exit_code == 0
     assert "date_utils" in result.output
 
@@ -93,14 +93,14 @@ def test_dry_run_prints_paths(project_root: Path) -> None:
 
 
 def test_duplicate_exits_1(project_root: Path) -> None:
-    runner.invoke(app, ["gh", "--name", "date-utils"], catch_exceptions=False)
-    result = runner.invoke(app, ["gh", "--name", "date-utils"], catch_exceptions=False)
+    runner.invoke(app, ["gh", "--name", "date_utils"], catch_exceptions=False)
+    result = runner.invoke(app, ["gh", "--name", "date_utils"], catch_exceptions=False)
     assert result.exit_code == 1
 
 
 def test_duplicate_error_message(project_root: Path) -> None:
-    runner.invoke(app, ["gh", "--name", "date-utils"], catch_exceptions=False)
-    result = runner.invoke(app, ["gh", "--name", "date-utils"], catch_exceptions=False)
+    runner.invoke(app, ["gh", "--name", "date_utils"], catch_exceptions=False)
+    result = runner.invoke(app, ["gh", "--name", "date_utils"], catch_exceptions=False)
     assert "already exists" in result.output
 
 
@@ -121,20 +121,26 @@ def test_invalid_name_error_message(project_root: Path) -> None:
 
 def test_no_project_root_exits_1(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.chdir(tmp_path)
-    result = runner.invoke(app, ["gh", "--name", "my-helper"], catch_exceptions=False)
+    result = runner.invoke(app, ["gh", "--name", "my_helper"], catch_exceptions=False)
     assert result.exit_code == 1
 
 
 def test_no_project_root_error_message(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.chdir(tmp_path)
-    result = runner.invoke(app, ["gh", "--name", "my-helper"], catch_exceptions=False)
+    result = runner.invoke(app, ["gh", "--name", "my_helper"], catch_exceptions=False)
     assert "scaffold ca" in result.output.lower()
 
 
 def test_pascal_case_name_exits_1(project_root: Path) -> None:
     result = runner.invoke(app, ["gh", "--name", "InvalidHelper"])
     assert result.exit_code == 1
-    assert "kebab-case" in result.output
+    assert "snake_case" in result.output
+
+
+def test_kebab_name_exits_1(project_root: Path) -> None:
+    result = runner.invoke(app, ["gh", "--name", "date-utils"])
+    assert result.exit_code == 1
+    assert "snake_case" in result.output
 
 
 # ---------------------------------------------------------------------------

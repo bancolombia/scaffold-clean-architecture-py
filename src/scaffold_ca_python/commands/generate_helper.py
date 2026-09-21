@@ -11,7 +11,7 @@ from rich.console import Console
 from rich.tree import Tree
 
 from scaffold_ca_python.core.module_builder import ModuleBuilder
-from scaffold_ca_python.core.name_utils import ScaffoldError, to_snake_case, validate_name
+from scaffold_ca_python.core.name_utils import ScaffoldError, to_snake_case, validate_module_name
 from scaffold_ca_python.core.project_detector import find_project_root
 from scaffold_ca_python.factory import ModuleFactory
 from scaffold_ca_python.factory.simple.helper_factory import HelperFactory
@@ -25,13 +25,13 @@ _REGISTRY: dict[str, type[ModuleFactory]] = {
 }
 
 _GH_HELP = "Scaffold a helper utility module and test stub. Alias 'gh'."
-_GH_EPILOG = "Example:\n\n  * scaffold gh --name JsonParser\n\n  * scaffold generate-helper --name JsonParser\n\n"
+_GH_EPILOG = "Example:\n\n  * scaffold gh --name json_parser\n\n  * scaffold generate-helper --name json_parser\n\n"
 
 
 def _generate_helper_impl(name: str, dry_run: bool) -> None:
     # --- Validate name ---
     try:
-        validate_name(name)
+        validate_module_name(name)
     except ScaffoldError as exc:
         console.print(f"[red]Error:[/red] {exc}")
         raise typer.Exit(code=1) from None
@@ -100,7 +100,7 @@ def register(app: typer.Typer) -> None:
     def generate_helper(
         ctx: typer.Context,
         name: Annotated[
-            str | None, typer.Option("--name", help="Helper name (PascalCase).", rich_help_panel="Required")
+            str | None, typer.Option("--name", help="Helper name (snake_case).", rich_help_panel="Required")
         ] = None,
         dry_run: Annotated[
             bool,

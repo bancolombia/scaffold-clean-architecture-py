@@ -11,7 +11,7 @@ from rich.console import Console
 from rich.tree import Tree
 
 from scaffold_ca_python.core.module_builder import ModuleBuilder
-from scaffold_ca_python.core.name_utils import ScaffoldError, to_snake_case, validate_name
+from scaffold_ca_python.core.name_utils import ScaffoldError, to_snake_case, validate_module_name
 from scaffold_ca_python.core.project_detector import find_project_root
 from scaffold_ca_python.factory import ModuleFactory
 from scaffold_ca_python.factory.simple.use_case_factory import UseCaseFactory
@@ -24,13 +24,15 @@ _REGISTRY: dict[str, type[ModuleFactory]] = {
     "use_case": UseCaseFactory,
 }
 _GUC_HELP = "Scaffold a use case in domain/usecase/. Alias 'guc'."
-_GUC_EPILOG = "Example:\n\n  * scaffold guc --name CreateOrder\n\n  * scaffold generate-use-case --name CreateOrder\n\n"
+_GUC_EPILOG = (
+    "Example:\n\n  * scaffold guc --name create_order\n\n  * scaffold generate-use-case --name create_order\n\n"
+)
 
 
 def _generate_use_case_impl(name: str, dry_run: bool) -> None:
     # --- Validate name ---
     try:
-        validate_name(name)
+        validate_module_name(name)
     except ScaffoldError as exc:
         console.print(f"[red]Error:[/red] {exc}")
         raise typer.Exit(code=1) from None
@@ -102,7 +104,7 @@ def register(app: typer.Typer) -> None:
     def generate_use_case(
         ctx: typer.Context,
         name: Annotated[
-            str | None, typer.Option("--name", help="Use case name (PascalCase).", rich_help_panel="Required")
+            str | None, typer.Option("--name", help="Use case name (snake_case).", rich_help_panel="Required")
         ] = None,
         dry_run: Annotated[
             bool,

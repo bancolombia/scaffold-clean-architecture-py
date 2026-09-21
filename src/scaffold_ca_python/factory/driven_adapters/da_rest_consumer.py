@@ -23,7 +23,8 @@ class DrivenAdapterRestConsumer(ModuleFactory):
         - tests/infrastructure/driven_adapters/rest_consumer/test_rest_consumer.py
 
         Injects:
-        - httpx>=0.27
+        - httpx~=0.28.1  (runtime dependency)
+        - respx~=0.23.1  (test dependency-group)
         """
         project_root = builder.project_root
         pkg = builder.project_ctx.python_package
@@ -60,5 +61,6 @@ class DrivenAdapterRestConsumer(ModuleFactory):
             is_test=True,
         )
 
-        # Add dependency
-        builder.add_dependency("httpx>=0.27")
+        # Add dependencies: httpx at runtime, respx only in test group
+        builder.add_dependency("httpx~=0.28.1")
+        builder.add_dependency("respx~=0.23.1", group="test")

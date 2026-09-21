@@ -107,14 +107,14 @@ Commands covered (10 total):
 | Command | Alias | Example invocation |
 |---------|-------|--------------------|
 | `clean-architecture` | `ca` | `scaffold ca --name my-project` |
-| `generate-model` | `gm` | `scaffold gm --name Order` |
-| `generate-use-case` | `guc` | `scaffold guc --name CreateOrder` |
+| `generate-model` | `gm` | `scaffold gm --name order` |
+| `generate-use-case` | `guc` | `scaffold guc --name create_order` |
 | `generate-driven-adapter` | `gda` | `scaffold gda --type rest-consumer` |
 | `generate-entry-point` | `gep` | `scaffold gep --type restapi` / `--type mcp` |
-| `generate-helper` | `gh` | `scaffold gh --name LoggingHelper` |
+| `generate-helper` | `gh` | `scaffold gh --name logging_helper` |
 | `generate-pipeline` | `gpipe` | `scaffold gpipe --provider github` |
 | `validate-structure` | `vs` | `scaffold vs` |
-| `delete-module` | `dm` | `scaffold dm --name Order` |
+| `delete-module` | `dm` | `scaffold dm --name order` |
 | `update-project` | `up` | `scaffold up` |
 
 ### Technologies table schema

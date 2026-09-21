@@ -87,10 +87,10 @@ def test_restapi_dependencies_injected(tmp_path: Path) -> None:
 
     # Verify fastapi deps are present
     expected_deps = [
-        "fastapi[standard]>=0.135.2",
-        "uvicorn[standard]>=0.20",
-        "dependency-injector>=4.49.0",
-        "pydantic-settings>=2.13.1",
+        "fastapi[standard]~=0.141.1",
+        "uvicorn[standard]~=0.53.0",
+        "dependency-injector~=4.49.1",
+        "pydantic-settings~=2.15.0",
     ]
     for dep in expected_deps:
         assert dep in pyproject, f"Expected {dep} in pyproject.toml"

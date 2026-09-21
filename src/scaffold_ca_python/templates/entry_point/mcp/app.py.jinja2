@@ -10,9 +10,12 @@ from starlette.routing import Mount
 
 from {{ project.python_package }}.application.config.container import Container
 from {{ project.python_package }}.infrastructure.entry_points.mcp_server import tools
-{% if with_resources %}from {{ project.python_package }}.infrastructure.entry_points.mcp_server import resources
-{% endif %}{% if with_prompts %}from {{ project.python_package }}.infrastructure.entry_points.mcp_server import prompts
-{% endif %}
+{%- if with_resources %}
+from {{ project.python_package }}.infrastructure.entry_points.mcp_server import resources
+{%- endif %}
+{%- if with_prompts %}
+from {{ project.python_package }}.infrastructure.entry_points.mcp_server import prompts
+{%- endif %}
 
 mcp: FastMCP = FastMCP("{{ project.name }}", stateless_http=True)
 

@@ -55,7 +55,7 @@
 - [X] T009 [US2] Write Section 1 (title + badges) in `README.md` — H1 heading + PyPI version badge + Python badge + MIT license badge (absolute Shields.io URLs)
 - [X] T010 [US2] Write Section 2 ("What is this?") in `README.md` — 2–4 sentences covering Clean Architecture, Python, CLI code scaffolding (no framework names)
 - [X] T011 [US2] Write Section 3 ("Installation") in `README.md` — `pip install scaffold-ca-python` and `uv add scaffold-ca-python` fenced blocks + Python ≥3.13 note
-- [X] T012 [US2] Write Section 4 ("Quick Start") in `README.md` — numbered 4-step walkthrough: install → `scaffold ca --name my-app` → `scaffold gm --name Order` → `scaffold vs`
+- [X] T012 [US2] Write Section 4 ("Quick Start") in `README.md` — numbered 4-step walkthrough: install → `scaffold ca --name my-app` → `scaffold gm --name order` → `scaffold vs`
 - [X] T013 [US2] Write Section 5 ("Commands & Examples") in `README.md` — 10 `###` sub-sections (ca, gm, guc, gda, gep, gh, gpipe, vs, dm, up) each with description + fenced `bash` example per contracts/readme-outline.md
 - [X] T014 [P] [US2] Write Section 6 ("Technologies") in `README.md` — Markdown table (Tool/Library | Version | Role) with all 11 entries from data-model.md §3
 - [X] T015 [P] [US2] Write Section 7 ("Current Features") in `README.md` — bullet list covering all 10 commands, `--dry-run`, Jinja2 templates, Pydantic v2, Rich output, mypy strict, ruff, 80%+ coverage gate

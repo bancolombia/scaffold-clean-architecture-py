@@ -18,8 +18,9 @@ def _name_prefix(package: str) -> str:
         "fastapi>=0.100"        -> "fastapi"
         "uvicorn[standard]>=0.20" -> "uvicorn"
         "a2a-sdk>=0.1"          -> "a2a-sdk"
+        "boto3~=1.43.98"        -> "boto3"
     """
-    name = package.split(">=")[0].split("==")[0].split("<")[0].split("!=")[0]
+    name = package.split("~=")[0].split(">=")[0].split("==")[0].split("<")[0].split("!=")[0]
     name = name.split("[")[0]
     return name.strip().lower()
 
@@ -70,6 +71,88 @@ def inject_dependencies(project_root: Path, packages: list[str]) -> list[str]:
         tomli_w.dump(data, fh)
 
     return to_add
+
+
+def inject_group_dependencies(project_root: Path, group: str, packages: list[str]) -> list[str]:
+    """Add *packages* to ``[dependency-groups.<group>]`` in ``pyproject.toml``.
+
+    Idempotent: a package whose bare name is already present is skipped. The group
+    is created when absent. Non-string entries (e.g. ``{include-group = ...}``) are
+    preserved and ignored for duplicate detection.
+
+    Parameters
+    ----------
+    project_root:
+        Directory containing ``pyproject.toml``.
+    group:
+        Dependency-group name (e.g. ``"test"``).
+    packages:
+        Packages to inject, e.g. ``["respx>=0.22"]``.
+
+    Returns
+    -------
+    list[str]
+        The packages that were actually added (empty when all were already present).
+
+    Raises
+    ------
+    FileNotFoundError
+        If ``pyproject.toml`` does not exist in *project_root*.
+    tomllib.TOMLDecodeError
+        If ``pyproject.toml`` is malformed.
+    """
+    pyproject = project_root / "pyproject.toml"
+    with pyproject.open("rb") as fh:
+        data = tomllib.load(fh)
+
+    groups: dict[str, list[object]] = data.setdefault("dependency-groups", {})
+    entries: list[object] = groups.setdefault(group, [])
+    existing = [e for e in entries if isinstance(e, str)]
+    to_add = _missing(existing, packages)
+    if not to_add:
+        return []
+
+    entries.extend(to_add)
+
+    with pyproject.open("wb") as fh:
+        tomli_w.dump(data, fh)
+
+    return to_add
+
+
+def dry_run_group_inject(project_root: Path, group: str, packages: list[str]) -> list[str]:
+    """Return packages that *would* be added to ``[dependency-groups.<group>]``.
+
+    Read-only: never modifies ``pyproject.toml``.
+
+    Parameters
+    ----------
+    project_root:
+        Directory containing ``pyproject.toml``.
+    group:
+        Dependency-group name (e.g. ``"test"``).
+    packages:
+        Packages to check.
+
+    Returns
+    -------
+    list[str]
+        The packages that would be added if :func:`inject_group_dependencies` were called.
+
+    Raises
+    ------
+    FileNotFoundError
+        If ``pyproject.toml`` does not exist in *project_root*.
+    tomllib.TOMLDecodeError
+        If ``pyproject.toml`` is malformed.
+    """
+    pyproject = project_root / "pyproject.toml"
+    with pyproject.open("rb") as fh:
+        data = tomllib.load(fh)
+
+    entries = data.get("dependency-groups", {}).get(group, [])
+    existing = [e for e in entries if isinstance(e, str)]
+    return _missing(existing, packages)
 
 
 def dry_run_inject(project_root: Path, packages: list[str]) -> list[str]:

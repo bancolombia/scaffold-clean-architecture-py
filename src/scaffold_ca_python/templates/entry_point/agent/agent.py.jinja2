@@ -1,15 +1,16 @@
 """A2A async agent handler stub."""
 
 from __future__ import annotations
+{%- if enable_kafka %}
 
-{% if enable_kafka %}
 # Kafka consumer stub — replace with your actual broker configuration.
 # from aiokafka import AIOKafkaConsumer
-{% endif %}
-{% if enable_mcp_client %}
+{%- endif %}
+{%- if enable_mcp_client %}
+
 # MCP tool-call client stub — replace with your actual MCP client.
 # from mcp import ClientSession
-{% endif %}
+{%- endif %}
 
 
 class {{ project.name }}Agent:
