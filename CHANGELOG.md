@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/bancolombia/scaffold-clean-architecture-py/compare/v0.1.3...v0.1.4) (2026-09-21)
+
+
+### Bug Fixes
+
+* **scaffold:** resolve template generation bugs ([8cd012a](https://github.com/bancolombia/scaffold-clean-architecture-py/commit/8cd012a18eeb2b472875e545dbdbd42b087b13b1))
+
 ## [0.1.3](https://github.com/bancolombia/scaffold-clean-architecture-py/compare/v0.1.2...v0.1.3) (2026-09-17)
 
 
