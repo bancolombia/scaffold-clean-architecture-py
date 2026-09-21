@@ -4,18 +4,18 @@ version = "0.1.0"
 description = "Clean Architecture Python project"
 requires-python = ">=3.13"
 dependencies = [
-    "dependency-injector==4.49.0",
-    "pydantic-settings==2.13.1",
+    "dependency-injector==4.49.1",
+    "pydantic-settings==2.15.0",
 ]
 
 [dependency-groups]
 test = [
-    "pytest==9.0.3",
+    "pytest==9.1.1",
     "pytest-cov==7.1.0",
-    "pytest-asyncio==1.3.0",
+    "pytest-asyncio==1.4.0",
 ]
 dev = [
-    "ruff==0.15.10",
+    "ruff==0.16.8",
     { include-group = "test" },
 ]
 
@@ -37,7 +37,6 @@ target-version = "py313"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "ANN"]
-ignore = ["ANN101", "ANN102"]
 
 [tool.ruff.lint.per-file-ignores]
 "src/tests/**/*.py" = ["ANN"]
@@ -65,5 +64,10 @@ exclude_also = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "--cov={{ python_package }} --cov-fail-under=80"
+addopts = "--cov={{ python_package }} --cov-fail-under=80 --import-mode=importlib"
 testpaths = ["src/tests"]
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = [
+    "ignore:.*httpx.*:DeprecationWarning",
+    "ignore:.*BlockingPortal.*:DeprecationWarning",
+]

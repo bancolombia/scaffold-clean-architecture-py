@@ -9,8 +9,8 @@ from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException
 
-from {{ project.python_package }}.application.config.container import Container
 from {{ project.python_package }}.application.config.config import Settings
+from {{ project.python_package }}.application.config.container import Container
 from {{ project.python_package }}.infrastructure.entry_points.api.v1 import rest_controller
 from {{ project.python_package }}.infrastructure.entry_points.api.v1.exception_handler import (
     generic_exception_handler,

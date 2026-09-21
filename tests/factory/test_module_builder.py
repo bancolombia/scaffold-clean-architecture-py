@@ -193,10 +193,10 @@ dependencies = []
 
 [dependency-groups]
 test = [
-    "pytest==9.0.3",
+    "pytest==9.1.1",
 ]
 dev = [
-    "ruff==0.15.10",
+    "ruff==0.16.8",
     {include-group = "test"},
 ]
 """.strip()

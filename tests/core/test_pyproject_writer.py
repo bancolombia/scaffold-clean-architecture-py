@@ -106,6 +106,12 @@ def test_inject_returns_empty_when_all_present(tmp_path: Path) -> None:
     assert added == []
 
 
+def test_inject_dedupes_across_operators(tmp_path: Path) -> None:
+    _make_pyproject(tmp_path, deps=["dependency-injector==4.49.1"])
+    added = inject_dependencies(tmp_path, ["dependency-injector~=4.49.1"])
+    assert added == []
+
+
 def test_inject_creates_dependencies_key_when_absent(tmp_path: Path) -> None:
     _make_pyproject_no_deps(tmp_path)
     added = inject_dependencies(tmp_path, ["httpx>=0.27"])
@@ -290,7 +296,7 @@ test = [
 {test_entries}
 ]
 dev = [
-    "ruff==0.15.10",
+    "ruff==0.16.8",
     {{include-group = "test"}},
 ]
 

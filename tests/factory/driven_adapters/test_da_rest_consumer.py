@@ -27,10 +27,10 @@ dependencies = []
 
 [dependency-groups]
 test = [
-    "pytest==9.0.3",
+    "pytest==9.1.1",
 ]
 dev = [
-    "ruff==0.15.10",
+    "ruff==0.16.8",
     {include-group = "test"},
 ]
 """.strip()
@@ -86,7 +86,7 @@ def test_rest_consumer_dependencies_injected(tmp_path: Path) -> None:
     pyproject_text = (tmp_path / "pyproject.toml").read_text(encoding="utf-8")
 
     # Verify httpx runtime dep is present
-    assert "httpx>=0.27" in pyproject_text, "Expected httpx>=0.27 in [project.dependencies]"
+    assert "httpx~=0.28.1" in pyproject_text, "Expected httpx~=0.28.1 in [project.dependencies]"
 
     # Verify respx is injected into [dependency-groups.test]
     with (tmp_path / "pyproject.toml").open("rb") as fh:

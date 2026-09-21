@@ -18,8 +18,9 @@ def _name_prefix(package: str) -> str:
         "fastapi>=0.100"        -> "fastapi"
         "uvicorn[standard]>=0.20" -> "uvicorn"
         "a2a-sdk>=0.1"          -> "a2a-sdk"
+        "boto3~=1.43.98"        -> "boto3"
     """
-    name = package.split(">=")[0].split("==")[0].split("<")[0].split("!=")[0]
+    name = package.split("~=")[0].split(">=")[0].split("==")[0].split("<")[0].split("!=")[0]
     name = name.split("[")[0]
     return name.strip().lower()
 

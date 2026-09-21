@@ -23,7 +23,7 @@ class DrivenAdapterSecrets(ModuleFactory):
         - tests/infrastructure/driven_adapters/secrets/test_secrets_adapter.py
 
         Injects:
-        - boto3>=1.34
+        - boto3~=1.43.98
         """
         project_root = builder.project_root
         pkg = builder.project_ctx.python_package
@@ -61,4 +61,4 @@ class DrivenAdapterSecrets(ModuleFactory):
         )
 
         # Add dependency
-        builder.add_dependency("boto3>=1.34")
+        builder.add_dependency("boto3~=1.43.98")

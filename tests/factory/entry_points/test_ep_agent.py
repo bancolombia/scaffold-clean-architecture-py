@@ -76,7 +76,7 @@ def test_agent_dependencies_injected(tmp_path: Path) -> None:
     pyproject = (tmp_path / "pyproject.toml").read_text(encoding="utf-8")
 
     # Verify a2a-sdk dep is present
-    assert "a2a-sdk>=0.1" in pyproject, "Expected a2a-sdk>=0.1 in pyproject.toml"
+    assert "a2a-sdk~=1.1.4" in pyproject, "Expected a2a-sdk~=1.1.4 in pyproject.toml"
 
 
 def test_agent_main_py_overwritten(tmp_path: Path) -> None:

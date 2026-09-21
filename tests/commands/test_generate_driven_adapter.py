@@ -275,8 +275,8 @@ def test_rest_consumer_inject_is_idempotent(project_root: Path) -> None:
     )
     runner.invoke(app, ["gda", "--type", "rest-consumer"], catch_exceptions=False)
     content = (project_root / "pyproject.toml").read_text()
-    assert content.count("httpx") == 1
-    assert content.count("respx") == 1
+    assert content.count("httpx~=") == 1, "httpx must appear exactly once as a dependency (not duplicated)"
+    assert content.count("respx~=") == 1, "respx must appear exactly once as a dependency (not duplicated)"
 
 
 def test_dry_run_does_not_inject_deps(project_root: Path) -> None:

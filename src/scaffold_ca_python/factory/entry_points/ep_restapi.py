@@ -32,10 +32,10 @@ class EntryPointRestApi(ModuleFactory):
         - src/main.py
 
         Injects:
-        - fastapi[standard]>=0.135.2
-        - uvicorn[standard]>=0.20
-        - dependency-injector>=4.49.0
-        - pydantic-settings>=2.13.1
+        - fastapi[standard]~=0.141.1
+        - uvicorn[standard]~=0.53.0
+        - dependency-injector~=4.49.1
+        - pydantic-settings~=2.15.0
         """
         project_root = builder.project_root
         pkg = builder.project_ctx.python_package
@@ -121,10 +121,10 @@ class EntryPointRestApi(ModuleFactory):
 
         # Add dependencies
         deps = [
-            "fastapi[standard]>=0.135.2",
-            "uvicorn[standard]>=0.20",
-            "dependency-injector>=4.49.0",
-            "pydantic-settings>=2.13.1",
+            "fastapi[standard]~=0.141.1",
+            "uvicorn[standard]~=0.53.0",
+            "dependency-injector~=4.49.1",
+            "pydantic-settings~=2.15.0",
         ]
         for dep in deps:
             builder.add_dependency(dep)
