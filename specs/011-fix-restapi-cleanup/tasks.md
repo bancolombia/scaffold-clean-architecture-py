@@ -97,7 +97,7 @@
 - [X] T022 [P] Run `uv run ruff format src/ tests/` — zero format violations (apply fixes if needed)
 - [X] T023 [P] Run `uv run mypy src/` — zero new type errors (2 pre-existing `generate_project.py` tombstones are acceptable)
 - [X] T024 Run `uv run pytest tests/ --cov=src --cov-fail-under=80 -q` — ≥ 80% coverage; ≥ 476 tests passing (461 baseline + 15 new tests: T002–T007, T010–T010b–T011–T012, T015–T018–T018b)
-- [ ] T025 Smoke test — (a) `scaffold ca --name TestApi`; assert fresh `pyproject.toml` scripts entry reads `test_api = "test_api.main:main"` (FR-003: template unchanged); (b) run `scaffold gep --type restapi`; assert `src/test_api/main.py` absent; assert `pyproject.toml` scripts entry is `test_api.server:start_server`
+- [X] T025 Smoke test — (a) `scaffold ca --name test-api`; assert fresh `pyproject.toml` scripts entry reads `test-api = "test_api.main:main"` (FR-003: template unchanged); (b) run `scaffold gep --type restapi`; assert `src/test_api/main.py` absent; assert `pyproject.toml` scripts entry is `test-api = "test_api.server:start_server"`
 
 ---
 
