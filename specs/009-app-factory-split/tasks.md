@@ -5,6 +5,8 @@
 **Branch**: `009-app-factory-split`  
 **Total tasks**: 38 (T016b, T016c added post-analysis; T025/T029 corrected)
 
+> Supersession: generated `schemas.py` and `test_schemas.py` are not part of the current REST entry-point contract. Historical completed task notes below do not make them required output.
+
 ## Format: `[ID] [P?] [Story?] Description · file path`
 
 - **[P]**: Can run in parallel with other [P] tasks in the same phase
@@ -106,20 +108,17 @@
 - [X] T018 [US4] Add `test_restapi_creates_test_app` — run `gep`, assert `tests/application/test_app.py` exists · `tests/commands/test_generate_entry_point.py`
 - [X] T019 [P] [US4] Add `test_restapi_creates_test_server` — run `gep`, assert `tests/infrastructure/entry_points/api/v1/test_server.py` exists · `tests/commands/test_generate_entry_point.py`
 - [X] T020 [P] [US4] Add `test_restapi_creates_test_exception_handler` — run `gep`, assert `tests/infrastructure/entry_points/api/v1/test_exception_handler.py` exists · `tests/commands/test_generate_entry_point.py`
-- [X] T021 [P] [US4] Add `test_restapi_creates_test_schemas` — run `gep`, assert `tests/infrastructure/entry_points/api/v1/test_schemas.py` exists · `tests/commands/test_generate_entry_point.py`
 - [X] T022 [P] [US4] Add `test_entry_point_restapi_test_app_template_has_create_app_assertion` — render `test_app.py.jinja2`, assert `"create_app"` and `"FastAPI"` in output · `tests/templates/test_entry_point_templates.py`
 - [X] T023 [P] [US4] Add `test_entry_point_restapi_test_server_template_references_start_server` — render `test_server.py.jinja2`, assert `"start_server"` in output · `tests/templates/test_entry_point_templates.py`
 - [X] T024 [P] [US4] Add `test_entry_point_restapi_test_exception_handler_template_has_status_codes` — render `test_exception_handler.py.jinja2`, assert `"422"` or `"HTTPException"` in output · `tests/templates/test_entry_point_templates.py`
-- [X] T025 [P] [US4] Add `test_entry_point_restapi_test_schemas_template_has_example_response` — render `test_schemas.py.jinja2`, assert `"ExampleResponse"` in output (matching actual `schemas.py.jinja2` which defines `ExampleResponse`, not `ErrorResponse`) · `tests/templates/test_entry_point_templates.py`
 
 ### Implementation for User Story 4
 
 - [X] T026 [P] [US4] Create `test_app.py.jinja2` — generates a pytest file that: imports `create_app` from `application.app`, asserts return type is `FastAPI`, asserts router included, asserts exception handlers registered · `src/scaffold_ca_python/templates/entry_point/restapi/test_app.py.jinja2`
 - [X] T027 [P] [US4] Create `test_server.py.jinja2` — generates a pytest file that: imports `start_server` from `application.app`, asserts it is callable, asserts importing `server` module does not raise · `src/scaffold_ca_python/templates/entry_point/restapi/test_server.py.jinja2`
 - [X] T028 [P] [US4] Create `test_exception_handler.py.jinja2` — generates pytest + TestClient tests asserting `HTTPException` → JSON with `status_code`, `RequestValidationError` → 422, unhandled `Exception` → 500 · `src/scaffold_ca_python/templates/entry_point/restapi/test_exception_handler.py.jinja2`
-- [X] T029 [P] [US4] Create `test_schemas.py.jinja2` — generates a pytest file that: imports `ExampleResponse` from `schemas` (matching actual `schemas.py.jinja2`), asserts it is a Pydantic model, asserts it has a `message` field · `src/scaffold_ca_python/templates/entry_point/restapi/test_schemas.py.jinja2`
 - [X] T030 [US4] Update `_build_operations` restapi branch — add `CreateFile` for `project_root / "tests" / "application" / "test_app.py"` using `test_app.py.jinja2` (note: custom path, not `test_dir`) · `src/scaffold_ca_python/commands/generate_entry_point.py`
-- [X] T031 [US4] Update `_build_operations` restapi branch — add three `_test(...)` calls for `test_server.py.jinja2 → test_server.py`, `test_exception_handler.py.jinja2 → test_exception_handler.py`, `test_schemas.py.jinja2 → test_schemas.py` in `test_dir` · `src/scaffold_ca_python/commands/generate_entry_point.py`
+- [X] T031 [US4] Update `_build_operations` restapi branch — add two `_test(...)` calls for `test_server.py.jinja2 → test_server.py` and `test_exception_handler.py.jinja2 → test_exception_handler.py` in `test_dir` · `src/scaffold_ca_python/commands/generate_entry_point.py`
 
 **Checkpoint**: T018–T025 GREEN · all 5 test files emitted by `gep --type restapi`
 

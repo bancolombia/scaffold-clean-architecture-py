@@ -180,7 +180,7 @@
 
 **Goal**: `scaffold gep --type restapi` creates a FastAPI async skeleton immediately (no extra flags); `--swagger` generates typed routes from an OpenAPI spec; `--type agent` supports `--enable-kafka` / `--enable-mcp-client` composition flags.
 
-**Independent Test**: `scaffold gep --type restapi` produces `main.py`, `router.py`, `health.py`, `schemas.py`, and `test_router.py` with no additional configuration. `scaffold gep --type mcp` produces `server.py` and `test_server.py`.
+**Independent Test**: `scaffold gep --type restapi` produces `main.py`, `router.py`, `health.py`, and `test_router.py` with no additional configuration. `scaffold gep --type mcp` produces `server.py` and `test_server.py`.
 
 > ⚠️ **Write T050 first. Confirm it fails. Then create templates T051–T054. Then implement T055.**
 
@@ -190,7 +190,7 @@
 
 ### Templates for User Story 5
 
-- [X] T051 [P] [US5] Create `entry_point/restapi/` templates: `__init__.py.jinja2`, `main.py.jinja2` (FastAPI app factory), `router.py.jinja2` (APIRouter with async example route), `health.py.jinja2` (`/health` endpoint), `schemas.py.jinja2` (request/response Pydantic models; also used when `--swagger` injects generated schemas), `test_router.py.jinja2` in src/scaffold_ca_python/templates/entry_point/restapi/
+- [X] T051 [P] [US5] Create `entry_point/restapi/` templates: `__init__.py.jinja2`, `main.py.jinja2` (FastAPI app factory), `router.py.jinja2` (APIRouter with async example route), `health.py.jinja2` (`/health` endpoint), `test_router.py.jinja2` in src/scaffold_ca_python/templates/entry_point/restapi/
 - [X] T052 [P] [US5] Create `entry_point/agent/` templates: `__init__.py.jinja2`, `agent.py.jinja2` (A2A async handler stub with optional Kafka consumer block, optional MCP client block gated on Jinja2 `if enable_kafka` / `if enable_mcp_client`), `card.py.jinja2` (AgentCard definition), `test_agent.py.jinja2` in src/scaffold_ca_python/templates/entry_point/agent/
 - [X] T053 [P] [US5] Create `entry_point/mcp/` templates: `__init__.py.jinja2`, `server.py.jinja2` (MCP server stubs for tools, resources, prompts), `test_server.py.jinja2` in src/scaffold_ca_python/templates/entry_point/mcp/
 - [X] T054 [P] [US5] Create `entry_point/generic/` templates: `__init__.py.jinja2`, `handler.py.jinja2` (empty async handler), `test_handler.py.jinja2` in src/scaffold_ca_python/templates/entry_point/generic/

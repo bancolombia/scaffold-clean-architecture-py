@@ -38,7 +38,6 @@
   - `test_app.py.jinja2` — tests for `application/app.py` (factory + lifespan)
   - `test_server.py.jinja2` — tests for the thin `server.py`
   - `test_exception_handler.py.jinja2` — tests for `exception_handler.py`
-  - `test_schemas.py.jinja2` — tests for `schemas.py`
   - `test_rest_controller.py.jinja2` already exists (feature 008) — no change needed
 - **Rationale**: Constitution Principle II mandates dedicated tests per template group. Principle V (TDD) requires generated test files so that consumers start with a passing suite.
 - **Alternatives considered**: Single `test_app_stack.py` aggregating all assertions (rejected — each file's test should be independently runnable and clearly named).
@@ -51,7 +50,7 @@
 - **Decision**: Extend the `restapi` branch of `_build_operations` to:
   1. Emit `application/app.py` via a new `CreateFile` operation pointing to `project_root / "src" / pkg / "application" / "app.py"`.
   2. Emit `tests/application/test_app.py` via a new test `CreateFile`.
-  3. Emit four new test files in `test_dir`: `test_server.py`, `test_exception_handler.py`, `test_schemas.py` (test_rest_controller already emitted).
+  3. Emit two new test files in `test_dir`: `test_server.py` and `test_exception_handler.py` (test_rest_controller already emitted).
   4. Update the `server.py` `CreateFile` to use the new thin-wrapper template.
   5. Remove the trailing `main.py` overwrite block from `_generate_entry_point_impl`.
 - **Rationale**: All changes are additive or replacement inside the existing pattern; no new command infrastructure is needed.

@@ -2,7 +2,7 @@
 
 **Feature Branch**: `014-tests-in-src`
 **Created**: 2026-04-13
-**Status**: Draft
+**Status**: Ready
 **Input**: User description: "Move tests folder inside src; add restapi/mcp/agent entrypoint exclusivity validation; update ms_test reference project to match the new layout"
 
 ## User Scenarios & Testing *(mandatory)*

@@ -58,7 +58,7 @@ if type_ == "restapi":
 
 ## Q3 — Should `schemas.py` be missing from `_build_operations` restapi list?
 
-**Decision**: Out of scope for this feature. The current file content (as of 2026-04-10) omits `schemas.py` from the restapi operations list. This may be an unintended regression from feature 009's reformatting, but it is not in scope here. A separate fix feature should address it.
+**Decision**: `schemas.py` is not required output for the restapi generator. Its absence from the operations list is intentional; no separate fix is needed.
 
 ---
 

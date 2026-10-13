@@ -2,7 +2,7 @@
 
 **Feature Branch**: `007-cli-usability-enhancements`  
 **Created**: 2026-03-30  
-**Status**: Draft  
+**Status**: Ready  
 **Input**: User description: "Build a set of CLI usability enhancements for scaffold-ca-python"
 
 ## User Scenarios & Testing *(mandatory)*

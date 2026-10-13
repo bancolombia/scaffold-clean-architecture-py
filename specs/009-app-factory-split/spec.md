@@ -2,7 +2,7 @@
 
 **Feature Branch**: `009-app-factory-split`  
 **Created**: 2026-04-10  
-**Status**: Draft  
+**Status**: Ready  
 **Input**: User description: "Split server.py into app.py factory and thin server.py entry point; remove main.py; add per-file test coverage"
 
 ## User Scenarios & Testing *(mandatory)*
@@ -82,7 +82,7 @@ tests mean a developer must write them from scratch, defeating the value of the 
 
 **Acceptance Scenarios**:
 
-1. **Given** a developer runs the restapi entry-point generator, **When** generation completes, **Then** a test file exists for each of the following: `application/app.py`, `server.py`, `api/v1/rest_controller.py`, `api/v1/exception_handler.py`, `api/v1/schemas.py`.
+1. **Given** a developer runs the restapi entry-point generator, **When** generation completes, **Then** a test file exists for each of the following: `application/app.py`, `server.py`, `api/v1/rest_controller.py`, and `api/v1/exception_handler.py`.
 2. **Given** the generated test file for `application/app.py`, **When** the test suite is run, **Then** it verifies that the factory callable returns a correctly configured application instance and that the lifespan context manager wires the container.
 3. **Given** all generated test files, **When** `pytest` is executed, **Then** every test passes without requiring any manual edits.
 4. **Given** the generated test files, **When** a code-quality check is run, **Then** all test files pass linting and type-checking rules without errors.
@@ -104,7 +104,7 @@ tests mean a developer must write them from scratch, defeating the value of the 
 - **FR-002**: The restapi generator MUST emit `server.py` as a thin entry point that imports from `application.app` and calls the start method; `server.py` MUST contain no factory or lifecycle logic of its own.
 - **FR-003**: The restapi generator MUST NOT emit `main.py` as part of the restapi entry-point output.
 - **FR-004**: The restapi generator MUST emit a test file for `application/app.py` that asserts the factory callable returns a configured application instance and that the lifespan context manager wires the container correctly.
-- **FR-005**: The restapi generator MUST emit test files for `server.py`, `api/v1/rest_controller.py`, `api/v1/exception_handler.py`, and `api/v1/schemas.py`; each test file MUST be immediately executable by `pytest` without modification.
+- **FR-005**: The restapi generator MUST emit test files for `server.py`, `api/v1/rest_controller.py`, and `api/v1/exception_handler.py`; each test file MUST be immediately executable by `pytest` without modification.
 - **FR-006**: All generated source files and test files MUST pass the project's linting and static-type-checking rules without errors or warnings.
 - **FR-007**: The generator MUST NOT overwrite any already-existing generated file unless the `--force` flag is provided.
 - **FR-008**: The scaffold tool's own test suite (not the generated project's tests) MUST include template-rendering tests that verify the content of every new or modified Jinja2 template.
@@ -120,7 +120,7 @@ tests mean a developer must write them from scratch, defeating the value of the 
 
 ### Measurable Outcomes
 
-- **SC-001**: Running `scaffold gep --type restapi` on a clean project produces exactly the expected set of files: `application/app.py`, `server.py`, `api/v1/rest_controller.py`, `api/v1/exception_handler.py`, `api/v1/schemas.py`, and one test file per source file — verified by an automated workflow test.
+- **SC-001**: Running `scaffold gep --type restapi` on a clean project produces exactly the expected set of files: `application/app.py`, `server.py`, `api/v1/rest_controller.py`, `api/v1/exception_handler.py`, and one test file per generated source file — verified by an automated workflow test.
 - **SC-002**: No `main.py` file is present anywhere in the generated restapi output — verified by a dedicated assertion in the workflow test.
 - **SC-003**: All generated test files pass `pytest` without modification — verified by executing `pytest` inside a freshly generated project in CI.
 - **SC-004**: The scaffold tool's overall test-suite passes (450+ tests) with no regressions after the feature is implemented.

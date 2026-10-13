@@ -54,7 +54,6 @@ if __name__ == "__main__":
 - `test_app.py.jinja2` — asserts `create_app()` returns `FastAPI`, router+handlers registered, lifespan wires container
 - `test_server.py.jinja2` — asserts `start_server` is importable from `application.app`; `server.py` does not start server on import
 - `test_exception_handler.py.jinja2` — asserts correct JSON + status codes for all three handler types
-- `test_schemas.py.jinja2` — asserts `ErrorResponse` (or equivalent schema class) is importable and has expected fields
 
 ### Step 4 — Update `_build_operations` in `generate_entry_point.py`
 
@@ -125,7 +124,6 @@ cd /tmp/demo_api && uv sync && uv run pytest tests/
 | `src/scaffold_ca_python/templates/entry_point/restapi/test_app.py.jinja2` | **CREATE** |
 | `src/scaffold_ca_python/templates/entry_point/restapi/test_server.py.jinja2` | **CREATE** |
 | `src/scaffold_ca_python/templates/entry_point/restapi/test_exception_handler.py.jinja2` | **CREATE** |
-| `src/scaffold_ca_python/templates/entry_point/restapi/test_schemas.py.jinja2` | **CREATE** |
 | `src/scaffold_ca_python/commands/generate_entry_point.py` | **UPDATE** |
 | `tests/commands/test_generate_entry_point.py` | **UPDATE** (new assertions) |
 | `tests/templates/test_entry_point_templates.py` | **UPDATE** (new rendering tests) |

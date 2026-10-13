@@ -17,8 +17,8 @@
 ### 1. Scaffold a clean CA project
 
 ```bash
-scaffold ca --name OrderService
-cd order_service
+scaffold ca --name order-service
+cd order-service
 ```
 
 Resulting structure (relevant paths):
@@ -27,20 +27,21 @@ order_service/
 ├── pyproject.toml
 ├── Dockerfile
 ├── mypy.ini
-├── main.py
 └── src/
-    └── order_service/
-        ├── __init__.py
-        ├── application/
-        │   └── config/
-        │       ├── __init__.py
-        │       ├── config.py
-        │       ├── container.py
-        │       ├── driven_adapters_container.py
-        │       ├── resource_container.py   ← NEW in this feature
-        │       └── usecases_container.py
-        └── infrastructure/
-            └── entry_points/               ← empty
+    ├── order_service/
+    │   ├── __init__.py
+    │   ├── application/
+    │   │   └── config/
+    │   │       ├── __init__.py
+    │   │       ├── config.py
+    │   │       ├── container.py
+    │   │       ├── driven_adapters_container.py
+    │   │       ├── resource_container.py   ← NEW in this feature
+    │   │       └── usecases_container.py
+    │   └── infrastructure/
+    │       └── entry_points/               ← empty
+    └── tests/
+        └── __init__.py
 ```
 
 ### 2. Generate the FastAPI entry point
@@ -51,31 +52,37 @@ scaffold gep --type restapi
 
 After generation:
 ```
-src/order_service/
-├── server.py                                     ← NEW (FastAPI factory + lifespan)
-└── infrastructure/
-    └── entry_points/
-        └── api/
-            └── v1/
-                ├── __init__.py
-                ├── rest_controller.py            ← NEW (APIRouter with /health)
-                ├── exception_handler.py          ← NEW
-                └── schemas.py                    ← NEW
-main.py                                           ← overwritten (imports from server.py)
-tests/
-└── infrastructure/
-    └── entry_points/
-        └── api/
-            └── v1/
-                └── test_rest_controller.py       ← NEW
-pyproject.toml                                    ← updated with new deps
+src/
+├── order_service/
+│   ├── application/
+│   │   └── app.py                                ← FastAPI factory + lifespan
+│   ├── infrastructure/
+│   │   └── entry_points/
+│   │       └── api/
+│   │           └── v1/
+│   │               ├── __init__.py
+│   │               ├── rest_controller.py        ← APIRouter with /health
+│   │               └── exception_handler.py
+│   └── server.py                                 ← thin process entry point
+└── tests/
+    ├── application/
+    │   └── test_app.py
+    └── infrastructure/
+        └── entry_points/
+            └── api/
+                └── v1/
+                    ├── test_rest_controller.py
+                    ├── test_exception_handler.py
+                    └── test_server.py
+
+`src/order_service/main.py` is removed; `[project.scripts]` points to `order_service.server:start_server`.
 ```
 
 ### 3. Install dependencies and run
 
 ```bash
 uv sync
-uv run uvicorn order_service.server:create_app --reload --factory
+uv run uvicorn order_service.application.app:create_app --reload --factory
 ```
 
 Test the health endpoint:
@@ -135,8 +142,7 @@ Prints the planned file tree and dependency additions, creates nothing.
 ## Testing
 
 ```bash
-uv run pytest tests/commands/test_generate_entry_point.py -v
-uv run pytest tests/templates/test_entry_point_templates.py -v
+uv run pytest
 ```
 
 ---

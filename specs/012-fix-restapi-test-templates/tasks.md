@@ -3,6 +3,8 @@
 **Input**: Design documents from `/specs/012-fix-restapi-test-templates/`
 **Prerequisites**: plan.md ✅, spec.md ✅, research.md ✅, data-model.md ✅, quickstart.md ✅
 
+> Supersession: `schemas.py` generation and `test_schemas.py` are excluded from the current REST entry-point scope. Any completed task references below are archived history, not current requirements.
+
 **Tests**: Constitution Principle V — TDD enforced. All RED tests are written before implementation tasks.
 
 **Organization**: Tasks are grouped by user story. US1 (generated project tests pass) and US2 (CLI internal test suite passes) are both P1 and can be worked in parallel after foundational Phase 2.

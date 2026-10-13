@@ -2,7 +2,7 @@
 
 **Feature Branch**: `011-fix-restapi-cleanup`  
 **Created**: 2026-04-10  
-**Status**: Draft  
+**Status**: Ready  
 **Input**: User description: "fix some issues when create a restapi entry point: 1. Delete main.py file because restapi entry point creates a server.py module to execute the app. 2. Update pyproject.toml [project.scripts] to point to server:start_server"
 
 ## User Scenarios & Testing *(mandatory)*
