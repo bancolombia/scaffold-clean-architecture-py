@@ -2,7 +2,7 @@
 
 **Feature Branch**: `009-app-factory-split`  
 **Created**: 2026-04-10  
-**Status**: Draft  
+**Status**: Ready  
 **Input**: User description: "Split server.py into app.py factory and thin server.py entry point; remove main.py; add per-file test coverage"
 
 ## User Scenarios & Testing *(mandatory)*

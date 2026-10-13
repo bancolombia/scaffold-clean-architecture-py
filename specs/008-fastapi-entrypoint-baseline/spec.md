@@ -2,7 +2,7 @@
 
 **Feature Branch**: `008-fastapi-entrypoint-baseline`  
 **Created**: 2026-03-31  
-**Status**: Draft  
+**Status**: Ready  
 **Input**: User description: "Improve FastAPI entry point generation aligned with ms_test baseline"
 
 ## User Scenarios & Testing *(mandatory)*

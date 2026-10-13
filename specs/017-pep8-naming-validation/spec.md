@@ -2,7 +2,7 @@
 
 **Feature Branch**: `017-pep8-naming-validation`  
 **Created**: 2026-04-15  
-**Status**: Draft  
+**Status**: Ready  
 **Input**: User description: "According to python rules like PEP8 and PEP 423 (packaging): (1) validate --name input to accept only kebab-case or snake_case; (2) validate generated module files are snake_case; (3) validate generated classes are CamelCase/PascalCase."
 
 ## User Scenarios & Testing *(mandatory)*

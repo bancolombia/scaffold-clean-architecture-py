@@ -2,7 +2,7 @@
 
 **Feature Branch**: `016-dedup-command-aliases`
 **Created**: 2026-04-14
-**Status**: Draft
+**Status**: Ready
 **Input**: User description: "Into commands package, the modules with generate_ name are repeating the functions with same parameters for both the full command and the alias. The idea is that with @app.command annotation change how the command is called but the function should be the same and not duplicated."
 
 ## User Scenarios & Testing *(mandatory)*

@@ -2,7 +2,7 @@
 
 **Feature Branch**: `012-fix-restapi-test-templates`  
 **Created**: 2026-04-10  
-**Status**: Draft  
+**Status**: Ready  
 **Input**: User description: "When I create a new scaffold project and generates a restapi entry point, and I execute the test with pytest over the new project created with scaffold, the tests fail. The task is update the restapi entry point test_* templates, so, when a user generates the scaffold with restapi entrypoint, the tests pass correctly."
 
 ## User Scenarios & Testing *(mandatory)*

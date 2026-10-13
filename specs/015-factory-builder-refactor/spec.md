@@ -2,7 +2,7 @@
 
 **Feature Branch**: `015-factory-builder-refactor`
 **Created**: 2025-07-22
-**Status**: Draft
+**Status**: Ready
 **Input**: User description: "Refactor CLI commands to Factory + Builder architecture"
 
 ## User Scenarios & Testing *(mandatory)*

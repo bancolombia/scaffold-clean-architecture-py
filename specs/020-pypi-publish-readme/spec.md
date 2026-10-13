@@ -2,7 +2,7 @@
 
 **Feature Branch**: `020-pypi-publish-readme`
 **Created**: 2026-04-20
-**Status**: Draft
+**Status**: Ready
 **Input**: User description: "I want to publish the project to pypi.org package manager. The project must contains the requirements to publish the package. Update the README file to set a brief description about the project, how install it, how execute it with examples, what technologies are used, current features, how contributing and License."
 
 ## User Scenarios & Testing *(mandatory)*
