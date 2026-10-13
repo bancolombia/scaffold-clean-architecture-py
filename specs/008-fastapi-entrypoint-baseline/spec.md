@@ -17,7 +17,7 @@ As a developer, I want `scaffold gep --type restapi` to produce a project layout
 
 **Acceptance Scenarios**:
 
-1. **Given** a fresh CA project with no entry points, **When** `scaffold gep --type restapi` runs, **Then** the following files are created: `infrastructure/entry_points/api/v1/__init__.py`, `infrastructure/entry_points/api/v1/rest_controller.py`, `infrastructure/entry_points/api/v1/exception_handler.py`, `infrastructure/entry_points/api/v1/schemas.py`, `src/<package>/server.py`. Note: `application/config/`, `Dockerfile`, and `mypy.ini` are already emitted by `scaffold ca` and are not re-emitted by `gep`.
+1. **Given** a fresh CA project with no entry points, **When** `scaffold gep --type restapi` runs, **Then** the following files are created: `infrastructure/entry_points/api/v1/__init__.py`, `infrastructure/entry_points/api/v1/rest_controller.py`, `infrastructure/entry_points/api/v1/exception_handler.py`, `src/<package>/server.py`. Note: `application/config/`, `Dockerfile`, and `mypy.ini` are already emitted by `scaffold ca` and are not re-emitted by `gep`.
 2. **Given** a generated project, **When** the server starts, **Then** `GET /v1/health` returns `{"status": "app is online"}` with HTTP 200.
 3. **Given** generation completes, **When** `pyproject.toml` is inspected, **Then** `dependency-injector>=4.49.0`, `fastapi[standard]>=0.135.2`, and `pydantic-settings>=2.13.1` are present in the runtime dependency list.
 4. **Given** any file already exists at a target path, **When** `scaffold gep --type restapi` runs without `--force`, **Then** the existing file is not overwritten and a notice is shown.
@@ -71,7 +71,7 @@ As a developer, I want the generator to block FastAPI entry point creation when 
 
 ### Functional Requirements
 
-- **FR-001**: The generator MUST produce the following files under `infrastructure/entry_points/api/v1/` when `--type restapi` is used: `__init__.py`, `rest_controller.py`, `exception_handler.py`, `schemas.py`. Note: `application/config/` is already emitted by `scaffold ca`; `gep` MUST NOT re-emit those files.
+- **FR-001**: The generator MUST produce the following files under `infrastructure/entry_points/api/v1/` when `--type restapi` is used: `__init__.py`, `rest_controller.py`, and `exception_handler.py`. Note: `application/config/` is already emitted by `scaffold ca`; `gep` MUST NOT re-emit those files.
 - **FR-002**: The generator MUST place the REST controller under `infrastructure/entry_points/api/v1/rest_controller.py` (versioned path, replacing the current flat `restapi/router.py` path).
 - **FR-003**: The generator MUST create `infrastructure/entry_points/api/v1/exception_handler.py` with handlers for `Exception`, `HTTPException`, and `RequestValidationError`.
 - **FR-004**: The generator MUST create `server.py` at the project package root (`src/<package>/server.py`) as the uvicorn launch entry point, reading `HOST` and `PORT` from settings.

@@ -3,14 +3,16 @@
 **Branch**: `012-fix-restapi-test-templates` | **Date**: 2026-04-10 | **Spec**: [spec.md](spec.md)  
 **Input**: Feature specification from `specs/012-fix-restapi-test-templates/spec.md`
 
+> Supersession: schema-model generation and its generated test are excluded from the current REST entry-point scope. Older task references are historical only.
+
 ## Summary
 
-The restapi entry-point test templates have three classes of bugs: (1) `test_rest_controller.py.jinja2` imports `create_app` from the wrong module (`server` instead of `application.app`) and contains a duplicate content block; (2) `schemas.py.jinja2` and `test_schemas.py.jinja2` are entirely absent, so `gep --type restapi` never generates `schemas.py` or `test_schemas.py`; (3) two CLI template tests reference a non-existent `main.py.jinja2` (removed by feature 011). The fix is: rewrite the bad template, create the three missing templates, wire `schemas.py` / `test_schemas.py` into `_build_operations`, and delete the two stale CLI tests.
+The restapi entry-point test template imports `create_app` from the wrong module (`server` instead of `application.app`) and contains a duplicate content block. Two CLI template tests also reference a non-existent `main.py.jinja2` (removed by feature 011). The fix is to rewrite the test template and delete the stale CLI tests. Schema-model generation is out of scope.
 
 ## Technical Context
 
 **Language/Version**: Python 3.13  
-**Primary Dependencies**: Jinja2 (template rendering), Pydantic v2 (generated schema model), FastAPI + Starlette (generated test client), pytest + pytest-cov (testing), ruff (lint/format), mypy strict (types), uv (package management)  
+**Primary Dependencies**: Jinja2 (template rendering), FastAPI + Starlette (generated test client), pytest + pytest-cov (testing), ruff (lint/format), mypy strict (types), uv (package management)
 **Storage**: Local filesystem — Jinja2 `.jinja2` template files  
 **Testing**: pytest + `typer.testing.CliRunner`; 80% coverage gate  
 **Target Platform**: macOS / Linux developer workstation  
@@ -25,10 +27,10 @@ The restapi entry-point test templates have three classes of bugs: (1) `test_res
 |-----------|--------|-------|
 | I — Clean Architecture in generated projects | ✅ PASS | Templates correct layer placement |
 | II — Template-Driven Code Generation | ✅ PASS | All new generated files via Jinja2 templates; `tests/templates/` tests added for new templates |
-| III — Full Command Parity | ✅ PASS | `--dry-run` already works; schemas added to output list |
+| III — Full Command Parity | ✅ PASS | `--dry-run` reflects the REST entry-point output |
 | IV — Python-First Idioms | ✅ PASS | Type hints in generated code; Pydantic v2; ruff + mypy |
 | V — Test-First Development | ✅ PASS | RED tests written before implementation in all phases |
-| VI — Developer Experience | ✅ PASS | Dry-run shows `schemas.py` in tree; no user-facing UX changes needed |
+| VI — Developer Experience | ✅ PASS | Dry-run accurately lists generated REST files; no user-facing UX changes needed |
 
 No gate violations.
 
@@ -50,16 +52,14 @@ specs/012-fix-restapi-test-templates/
 ```text
 src/scaffold_ca_python/
 ├── commands/
-│   └── generate_entry_point.py                    ← add schemas.py + test_schemas.py to _build_operations
+│   └── generate_entry_point.py                    ← no schema generation operations
 └── templates/entry_point/restapi/
     ├── test_rest_controller.py.jinja2              ← rewrite (fix import + remove duplicate)
-    ├── schemas.py.jinja2                           ← create new
-    ├── test_schemas.py.jinja2                      ← create new
     └── router.py.jinja2                            ← create new (supplemental, not in gep output)
 
 tests/
 ├── commands/
-│   └── test_generate_entry_point.py               ← add RED tests for schemas.py + test_schemas.py
+│   └── test_generate_entry_point.py               ← retain tests for the current REST output
 └── templates/
     └── test_entry_point_templates.py              ← delete 2 stale tests; add 3 new template tests
 ```

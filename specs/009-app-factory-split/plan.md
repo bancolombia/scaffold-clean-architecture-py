@@ -65,7 +65,6 @@ src/scaffold_ca_python/
             ├── test_app.py.jinja2       # CREATE: tests for app.py
             ├── test_server.py.jinja2    # CREATE: tests for server.py
             ├── test_exception_handler.py.jinja2  # CREATE
-            └── test_schemas.py.jinja2   # CREATE
 
 tests/
 ├── commands/
@@ -97,7 +96,6 @@ ms_test/src/ms_test/
 | T004 | `tests/commands/test_generate_entry_point.py` | `test_restapi_creates_test_app` — `tests/application/test_app.py` is created |
 | T005 | `tests/commands/test_generate_entry_point.py` | `test_restapi_creates_test_server` — `tests/infrastructure/entry_points/api/v1/test_server.py` created |
 | T006 | `tests/commands/test_generate_entry_point.py` | `test_restapi_creates_test_exception_handler` — counterpart test file created |
-| T007 | `tests/commands/test_generate_entry_point.py` | `test_restapi_creates_test_schemas` — counterpart test file created |
 | T008 | `tests/commands/test_generate_entry_point.py` | `test_restapi_dry_run_includes_app_py` — dry-run output mentions `app.py` and all new test files |
 | T009 | `tests/templates/test_entry_point_templates.py` | `test_restapi_app_has_create_app_factory` — `app.py.jinja2` renders with `create_app` present |
 | T010 | `tests/templates/test_entry_point_templates.py` | `test_restapi_app_has_lifespan` — `app.py.jinja2` renders with `lifespan` async context manager |
@@ -125,7 +123,6 @@ ms_test/src/ms_test/
 | T019 | CREATE | `src/scaffold_ca_python/templates/entry_point/restapi/test_app.py.jinja2` |
 | T020 | CREATE | `src/scaffold_ca_python/templates/entry_point/restapi/test_server.py.jinja2` |
 | T021 | CREATE | `src/scaffold_ca_python/templates/entry_point/restapi/test_exception_handler.py.jinja2` |
-| T022 | CREATE | `src/scaffold_ca_python/templates/entry_point/restapi/test_schemas.py.jinja2` |
 
 **Verification**: `uv run pytest tests/templates/` — T009–T016 GREEN; all prior template tests still GREEN.
 
@@ -141,7 +138,7 @@ ms_test/src/ms_test/
 |---|---|---|---|
 | T023 | UPDATE | `_build_operations` restapi branch | Add `CreateFile` for `project_root / "src" / pkg / "application" / "app.py"` using `app.py.jinja2` |
 | T024 | UPDATE | `_build_operations` restapi branch | Add `CreateFile` for `project_root / "tests" / "application" / "test_app.py"` using `test_app.py.jinja2` |
-| T025 | UPDATE | `_build_operations` restapi branch | Add 3 test `CreateFile` ops for `test_server.py`, `test_exception_handler.py`, `test_schemas.py` in `test_dir` |
+| T025 | UPDATE | `_build_operations` restapi branch | Add 2 test `CreateFile` ops for `test_server.py` and `test_exception_handler.py` in `test_dir` |
 | T026 | DELETE | `_generate_entry_point_impl` | Remove the 7-line `"Overwrite main.py"` block |
 
 **Verification**: `uv run pytest tests/commands/test_generate_entry_point.py` — T001–T008 GREEN; all prior command tests still GREEN.

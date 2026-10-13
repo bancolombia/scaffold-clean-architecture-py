@@ -39,12 +39,11 @@ src/my_project/infrastructure/entry_points/restapi/
     main.py                    ← FastAPI app factory
     router.py                  ← APIRouter with async route stubs
     health.py                  ← /health endpoint
-    schemas.py                 ← Pydantic request/response models (or generated from --swagger)
 tests/infrastructure/entry_points/restapi/
     test_router.py
 ```
 
-If `--swagger <FILE>` is provided, `schemas.py` and `router.py` are generated from the OpenAPI contract rather than empty stubs.
+If `--swagger <FILE>` is provided, route handlers are generated from the OpenAPI contract.
 
 ### `agent` (A2A)
 

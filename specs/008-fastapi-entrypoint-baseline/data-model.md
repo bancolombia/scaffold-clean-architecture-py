@@ -51,7 +51,6 @@ Files emitted by `_build_operations("restapi", ...)`:
 | `entry_point/restapi/__init__.py.jinja2` | `infrastructure/entry_points/api/v1/__init__.py` | Package marker |
 | `entry_point/restapi/rest_controller.py.jinja2` | `infrastructure/entry_points/api/v1/rest_controller.py` | APIRouter with `/health` |
 | `entry_point/restapi/exception_handler.py.jinja2` | `infrastructure/entry_points/api/v1/exception_handler.py` | Exception handlers |
-| `entry_point/restapi/schemas.py.jinja2` | `infrastructure/entry_points/api/v1/schemas.py` | Pydantic schemas |
 | `entry_point/restapi/server.py.jinja2` | `server.py` (package root) | FastAPI factory + lifespan |
 | `entry_point/restapi/test_rest_controller.py.jinja2` | `tests/infrastructure/entry_points/api/v1/test_rest_controller.py` | Health test |
 

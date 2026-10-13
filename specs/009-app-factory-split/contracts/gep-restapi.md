@@ -28,8 +28,7 @@ src/<project>/
             └── v1/
                 ├── __init__.py
                 ├── rest_controller.py
-                ├── exception_handler.py
-                └── schemas.py
+                └── exception_handler.py
 
 tests/
 ├── application/
@@ -40,8 +39,7 @@ tests/
             └── v1/
                 ├── test_rest_controller.py   (unchanged from feature 008)
                 ├── test_server.py            ← NEW
-                ├── test_exception_handler.py ← NEW
-                └── test_schemas.py           ← NEW
+                └── test_exception_handler.py ← NEW
 ```
 
 **Not emitted** (removed from feature 008):
@@ -116,12 +114,10 @@ restapi (dry run)
 ├── src/<pkg>/infrastructure/entry_points/api/v1/__init__.py
 ├── src/<pkg>/infrastructure/entry_points/api/v1/rest_controller.py
 ├── src/<pkg>/infrastructure/entry_points/api/v1/exception_handler.py
-├── src/<pkg>/infrastructure/entry_points/api/v1/schemas.py
 ├── tests/application/test_app.py
 ├── tests/infrastructure/entry_points/api/v1/test_rest_controller.py
 ├── tests/infrastructure/entry_points/api/v1/test_server.py
 ├── tests/infrastructure/entry_points/api/v1/test_exception_handler.py
-└── tests/infrastructure/entry_points/api/v1/test_schemas.py
 ```
 
 ---

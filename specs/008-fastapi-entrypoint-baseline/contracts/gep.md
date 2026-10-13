@@ -51,7 +51,6 @@ Options:
 | `src/<pkg>/infrastructure/entry_points/api/v1/__init__.py` | `entry_point/restapi/__init__.py.jinja2` | No |
 | `src/<pkg>/infrastructure/entry_points/api/v1/rest_controller.py` | `entry_point/restapi/rest_controller.py.jinja2` | No |
 | `src/<pkg>/infrastructure/entry_points/api/v1/exception_handler.py` | `entry_point/restapi/exception_handler.py.jinja2` | No |
-| `src/<pkg>/infrastructure/entry_points/api/v1/schemas.py` | `entry_point/restapi/schemas.py.jinja2` | No |
 | `src/<pkg>/server.py` | `entry_point/restapi/server.py.jinja2` | No |
 | `tests/infrastructure/entry_points/api/v1/test_rest_controller.py` | `entry_point/restapi/test_rest_controller.py.jinja2` | No |
 | `main.py` | `entry_point/restapi/entrypoint_main.py.jinja2` | **Yes** |

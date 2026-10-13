@@ -72,7 +72,6 @@ src/scaffold_ca_python/
 │   │       ├── server.py.jinja2         # NEW (package-root uvicorn launcher)
 │   │       ├── test_rest_controller.py.jinja2  # NEW (replaces test_router.py.jinja2)
 │   │       ├── health.py.jinja2         # keep (may adjust route registration)
-│   │       ├── schemas.py.jinja2        # keep (unchanged)
 │   │       ├── main.py.jinja2           # MODIFY: use lifespan + DI container wiring
 │   │       ├── router.py.jinja2         # REMOVE from emission (kept for backward compat, not emitted)
 │   │       ├── test_router.py.jinja2    # REMOVE from emission (replaced by test_rest_controller)
