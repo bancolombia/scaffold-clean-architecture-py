@@ -22,7 +22,7 @@ cd demo-mcp
 uv run --project /path/to/scaffold-clean-architecture-py scaffold gep --type mcp
 ```
 
-Expected: `src/demo_mcp/infrastructure/entry_points/mcp_server/tools.py` and `tests/infrastructure/entry_points/mcp_server/test_tools.py` exist, each containing the `example_tool` stub wired through the `_TOOL_REGISTRARS` registrar-list pattern — `tools.py` defines a module-level `_TOOL_REGISTRARS` list and a `_register_tool` decorator, and `bind_tools()` loops over it (see `data-model.md`).
+Expected: `src/demo_mcp/infrastructure/entry_points/mcp_server/tools.py` and `tests/infrastructure/entry_points/mcp_server/test_tools.py` exist, each containing the `example_tool` stub — `tools.py` defines `example_tool` nested inside `async def bind_tools`, which is the last top-level statement in the file (see `data-model.md` "Insertion Point").
 
 ---
 
@@ -80,6 +80,16 @@ uv run --project /path/to/scaffold-clean-architecture-py scaffold gep --type mcp
 # Invalid --name casing (FR-003)
 uv run --project /path/to/scaffold-clean-architecture-py scaffold gep --type mcp --add-tool --name CreateFile
 
+# Python keyword as --name or --param name (FR-003 / FR-005)
+uv run --project /path/to/scaffold-clean-architecture-py scaffold gep --type mcp --add-tool --name class
+uv run --project /path/to/scaffold-clean-architecture-py scaffold gep --type mcp --add-tool --name read_file --param class:str
+
+# Reserved tool name (FR-010)
+uv run --project /path/to/scaffold-clean-architecture-py scaffold gep --type mcp --add-tool --name bind_tools
+
+# --add-tool without --type (FR-012) — must fail with exit 1, not print help
+uv run --project /path/to/scaffold-clean-architecture-py scaffold gep --add-tool --name read_file
+
 # Malformed --param (FR-005)
 uv run --project /path/to/scaffold-clean-architecture-py scaffold gep --type mcp --add-tool --name read_file --param path
 
@@ -117,16 +127,38 @@ Expected: fails with a message explaining the MCP entry point doesn't exist yet 
 
 ---
 
-## 6. Exercise the "legacy project / missing registrar pattern" guard (FR-017)
+## 6. Exercise the "legacy project / missing `bind_tools`" guard (FR-017)
 
 ```bash
 cd demo-mcp   # from step 1 — already has an entry point
-# Simulate a pre-feature project by stripping the _TOOL_REGISTRARS declaration
-sed -i '' '/_TOOL_REGISTRARS/d' src/demo_mcp/infrastructure/entry_points/mcp_server/tools.py
+cp src/demo_mcp/infrastructure/entry_points/mcp_server/tools.py /tmp/tools.py.bak
+# Simulate a pre-feature project by renaming bind_tools
+sed -i '' 's/async def bind_tools/async def bind_tools_legacy/' src/demo_mcp/infrastructure/entry_points/mcp_server/tools.py
 uv run --project /path/to/scaffold-clean-architecture-py scaffold gep --type mcp --add-tool --name another_tool
 ```
 
 Expected: fails with a clear message recommending regeneration of the entry point — **not** a raw `ValueError`/`FileNotFoundError` traceback. Exit code `1`.
+
+Then simulate a hand-edited file where `bind_tools` is no longer last:
+
+```bash
+cp /tmp/tools.py.bak src/demo_mcp/infrastructure/entry_points/mcp_server/tools.py
+printf '\n\ndef helper() -> None:\n    pass\n' >> src/demo_mcp/infrastructure/entry_points/mcp_server/tools.py
+uv run --project /path/to/scaffold-clean-architecture-py scaffold gep --type mcp --add-tool --name another_tool
+cp /tmp/tools.py.bak src/demo_mcp/infrastructure/entry_points/mcp_server/tools.py
+```
+
+Expected: the same FR-017 failure (hint mentions making `bind_tools` the last function), and `tools.py` is unchanged by the command. Exit code `1`.
+
+## 6b. Exercise the missing-test-file guard (FR-017)
+
+```bash
+mv tests/infrastructure/entry_points/mcp_server/test_tools.py /tmp/test_tools.py.bak
+uv run --project /path/to/scaffold-clean-architecture-py scaffold gep --type mcp --add-tool --name another_tool
+mv /tmp/test_tools.py.bak tests/infrastructure/entry_points/mcp_server/test_tools.py
+```
+
+Expected: fails with the guard 10b message from `contracts/gep-add-tool.md`; `tools.py` is unchanged. Exit code `1`.
 
 ---
 

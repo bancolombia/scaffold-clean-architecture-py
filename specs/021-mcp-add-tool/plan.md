@@ -20,7 +20,7 @@ Add a new `--add-tool` flag to the existing `scaffold gep` / `generate-entry-poi
 
 **Target Platform**: Cross-platform CLI (Linux/macOS/Windows), distributed as the `scaffold-ca-python` PyPI package — no change from existing `gep` command
 
-**Project Type**: Single project — CLI tool extension (new flag + guard logic on an existing command, two new small Jinja2 templates, structural rewrite of `tools.py.jinja2`/`test_tools.py.jinja2` to a registrar-list pattern instead of anchor comments)
+**Project Type**: Single project — CLI tool extension (new flag + guard logic on an existing command, two new small Jinja2 templates appended to existing generated files; no change to `tools.py.jinja2`/`test_tools.py.jinja2` and no anchor comments)
 
 **Performance Goals**: N/A — single-shot, sub-second CLI invocation; same expectation as all other `generate-*` commands, no new performance envelope
 
@@ -31,7 +31,7 @@ Add a new `--add-tool` flag to the existing `scaffold gep` / `generate-entry-poi
 - MUST NOT modify or remove the existing `ModuleBuilder.insert_after` / `FileWriter._apply_insert_after` / `InsertAfter` primitive — it remains used elsewhere (e.g. `EntryPointMcp.build()`'s `HOST`/`PORT` injection into `config.py`, anchored on the real `LOG_LEVEL` field) and is out of scope for this feature.
 - MUST NOT introduce new third-party dependencies.
 
-**Scale/Scope**: One CLI command module extended (`commands/generate_entry_point.py`), one new focused core module for validation/parsing, two new Jinja2 templates, a structural rewrite (registrar-list pattern) of two existing Jinja2 templates, a new `AppendToFile` file-operation primitive (additive, alongside the untouched `InsertAfter`), corresponding test additions across `tests/commands/`, `tests/templates/`, `tests/core/`, and `tests/factory/`.
+**Scale/Scope**: One CLI command module extended (`commands/generate_entry_point.py`), one new focused core module for validation/parsing, two new Jinja2 templates, no change to existing templates, a new `AppendToFile` file-operation primitive (additive, alongside the untouched `InsertAfter`), corresponding test additions across `tests/commands/`, `tests/templates/`, `tests/core/`, and `tests/factory/`.
 
 ## Constitution Check
 
@@ -76,7 +76,8 @@ src/scaffold_ca_python/
 │   └── generate_entry_point.py            # MODIFIED: --add-tool/--name/--param/--returns/--description
 │                                           #   flags, guard ordering, add-tool code path
 ├── core/
-│   ├── name_utils.py                      # REUSED: validate_module_name (snake_case for --name & --param names)
+│   ├── name_utils.py                      # REUSED: validate_module_name (snake_case for --name & --param names;
+│   │                                       #   hard-keyword rejection is added in mcp_tool_spec.py, not here)
 │   ├── module_builder.py                  # MODIFIED: adds append_to_file (new, additive);
 │   │                                       #   insert_after is unchanged and still used elsewhere
 │   ├── file_writer.py                     # MODIFIED: adds _apply_append_to_file (new, additive);
@@ -109,7 +110,7 @@ tests/
 │                                           #   existing insert_after tests unchanged
 └── templates/
     └── test_entry_point_templates.py       # MODIFIED: render tests for the two new templates,
-                                             #   plus registrar-pattern rendering tests (tasks.md T005) —
+                                             #   plus a `bind_tools` regression-guard rendering test (tasks.md T005) —
                                              #   factory/entry_points/test_ep_mcp.py needs no change,
                                              #   since EntryPointMcp.build() itself is untouched
 ```
