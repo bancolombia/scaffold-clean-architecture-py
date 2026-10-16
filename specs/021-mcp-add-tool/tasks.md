@@ -1,0 +1,223 @@
+---
+
+description: "Task list for 021-mcp-add-tool"
+---
+
+# Tasks: Incremental MCP Tool Addition
+
+**Input**: Design documents from `/specs/021-mcp-add-tool/`
+
+**Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/gep-add-tool.md, quickstart.md
+
+**Tests**: Included and sequenced before their implementation tasks — Constitution Principle V ("Test-First Development (NON-NEGOTIABLE)") mandates Red-Green-Refactor for this project, so test tasks are not optional here.
+
+**Organization**: Tasks are grouped by user story (from `spec.md`) to enable independent implementation and testing of each story.
+
+## Format: `[ID] [P?] [Story] Description`
+
+- **[P]**: Can run in parallel (different files, no dependencies on incomplete tasks)
+- **[Story]**: Which user story this task belongs to (US1, US2, US3)
+- Exact file paths are included in every description
+
+## Path Conventions
+
+Single-project CLI layout (per `plan.md` Project Structure — no frontend/backend or mobile split applies):
+- CLI source: `src/scaffold_ca_python/`
+- Templates: `src/scaffold_ca_python/templates/`
+- Tests: `tests/`
+
+---
+
+## Phase 1: Setup (Shared Infrastructure)
+
+**Purpose**: Create the placeholder files and shared test fixture every later phase builds on
+
+- [ ] T001 [P] Create empty placeholder template files `src/scaffold_ca_python/templates/entry_point/mcp/tool_stub.py.jinja2` and `src/scaffold_ca_python/templates/entry_point/mcp/test_tool_stub.py.jinja2` (content added in Phase 2)
+- [ ] T002 [P] Create empty module file `src/scaffold_ca_python/core/mcp_tool_spec.py` with a module docstring only (implementation added in Phase 2)
+- [ ] T003 [P] Create new test module `tests/core/test_mcp_tool_spec.py` with imports only (tests added in Phase 2)
+- [ ] T004 [P] Add a shared `mcp_project` pytest fixture to `tests/commands/test_generate_entry_point.py` that bootstraps a project via `runner.invoke(app, ["ca", "--name", "my-app"])` then `runner.invoke(app, ["gep", "--type", "mcp"])`, for reuse by all `--add-tool` tests in later phases
+
+**Checkpoint**: Placeholder files exist; nothing behavioral yet.
+
+---
+
+## Phase 2: Foundational (Blocking Prerequisites)
+
+**Purpose**: Core infrastructure that MUST be complete before ANY user story can be implemented — the registrar-list pattern rewrite of `tools.py.jinja2`, the two new stub templates, the new `AppendToFile` file-operation primitive, the `mcp_tool_spec` validation module, and the new CLI flags
+
+**⚠️ CRITICAL**: No user story work can begin until this phase is complete
+
+- [ ] T005 Write failing rendering tests in `tests/templates/test_entry_point_templates.py` asserting that rendering `entry_point/mcp/tools.py.jinja2` produces output containing `async def bind_tools` and does **NOT** contain `_TOOL_REGISTRARS` or `_register_tool` (confirming the simple pattern is present); confirm the test FAILS if any registrar-list symbols are found
+- [ ] T006 [P] **Confirm** `src/scaffold_ca_python/templates/entry_point/mcp/tools.py.jinja2` uses the simple `@inject async def bind_tools(...)` pattern with nested `@mcp.tool("example_tool")` decorator (ensure any registrar-list changes from the incorrect implementation are reverted); confirm T005 now PASSES and the pre-existing `example_tool` rendering/registration tests still pass unchanged
+- [ ] T008 Write failing rendering tests in `tests/templates/test_entry_point_templates.py` for the two new templates: for `entry_point/mcp/tool_stub.py.jinja2`, render with a sample context (`name`, `params: list[{name, type}]`, `returns`, `docstring`) and assert the output contains a **4-space-indented** nested `@mcp.tool("<name>")`-decorated `async def <name>(...)` signature with the params in order and the given return type, the docstring, and `raise NotImplementedError(...)` — **NOT** wrapped in `@_register_tool` or `def _bind_<name>`; for `entry_point/mcp/test_tool_stub.py.jinja2`, assert the output contains a top-level `test_bind_tools_registers_<name>` function and an `assert "<name>" in registered` line, and does NOT call/await the registered tool itself; confirm both tests FAIL (templates are still empty from T001)
+- [ ] T009 [P] Implement `src/scaffold_ca_python/templates/entry_point/mcp/tool_stub.py.jinja2` to render a **4-space-indented** inline nested function block: `\n\n    @mcp.tool("{{ name }}")\n    async def {{ name }}({% for param in params %}{{ param.name }}: {{ param.type }}{% if not loop.last %}, {% endif %}{% endfor %}) -> {{ returns }}:\n        """{{ docstring }}"""\n        raise NotImplementedError("Tool '{{ name }}' is not yet implemented.")` (nested function format for appending inside `bind_tools`, not a top-level registrar); confirm the matching half of T008 now PASSES
+- [ ] T010 [P] Implement `src/scaffold_ca_python/templates/entry_point/mcp/test_tool_stub.py.jinja2` to render a top-level `test_bind_tools_registers_{{ name }}` function using the existing `_make_mock_mcp()` helper pattern already present in `test_tools.py.jinja2`, asserting registration only; confirm the matching half of T008 now PASSES
+- [ ] T011 [P] Write failing unit tests in `tests/core/test_mcp_tool_spec.py` covering: `parse_param` (accepts `"path:str"` → `("path", "str")`; rejects `"path"` with no colon, `"Path:str"` bad casing, `"path:print('x')"` bad type); `validate_type_expression` (accepts `str`, `int`, `list[str]`, `dict[str, int]`, `str | None`, `typing.Optional[str]`, `Literal["a", "b"]`; rejects `print('x')`, a bare string literal `"hello"`, `1 + 1`, a lambda, and a comprehension — per the grammar in `research.md` R-004); `find_existing_tool_names` (parses a `tools.py`-shaped source string with one or more `@mcp.tool("name")`-decorated functions and returns exactly their registered name set, ignoring tool-name-like text inside comments/docstrings); `has_bind_tools_function` (returns `True` only when `tools.py`'s source defines an `async def bind_tools` function at module level, via `ast`; `False` when the function is absent, not async, or only present inside a comment/string); `validate_description` (accepts normal text, returns the generic placeholder for `None`/empty input, rejects text containing an embedded `"""` or `'''`); and `build_tool_spec`/`ToolSpec`/`ParamSpec` (rejects duplicate `--param` names per FR-006, applies the `"str"` return-type default and the placeholder-docstring default, preserves `--param` order); confirm all tests FAIL
+- [ ] T012 Implement `ParamSpec`, `ToolSpec`, `parse_param`, `validate_type_expression`, `find_existing_tool_names`, `has_bind_tools_function`, `validate_description`, `build_tool_spec` in `src/scaffold_ca_python/core/mcp_tool_spec.py`, reusing `core.name_utils.validate_module_name` for name checks and the stdlib `ast` module for `validate_type_expression`/`find_existing_tool_names`/`has_bind_tools_function` per `research.md` R-003–R-006; implement `ParamSpec` and `ToolSpec` as Pydantic v2 `BaseModel` subclasses (not plain dataclasses) per `data-model.md`, consistent with `ModuleContext`/`ProjectContext` and Constitution Principle II's "Template context objects MUST be validated via Pydantic models before rendering," with a model validator on `ToolSpec` rejecting duplicate `--param` names (FR-006); confirm all of T011 now PASSES
+- [ ] T013 [P] Write failing unit tests in `tests/core/test_file_writer.py` for a new `AppendToFile` operation and `FileWriter._apply_append_to_file`: appending to an existing file adds `content` after the existing contents (with a blank-line separator) without disturbing earlier content; targeting a file that does **not** exist creates it (including any missing parent directories) with `content` as its initial contents; dry-run mode returns the target path without writing to disk, matching `InsertAfter`'s existing dry-run contract; confirm all tests FAIL (per `research.md` R-006)
+- [ ] T014 Implement the new `AppendToFile` `FileOperation` model in `src/scaffold_ca_python/models/file_operation.py` (alongside, not replacing, `CreateFile`/`DeleteFile`/`InsertAfter`), `FileWriter._apply_append_to_file` in `src/scaffold_ca_python/core/file_writer.py`, and `ModuleBuilder.append_to_file(path, content)` in `src/scaffold_ca_python/core/module_builder.py` (mirroring the existing `insert_after` method's signature style, without modifying `insert_after`/`_apply_insert_after`/`InsertAfter` in any way); confirm all of T013 now PASSES and all pre-existing `insert_after`/`InsertAfter` tests still pass unchanged
+- [ ] T015 [P] Add `--add-tool` (bool flag, default `False`), `--name` (str, default `None`), `--param` (repeatable `Annotated[list[str] | None, typer.Option("--param")]`, default `None`), `--returns` (str, default `"str"`), and `--description` (str, default `None`) Typer options to the `generate_entry_point`/`gep` command signature in `src/scaffold_ca_python/commands/generate_entry_point.py`, threading all five through to `_generate_entry_point_impl` (flag wiring only — no new behavior yet; existing flags/behavior unchanged)
+- [ ] T016 Add an early-branch dispatch at the top of `_generate_entry_point_impl` in `src/scaffold_ca_python/commands/generate_entry_point.py`: when `add_tool` is `True`, call a new `_add_tool_impl(type_, name, param, returns, description, dry_run)` function (initially a minimal stub, e.g. `raise typer.Exit(code=1)` with a `TODO` placeholder message) instead of running the existing creation-path logic, per `research.md` R-002; confirm the existing (no-flag) `gep --type mcp` creation tests still all pass unchanged
+
+**Checkpoint**: The `AppendToFile` primitive exists and is unit-tested, `tools.py.jinja2` retains its simple `bind_tools` pattern (no registrar-list changes), the two new stub templates render correctly with 4-space indentation and are unit-tested, `mcp_tool_spec.py` is fully implemented and unit-tested with `has_bind_tools_function`, and the CLI accepts all five new flags and routes `--add-tool` invocations to a (currently empty) `_add_tool_impl`. User story implementation can now begin.
+
+---
+
+## Phase 3: User Story 1 - Add a new tool to an existing MCP server (Priority: P1) 🎯 MVP
+
+**Goal**: `scaffold gep --type mcp --add-tool --name ... [--param ...] [--returns ...] [--description ...]` appends exactly one working, correctly-typed tool stub to `tools.py` and a matching registration test to `test_tools.py`, leaving all previously existing tools untouched.
+
+**Independent Test**: Bootstrap a project with `scaffold gep --type mcp`, then run the full-flag `--add-tool` invocation from the spec's example and verify the new tool appears correctly in `tools.py`, is registered per the new `test_tools.py` assertion, and all previously existing tools/tests are unchanged.
+
+### Tests for User Story 1 ⚠️
+
+> Write these tests FIRST, ensure they FAIL before implementation (Constitution Principle V)
+
+> **Note (append-or-create scope)**: `ModuleBuilder.append_to_file`/`AppendToFile` generically supports creating a target file from scratch when it does not yet exist (T013/T014). In this feature's actual usage, `test_tools.py` is always already present (created by the base `gep --type mcp` path before `--add-tool` can run at all per FR-009's entry-point-exists guard), so the create-from-scratch branch is exercised only by `AppendToFile`'s own unit tests (T013), never by an end-to-end `--add-tool` CLI test — this is intentional and does not need additional `--add-tool`-level coverage.
+
+- [ ] T017 [US1] Write failing CLI tests in `tests/commands/test_generate_entry_point.py` (using the `mcp_project` fixture from T004) for the US1 happy-path acceptance scenarios: (1) full-flag invocation (`--name create_file --param path:str --param content:str --returns str --description "Creates a file on disk"`) inserts a correctly-shaped `create_file` stub into `tools.py` with the given params/return type/docstring and exit code `0`; (2) zero `--param` flags produce a stub that takes no extra parameters beyond the tool-binding mechanism's own; (3) omitted `--returns`/`--description` default the stub to a `str` return type and a generic, clearly-marked placeholder docstring; (4) the pre-existing `example_tool` and its tests remain present and unchanged after the run; (5) `test_tools.py` gains a `test_bind_tools_registers_create_file` assertion and the full `test_tools.py` file (as a standalone pytest run against the generated project) passes, including the new assertion; (6) a full `pathlib.Path.rglob("*")` snapshot of the project tree taken before and after the run shows exactly `tools.py` and `test_tools.py` changed — no domain model, use case, gateway, or driven-adapter file is created, modified, or deleted (FR-014); confirm all FAIL
+
+### Implementation for User Story 1
+
+> **Guard ordering note** (aligned with `research.md` R-002 and `contracts/gep-add-tool.md`'s "evaluated in order, first failure wins" guard-rule list): all *format/content* validation of `--name`/`--param`/`--returns`/`--description` (FR-002, FR-003, FR-005, FR-006, FR-007, FR-008) MUST complete — with zero filesystem/project access — before any check that depends on project state (FR-009 entry-point-exists, FR-010 duplicate-tool-name, FR-017 registrar-pattern-presence). This corrects an earlier draft of this task list that checked project state first; T018–T020 below reflect the corrected order.
+
+- [ ] T018 [US1] In `_add_tool_impl` (`src/scaffold_ca_python/commands/generate_entry_point.py`), implement the format-only guard sequence — no project/filesystem access yet: fail with an actionable error if `name` is `None` (FR-002); otherwise build the fully validated `ToolSpec` via `mcp_tool_spec.build_tool_spec(name, param, returns, description)`, which performs `--name`/`--param`-name snake_case validation (FR-003), `--param` format/type validation (FR-005), duplicate-`--param`-name rejection (FR-006), `--returns` type validation (FR-007), and `--description` docstring-safety validation (FR-008) (depends on T012, T016)
+- [ ] T019 [US1] In `_add_tool_impl`, only after T018's `ToolSpec` is built successfully, resolve `project_root`/`project_ctx` via the existing `find_project_root`/`_load_project_context` helpers, then fail with an actionable error (hinting at `scaffold gep --type mcp`) if `infrastructure/entry_points/mcp_server/tools.py` does not exist (FR-009) (depends on T018)
+- [ ] T020 [US1] In `_add_tool_impl`, implement the bind_tools-function-presence guard (FR-017, via `mcp_tool_spec.has_bind_tools_function` on the current `tools.py` source) **strictly before** the duplicate-tool-name guard (FR-010, via `mcp_tool_spec.find_existing_tool_names` on the current `tools.py` source), per `contracts/gep-add-tool.md`'s ordered guard-rule list (rule 10 — legacy/bind_tools-missing — precedes rule 11 — duplicate name); a project missing its `async def bind_tools` function MUST fail with the FR-017 regeneration-hint message even if it would also match an FR-010 duplicate-name condition; read both files directly with `Path.read_text()` before any builder operation is queued (depends on T012, T019)
+- [ ] T021 [US1] In `_add_tool_impl`, render `tool_stub.py.jinja2` and `test_tool_stub.py.jinja2` via `builder.render(...)` using the `ToolSpec` context, queue `builder.append_to_file(tools_py_path, content=<rendered_inline_block>)` (the 4-space-indented nested function) and `builder.append_to_file(test_tools_py_path, content=<rendered test>)`, call `builder.persist()`, and print a `[green]✓[/green]` success message naming the new tool; the inline block appended to the end of `tools.py` effectively inserts the new tool inside `bind_tools` since `bind_tools` is always the last function (depends on T009, T010, T014, T020); confirm all of T017 now PASSES
+
+**Checkpoint**: User Story 1 is fully functional and independently testable — run `uv run pytest tests/commands/test_generate_entry_point.py -k add_tool` to verify in isolation.
+
+---
+
+## Phase 4: User Story 2 - Clear guardrails prevent invalid or conflicting requests (Priority: P2)
+
+**Goal**: Every misuse of `--add-tool` — missing entry point, duplicate name, incompatible flags, invalid `--name`/`--param`/`--returns`/`--description`, or a legacy registrar-pattern-less project — fails immediately with an actionable message and exit code `1`, never a crash or a partial file write.
+
+**Independent Test**: Run each guard-rail scenario from `spec.md` User Story 2 against appropriately set-up fixtures and verify the exact failure behavior (message, exit code, no file changes) independently of whether US1's happy path has been exercised in the same test run.
+
+### Tests for User Story 2 ⚠️
+
+> Write these tests FIRST, ensure they FAIL before implementation (Constitution Principle V)
+
+- [ ] T022 [US2] Write failing CLI tests in `tests/commands/test_generate_entry_point.py` for: the entry-point-does-not-exist guard (FR-009, scenario 1 — project bootstrapped with `ca` only, no `gep --type mcp` run) asserting the hint to run `scaffold gep --type mcp` first; and the duplicate-tool-name guard (FR-010, scenario 2 — `--add-tool --name create_file` run twice) asserting the second run fails and `tools.py` is unchanged from the first run's output; both asserting exit code `1`
+- [ ] T023 [US2] Write failing CLI tests, parametrized, for the flag/type incompatibility guards: `--add-tool` combined with each of `--swagger`, `--enable-kafka`, `--enable-mcp-client`, `--with-resources`, `--with-prompts` fails naming the offending flag (FR-011, scenario 3); `--add-tool` combined with `--type restapi`/`--type agent`/`--type generic`, and with `--type` omitted entirely, fails stating `--add-tool` requires `--type mcp` (FR-012, scenario 4); all asserting exit code `1` and no file changes
+- [ ] T024 [US2] Write failing CLI tests, parametrized, for the required/format validation guards: `--add-tool` with no `--name` (FR-002, scenario 5); `--name CreateFile` bad casing (FR-003, scenario 6, same error style as `generate-model`'s `validate_module_name` error); malformed `--param` values `"path"` (no colon), `"Path:str"` (bad param-name casing), and `"path:print('x')"` (non-type-expression) each identifying the offending value (FR-005, scenario 7); duplicate `--param` names `--param path:str --param path:int` (FR-006); and a non-type-expression `--returns "print('x')"` (FR-007, scenario 8); all asserting exit code `1` and no file changes
+- [ ] T025 [US2] Write failing CLI tests for: an unsafe `--description` containing an embedded `"""` sequence (FR-008); a "legacy" project simulated by removing or renaming the `async def bind_tools` function from an otherwise-valid generated `tools.py` (FR-017, scenario 9) asserting a regeneration-hint message and **not** a raw `ValueError`/`FileNotFoundError` traceback, **and** asserting `tools.py`/`test_tools.py` content is byte-identical to its pre-attempt state afterward (SC-005 — zero file corruption); and a missing/unreadable `tools.py` (entry-point directory present, file absent) asserting a clear message rather than a crash; all asserting exit code `1`
+- [ ] T026 [US2] Write failing CLI tests for two cross-cutting guard-ordering scenarios required by `contracts/gep-add-tool.md`'s "evaluated in order, first failure wins" rule: (1) invoke `--add-tool` with an invalid `--param` (e.g. `--param "path:print('x')"`, FR-005) against a project that has **no** MCP entry point generated yet (FR-009 would also apply); assert the failure message identifies the invalid `--param` (FR-005 wording), not the missing-entry-point message (FR-009); (2) invoke `--add-tool --name create_file` against a project whose `tools.py` already defines `create_file` (would match FR-010) **and** whose `async def bind_tools` function has been removed (would match FR-017); assert the failure message is the FR-017 regeneration-hint message, not the FR-010 duplicate-name message, per guard rule 10 preceding rule 11 in `contracts/gep-add-tool.md`; both asserting exit code `1`; these tests MUST fail against the pre-reorder guard sequence and MUST pass once T018–T020's corrected order is implemented
+
+### Implementation for User Story 2
+
+- [ ] T027 [US2] Wire the entry-point-existence (FR-009) and duplicate-tool-name (FR-010) guard messages in `_add_tool_impl` to match `contracts/gep-add-tool.md`'s guard-rule wording exactly (depends on T019, T020); confirm T022 now PASSES
+- [ ] T028 [US2] Wire the flag/type incompatibility guard messages (FR-011, FR-012) in `_add_tool_impl`, ensuring these checks run before project-root resolution so no project lookup is attempted on an invalid flag combination (depends on T016); confirm T023 now PASSES
+- [ ] T029 [US2] Surface `mcp_tool_spec` validation errors — from `parse_param`, `validate_type_expression` (for both `--param` types and `--returns`), and the duplicate-`--param`-name check — as `[red]Error:[/red]` CLI messages quoting the offending value, in `_add_tool_impl` (depends on T012, T018); confirm T024 now PASSES
+- [ ] T030 [US2] Wire the `--description` safety guard (via `mcp_tool_spec.validate_description`, already enforced as part of T018's `build_tool_spec` call), the bind_tools-function-presence guard message (FR-017, from T020), and the missing/unreadable-`tools.py` guard in `_add_tool_impl` to match `contracts/gep-add-tool.md`'s regeneration-hint wording, ensuring no partial file write occurs before any of these checks (depends on T012, T018, T020); confirm T025 now PASSES; confirm T026 now PASSES (verifies the corrected guard order from T018–T020)
+
+**Checkpoint**: User Stories 1 AND 2 both work independently — every invalid/conflicting invocation fails safely and the US1 happy path is unaffected.
+
+---
+
+## Phase 5: User Story 3 - Preview the change before writing it (Priority: P3)
+
+**Goal**: `--add-tool --dry-run` previews the exact file(s) and code snippet that would be inserted, without writing to disk, and matches what an equivalent live run actually produces.
+
+**Independent Test**: Run the same `--add-tool` invocation once with `--dry-run` and once without, and confirm the preview output matches the real result while the dry run itself leaves disk contents unchanged.
+
+### Tests for User Story 3 ⚠️
+
+> Write these tests FIRST, ensure they FAIL before implementation (Constitution Principle V)
+
+- [ ] T031 [US3] Write failing CLI tests in `tests/commands/test_generate_entry_point.py` for: `--add-tool --dry-run` with a valid invocation printing the files that would change (`tools.py`, `test_tools.py`) and the exact stub/test snippet, while `tools.py`/`test_tools.py` remain byte-for-byte unchanged on disk and exit code is `0` (scenario 1); re-running the identical invocation immediately afterward without `--dry-run` produces file contents identical to what the dry run printed (scenario 2); and `--add-tool --dry-run` against a project with no MCP entry point still fails with the FR-009 message instead of showing any preview (edge case — missing-entry-point guard takes precedence)
+
+### Implementation for User Story 3
+
+- [ ] T032 [US3] In `_add_tool_impl`, when `dry_run` is `True`, print the already-rendered stub/test snippets (via `rich.syntax.Syntax`) alongside the list of files that would be modified, and return before calling `builder.persist()` with any real write; ensure every guard from T018/T019/T020/T027/T028/T030 still runs (and can still fail) before this preview output, per `research.md` R-008 (depends on T021); confirm T031 now PASSES
+
+**Checkpoint**: All three user stories are independently functional.
+
+---
+
+## Phase 6: Polish & Cross-Cutting Concerns
+
+**Purpose**: Documentation, held-out validation, and quality gates spanning all three user stories
+
+- [ ] T033 [P] Update the `scaffold gep` section of `README.md` with a concrete `--add-tool` usage example (mirroring the existing `--with-resources --with-prompts --dry-run` example already documented there)
+- [ ] T034 [P] Update `_GEP_EPILOG` in `src/scaffold_ca_python/commands/generate_entry_point.py` with a concrete `--add-tool` usage example, per Constitution Principle VI ("`--help` output for every command MUST include at least one concrete usage example")
+- [ ] T035 Run the `specs/021-mcp-add-tool/quickstart.md` validation script end-to-end against a freshly scaffolded project and fix any discrepancy found between the guide and actual behavior
+- [ ] T036 Run `uv run pytest --cov=scaffold_ca_python --cov-report=term-missing` and confirm the 80% line-coverage gate still passes (Constitution Principle V)
+- [ ] T037 [P] Run `ruff check` and `mypy --strict` over all new/modified files (`generate_entry_point.py`, `mcp_tool_spec.py`, `module_builder.py`, `file_writer.py`, `models/file_operation.py`, the four touched/added Jinja2 templates, and all new/modified test files) and fix any violations (Constitution Principle IV)
+
+---
+
+## Dependencies & Execution Order
+
+### Phase Dependencies
+
+- **Setup (Phase 1)**: No dependencies — can start immediately
+- **Foundational (Phase 2)**: Depends on Setup completion (T001–T004) — BLOCKS all user stories
+- **User Stories (Phase 3–5)**: All depend on Foundational phase (T005–T016) completion
+  - User Story 1 (T017–T021) can start immediately after Foundational
+  - User Story 2 (T022–T030) builds on the guard-sequence skeleton US1 establishes (T018, T019, T020) — implement after US1 for a smooth increment, though its tests (T022–T026) only require Foundational + the guard skeleton to exist
+  - User Story 3 (T031–T032) builds on the render/append path US1 establishes (T021) — implement after US1
+- **Polish (Phase 6)**: Depends on all three user stories being complete
+
+### User Story Dependencies
+
+- **User Story 1 (P1)**: Can start after Foundational (Phase 2) — no dependency on US2/US3
+- **User Story 2 (P2)**: Technically exercises guard code introduced in US1 (T018, T019, T020); its own tests (T022–T026) are independent and could be written in parallel with US1, but its implementation tasks (T027–T030) assume T018/T019/T020 exist
+- **User Story 3 (P3)**: Exercises the render/append path from US1 (T021); its tests (T031) are independent, but its implementation (T032) assumes T021 exists
+
+### Within Each User Story
+
+- Tests MUST be written and FAIL before implementation (Constitution Principle V)
+- All implementation tasks within `_add_tool_impl` for a given story are sequential (same function, same file) — no `[P]` within a story's implementation block
+
+### Parallel Opportunities
+
+- Setup: T001, T002, T003, T004 can all run in parallel (four independent files)
+- Foundational: T006 ∥ T007 (different template files); T009 ∥ T010 (different template files); T011 can run parallel to the template-track tasks (T005–T010, different file); T013 can run parallel to the template-track and `mcp_tool_spec` tracks (different file); T015 can run parallel to the template-track, `AppendToFile`, and `mcp_tool_spec` tracks (different file)
+- Polish: T033 ∥ T034 ∥ T037 (different files/concerns)
+- Across phases: once Foundational (T005–T016) is complete, the test-writing tasks for US2 (T022–T026) and US3 (T031) can be drafted in parallel with US1's implementation (T018–T021) by a different contributor, since they target the same test file but different scenarios — coordinate to avoid merge conflicts, or sequence them as listed
+
+---
+
+## Parallel Example: Foundational Phase
+
+```bash
+# After T005 (failing registrar-pattern rendering tests) is committed:
+Task: "Rewrite tools.py.jinja2 with the registrar-list pattern"   # T006
+Task: "Confirm test_tools.py.jinja2 needs no structural change"   # T007
+
+# After T008 (failing stub-template tests) is committed:
+Task: "Implement tool_stub.py.jinja2"                  # T009
+Task: "Implement test_tool_stub.py.jinja2"             # T010
+
+# Independently of the template track above:
+Task: "Write mcp_tool_spec.py unit tests"              # T011
+
+# Independently of both tracks above (new AppendToFile primitive):
+Task: "Write AppendToFile/_apply_append_to_file unit tests"  # T013
+
+# Independently of all tracks above:
+Task: "Add --add-tool CLI flags to generate_entry_point.py"  # T015
+```
+
+---
+
+## Implementation Strategy
+
+### MVP First (User Story 1 Only)
+
+1. Complete Phase 1: Setup (T001–T004)
+2. Complete Phase 2: Foundational (T005–T016) — CRITICAL, blocks all stories
+3. Complete Phase 3: User Story 1 (T017–T021)
+4. **STOP and VALIDATE**: Run `uv run pytest tests/commands/test_generate_entry_point.py -k add_tool` and the relevant steps of `quickstart.md` (sections 1–3) to confirm the happy path works end-to-end
+5. This is already a usable MVP: developers can add tools, just without hardened guard rails or dry-run support yet
+
+### Incremental Delivery
+
+1. Setup + Foundational → foundation ready (registrar-list templates, `AppendToFile` primitive, validators, CLI flags all in place)
+2. Add User Story 1 → test independently → MVP: `--add-tool` works for valid input
+3. Add User Story 2 → test independently → every invalid/conflicting invocation now fails safely
+4. Add User Story 3 → test independently → `--dry-run` preview available
+5. Polish → docs, quickstart validation, coverage gate, lint/type-check
