@@ -120,6 +120,10 @@ scaffold gep --type restapi
 scaffold gep --type mcp --with-resources --with-prompts --dry-run
 ```
 
+```bash
+scaffold gep --type mcp --add-tool --name create_file --param path:str --param content:str --returns str --description "Creates a file on disk"
+```
+
 ### scaffold gh
 
 Scaffold a helper utility module and its test stub.

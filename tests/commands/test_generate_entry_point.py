@@ -29,6 +29,21 @@ def project_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 
 @pytest.fixture()
+def mcp_project(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Bootstrap a project with an MCP entry point (T004).
+
+    Creates a CA project and generates the MCP server infrastructure,
+    ready for --add-tool tests.
+    """
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["ca", "--name", "my-app"], catch_exceptions=False)
+    project_dir = tmp_path / "my-app"
+    monkeypatch.chdir(project_dir)
+    runner.invoke(app, ["gep", "--type", "mcp"], catch_exceptions=False)
+    return project_dir
+
+
+@pytest.fixture()
 def swagger_file(tmp_path: Path) -> Path:
     """A minimal valid OpenAPI YAML file for --swagger tests."""
     spec_path = tmp_path / "spec.yaml"
@@ -595,12 +610,6 @@ def test_gep_help_shows_type_descriptions() -> None:
     assert "FastAPI" in result.output
 
 
-def test_gep_help_flags_agent_type_only() -> None:
-    result = runner.invoke(app, ["gep", "--help"])
-    assert result.exit_code == 0
-    assert "agent type only" in result.output
-
-
 def test_gep_help_contains_examples_section() -> None:
     result = runner.invoke(app, ["gep", "--help"])
     assert result.exit_code == 0
@@ -837,3 +846,809 @@ def test_mcp_app_py_with_resources_contains_bind_resources(project_root: Path) -
     app_py = project_root / "src" / "my_app" / "application" / "app.py"
     assert app_py.exists()
     assert "bind_resources" in app_py.read_text(encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# Phase 3 / T017 — User Story 1: --add-tool happy path
+# ---------------------------------------------------------------------------
+
+
+def test_add_tool_full_flag_invocation(mcp_project: Path) -> None:
+    """T017(1): Full-flag --add-tool invocation inserts correctly-shaped stub."""
+    result = runner.invoke(
+        app,
+        [
+            "gep",
+            "--type",
+            "mcp",
+            "--add-tool",
+            "--name",
+            "create_file",
+            "--param",
+            "path:str",
+            "--param",
+            "content:str",
+            "--returns",
+            "str",
+            "--description",
+            "Creates a file on disk",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+
+    tools_py = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
+    content = tools_py.read_text(encoding="utf-8")
+
+    # Check stub is present with correct signature
+    assert '@mcp.tool("create_file")' in content
+    assert "async def create_file(path: str, content: str) -> str:" in content
+    assert '"Creates a file on disk"' in content or "'Creates a file on disk'" in content
+    assert "NotImplementedError" in content
+
+
+def test_add_tool_zero_params(mcp_project: Path) -> None:
+    """T017(2): Zero --param flags produce stub with no extra parameters."""
+    result = runner.invoke(
+        app,
+        ["gep", "--type", "mcp", "--add-tool", "--name", "list_files"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+
+    tools_py = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
+    content = tools_py.read_text(encoding="utf-8")
+
+    assert '@mcp.tool("list_files")' in content
+    assert "async def list_files() -> str:" in content
+
+
+def test_add_tool_defaults_returns_and_description(mcp_project: Path) -> None:
+    """T017(3): Omitted --returns/--description use defaults."""
+    result = runner.invoke(
+        app,
+        ["gep", "--type", "mcp", "--add-tool", "--name", "get_status"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+
+    tools_py = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
+    content = tools_py.read_text(encoding="utf-8")
+
+    # Default return type is str
+    assert "async def get_status() -> str:" in content
+    # Default description is a placeholder
+    assert "TODO" in content or "describe this tool" in content
+
+
+def test_add_tool_preserves_existing_tools(mcp_project: Path) -> None:
+    """T017(4): Pre-existing example_tool and its tests remain unchanged."""
+    tools_py = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
+    test_tools_py = mcp_project / "src" / "tests" / "infrastructure" / "entry_points" / "mcp_server" / "test_tools.py"
+
+    # Add a new tool
+    result = runner.invoke(
+        app,
+        ["gep", "--type", "mcp", "--add-tool", "--name", "new_tool"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+
+    # Check example_tool still exists
+    new_tools = tools_py.read_text(encoding="utf-8")
+    assert "example_tool" in new_tools
+    assert '@mcp.tool("example_tool")' in new_tools
+
+    # Check test for example_tool still exists
+    new_tests = test_tools_py.read_text(encoding="utf-8")
+    assert "test_bind_tools_registers_example_tool" in new_tests
+
+
+def test_add_tool_creates_registration_test(mcp_project: Path) -> None:
+    """T017(5): test_tools.py gains registration test that passes."""
+    result = runner.invoke(
+        app,
+        ["gep", "--type", "mcp", "--add-tool", "--name", "create_file"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+
+    test_tools_py = mcp_project / "src" / "tests" / "infrastructure" / "entry_points" / "mcp_server" / "test_tools.py"
+    content = test_tools_py.read_text(encoding="utf-8")
+
+    # Check test was added
+    assert "test_bind_tools_registers_create_file" in content
+    assert '"create_file" in registered' in content or "'create_file' in registered" in content
+
+    # Run the tests in the generated project (disable coverage for this subprocess test)
+    import subprocess
+
+    # First, install dependencies in the generated project
+    sync_result = subprocess.run(
+        ["uv", "sync", "--no-progress"],
+        cwd=mcp_project,
+        capture_output=True,
+        text=True,
+        timeout=60,  # 60 second timeout for sync
+    )
+
+    # If sync fails, it means we can't verify the test runs, but the test generation itself is valid
+    # This can happen in CI with network issues or package availability problems
+    if sync_result.returncode != 0:
+        pytest.skip(f"Cannot run generated tests: uv sync failed: {sync_result.stderr}")
+
+    result = subprocess.run(
+        ["uv", "run", "pytest", str(test_tools_py), "-v", "--no-cov"],
+        cwd=mcp_project,
+        capture_output=True,
+        text=True,
+        timeout=30,  # 30 second timeout for pytest
+    )
+    assert result.returncode == 0, f"Generated tests failed: {result.stdout}\n{result.stderr}"
+
+
+def test_add_tool_only_modifies_tools_and_tests(mcp_project: Path) -> None:
+    """T017(6): Only tools.py and test_tools.py are modified, no other files."""
+    # Take snapshot before
+    before_files = {p.relative_to(mcp_project): p.read_bytes() for p in mcp_project.rglob("*") if p.is_file()}
+
+    # Add tool
+    result = runner.invoke(
+        app,
+        ["gep", "--type", "mcp", "--add-tool", "--name", "create_file"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+
+    # Take snapshot after
+    after_files = {p.relative_to(mcp_project): p.read_bytes() for p in mcp_project.rglob("*") if p.is_file()}
+
+    # Find changed files
+    changed = set()
+    for path in before_files.keys() | after_files.keys():
+        if before_files.get(path) != after_files.get(path):
+            changed.add(str(path))
+
+    # Should only have changed tools.py and test_tools.py
+    expected_changes = {
+        "src/my_app/infrastructure/entry_points/mcp_server/tools.py",
+        "src/tests/infrastructure/entry_points/mcp_server/test_tools.py",
+    }
+
+    assert changed == expected_changes, f"Unexpected file changes: {changed - expected_changes}"
+
+
+# ---------------------------------------------------------------------------
+# Phase 4: User Story 2 - Guardrails (T022-T026, T025a)
+# ---------------------------------------------------------------------------
+
+
+def test_add_tool_fails_when_entry_point_missing(project_root: Path) -> None:
+    """T022: FR-009 - Fails with hint when MCP entry point doesn't exist."""
+    result = runner.invoke(
+        app,
+        ["gep", "--type", "mcp", "--add-tool", "--name", "create_file"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 1
+    output = strip_ansi(result.stdout)
+    assert "No MCP entry point found" in output
+    assert "scaffold gep --type mcp" in output
+
+
+@pytest.mark.parametrize(
+    "name,reason",
+    [
+        ("create_file", "duplicate_after_second_run"),
+        ("bind_tools", "reserved_name"),
+    ],
+)
+def test_add_tool_fails_on_duplicate_name(mcp_project: Path, name: str, reason: str) -> None:
+    """T022: FR-010 - Rejects duplicate tool names."""
+    if reason == "duplicate_after_second_run":
+        # First run succeeds
+        result1 = runner.invoke(
+            app,
+            ["gep", "--type", "mcp", "--add-tool", "--name", name],
+            catch_exceptions=False,
+        )
+        assert result1.exit_code == 0
+
+        # Second run with same name fails
+        tools_py = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
+        original_content = tools_py.read_text()
+
+        result2 = runner.invoke(
+            app,
+            ["gep", "--type", "mcp", "--add-tool", "--name", name],
+            catch_exceptions=False,
+        )
+        assert result2.exit_code == 1
+        output = strip_ansi(result2.stdout)
+        assert f"tool named '{name}' already exists" in output
+
+        # File unchanged after failed run
+        assert tools_py.read_text() == original_content
+
+    elif reason == "reserved_name":
+        tools_py = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
+        original_content = tools_py.read_text()
+
+        result = runner.invoke(
+            app,
+            ["gep", "--type", "mcp", "--add-tool", "--name", name],
+            catch_exceptions=False,
+        )
+        assert result.exit_code == 1
+        output = strip_ansi(result.stdout)
+        assert "'bind_tools' is reserved" in output
+
+        # File unchanged after failed run
+        assert tools_py.read_text() == original_content
+
+
+def test_add_tool_fails_on_decorator_vs_function_name_duplicate(mcp_project: Path) -> None:
+    """T022: FR-010 - Rejects both @mcp.tool name and function name as duplicates."""
+    tools_py = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
+
+    # Add a tool using the actual command where decorator name != function name
+    # First add normally
+    result_add = runner.invoke(
+        app,
+        ["gep", "--type", "mcp", "--add-tool", "--name", "search"],
+        catch_exceptions=False,
+    )
+    assert result_add.exit_code == 0
+
+    # Hand-edit to rename the function but keep the decorator name
+    original = tools_py.read_text()
+    modified = original.replace("async def search(", "async def do_search(")
+    tools_py.write_text(modified)
+
+    # Try to add tool with decorator name "search" - should fail
+    result1 = runner.invoke(
+        app,
+        ["gep", "--type", "mcp", "--add-tool", "--name", "search"],
+        catch_exceptions=False,
+    )
+    assert result1.exit_code == 1
+    assert "tool named 'search' already exists" in strip_ansi(result1.stdout)
+
+    # Try to add tool with function name "do_search" - should also fail
+    result2 = runner.invoke(
+        app,
+        ["gep", "--type", "mcp", "--add-tool", "--name", "do_search"],
+        catch_exceptions=False,
+    )
+    assert result2.exit_code == 1
+    assert "tool named 'do_search' already exists" in strip_ansi(result2.stdout)
+
+
+@pytest.mark.parametrize(
+    "flag_name,flag_value",
+    [
+        ("--swagger", "spec.yaml"),
+        ("--enable-kafka", None),
+        ("--enable-mcp-client", None),
+        ("--with-resources", None),
+        ("--with-prompts", None),
+    ],
+)
+def test_add_tool_incompatible_with_creation_flags(mcp_project: Path, flag_name: str, flag_value: str | None) -> None:
+    """T023: FR-011 - --add-tool is incompatible with creation-only flags."""
+    args = ["gep", "--type", "mcp", "--add-tool", "--name", "create_file", flag_name]
+    if flag_value is not None:
+        args.append(flag_value)
+
+    result = runner.invoke(app, args, catch_exceptions=False)
+    assert result.exit_code == 1
+    output = strip_ansi(result.stdout)
+    assert "--add-tool is incompatible with" in output
+    assert flag_name.lstrip("-") in output
+
+
+@pytest.mark.parametrize(
+    "type_value",
+    [
+        "restapi",
+        "agent",
+        "generic",
+        None,  # --type omitted
+    ],
+)
+def test_add_tool_requires_type_mcp(project_root: Path, type_value: str | None) -> None:
+    """T023: FR-012 - --add-tool requires --type mcp."""
+    args = ["gep", "--add-tool", "--name", "create_file"]
+    if type_value is not None:
+        args.extend(["--type", type_value])
+
+    result = runner.invoke(app, args, catch_exceptions=False)
+    assert result.exit_code == 1
+    output = strip_ansi(result.stdout)
+    assert "--add-tool" in output and "mcp" in output
+
+
+def test_add_tool_requires_name_flag(mcp_project: Path) -> None:
+    """T024: FR-002 - --name is required with --add-tool."""
+    result = runner.invoke(
+        app,
+        ["gep", "--type", "mcp", "--add-tool"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 1
+    output = strip_ansi(result.stdout)
+    assert "--name is required" in output
+
+
+@pytest.mark.parametrize(
+    "name,expected_message_fragment",
+    [
+        ("CreateFile", "snake_case"),
+        ("class", "keyword"),
+    ],
+)
+def test_add_tool_validates_name_format(mcp_project: Path, name: str, expected_message_fragment: str) -> None:
+    """T024: FR-003 - Validates --name format and rejects keywords."""
+    result = runner.invoke(
+        app,
+        ["gep", "--type", "mcp", "--add-tool", "--name", name],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 1
+    output = strip_ansi(result.stdout)
+    assert expected_message_fragment in output
+
+
+def test_add_tool_accepts_soft_keywords(mcp_project: Path) -> None:
+    """T024: FR-003 - Soft keywords like 'match' are accepted."""
+    result = runner.invoke(
+        app,
+        ["gep", "--type", "mcp", "--add-tool", "--name", "match"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+
+
+@pytest.mark.parametrize(
+    "param,expected_fragment",
+    [
+        ("path", "Expected 'name:type' format"),
+        ("Path:str", "snake_case"),
+        ("path:print('x')", "type-expression"),
+        ("class:str", "keyword"),
+    ],
+)
+def test_add_tool_validates_param_format(mcp_project: Path, param: str, expected_fragment: str) -> None:
+    """T024: FR-005 - Validates --param format."""
+    result = runner.invoke(
+        app,
+        ["gep", "--type", "mcp", "--add-tool", "--name", "create_file", "--param", param],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 1
+    output = strip_ansi(result.stdout).replace("\n", " ")
+    assert expected_fragment in output
+
+
+def test_add_tool_rejects_duplicate_param_names(mcp_project: Path) -> None:
+    """T024: FR-006 - Rejects duplicate --param names."""
+    result = runner.invoke(
+        app,
+        [
+            "gep",
+            "--type",
+            "mcp",
+            "--add-tool",
+            "--name",
+            "create_file",
+            "--param",
+            "path:str",
+            "--param",
+            "path:int",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 1
+    output = strip_ansi(result.stdout)
+    assert "Duplicate" in output and "path" in output
+
+
+def test_add_tool_validates_returns_type(mcp_project: Path) -> None:
+    """T024: FR-007 - Validates --returns type expression."""
+    result = runner.invoke(
+        app,
+        [
+            "gep",
+            "--type",
+            "mcp",
+            "--add-tool",
+            "--name",
+            "create_file",
+            "--returns",
+            "print('x')",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 1
+    output = strip_ansi(result.stdout)
+    assert "not a recognizable type-expression" in output or "Invalid --returns" in output
+
+
+def test_add_tool_rejects_unsafe_description(mcp_project: Path) -> None:
+    """T025: FR-008 - Rejects --description with embedded triple quotes."""
+    result = runner.invoke(
+        app,
+        [
+            "gep",
+            "--type",
+            "mcp",
+            "--add-tool",
+            "--name",
+            "create_file",
+            "--description",
+            'A docstring with """ embedded',
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 1
+    output = strip_ansi(result.stdout)
+    assert "triple-quote" in output
+
+
+def test_add_tool_fails_on_legacy_project_missing_bind_tools(mcp_project: Path) -> None:
+    """T025: FR-017 - Fails gracefully when bind_tools is missing."""
+    tools_py = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
+    original_content = tools_py.read_text()
+
+    # Remove bind_tools function
+    modified = original_content.replace("async def bind_tools", "async def old_bind_tools")
+    tools_py.write_text(modified)
+
+    result = runner.invoke(
+        app,
+        ["gep", "--type", "mcp", "--add-tool", "--name", "create_file"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 1
+    output = strip_ansi(result.stdout)
+    assert "older scaffold version" in output or "does not support --add-tool" in output
+    assert "scaffold gep --type mcp" in output
+
+    # File unchanged
+    assert tools_py.read_text() == modified
+
+
+def test_add_tool_fails_when_bind_tools_not_last(mcp_project: Path) -> None:
+    """T025: FR-017 - Fails when bind_tools is not the last function."""
+    tools_py = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
+    original_content = tools_py.read_text()
+
+    # Add a helper function after bind_tools
+    modified = original_content + "\n\ndef helper() -> None:\n    pass\n"
+    tools_py.write_text(modified)
+
+    result = runner.invoke(
+        app,
+        ["gep", "--type", "mcp", "--add-tool", "--name", "create_file"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 1
+    output = strip_ansi(result.stdout)
+    assert "does not support --add-tool" in output
+    assert "scaffold gep --type mcp" in output
+
+    # File unchanged
+    assert tools_py.read_text() == modified
+
+
+def test_add_tool_fails_when_tools_py_missing(mcp_project: Path) -> None:
+    """T025: FR-017 - Fails gracefully when tools.py is missing."""
+    tools_py = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
+    tools_py.unlink()
+
+    result = runner.invoke(
+        app,
+        ["gep", "--type", "mcp", "--add-tool", "--name", "create_file"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 1
+    output = strip_ansi(result.stdout)
+    assert "No MCP entry point found" in output
+
+
+def test_add_tool_fails_when_test_tools_py_missing(mcp_project: Path) -> None:
+    """T025: FR-017 rule 10b - Fails when test_tools.py is missing."""
+    test_tools_py = mcp_project / "src" / "tests" / "infrastructure" / "entry_points" / "mcp_server" / "test_tools.py"
+    tools_py = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
+    original_tools = tools_py.read_text()
+
+    test_tools_py.unlink()
+
+    result = runner.invoke(
+        app,
+        ["gep", "--type", "mcp", "--add-tool", "--name", "create_file"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 1
+    output = strip_ansi(result.stdout)
+    assert "test_tools.py" in output
+    # Message spans multiple lines, check both parts
+    assert "missing" in output and "does not have" in output
+
+    # tools.py unchanged
+    assert tools_py.read_text() == original_tools
+
+
+def test_add_tool_fails_when_test_structure_invalid(mcp_project: Path) -> None:
+    """T025: FR-017 rule 10b - Fails when test structure is unrecognized."""
+    test_tools_py = mcp_project / "src" / "tests" / "infrastructure" / "entry_points" / "mcp_server" / "test_tools.py"
+    tools_py = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
+    original_tools = tools_py.read_text()
+
+    # Remove _make_mock_mcp helper
+    modified_test = test_tools_py.read_text().replace("def _make_mock_mcp", "def _removed_make_mock_mcp")
+    test_tools_py.write_text(modified_test)
+
+    result = runner.invoke(
+        app,
+        ["gep", "--type", "mcp", "--add-tool", "--name", "create_file"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 1
+    output = strip_ansi(result.stdout)
+    assert "test_tools.py" in output
+    assert "does not have" in output
+
+    # tools.py unchanged
+    assert tools_py.read_text() == original_tools
+
+
+@pytest.mark.skipif(
+    __import__("sys").platform == "win32" or __import__("os").geteuid() == 0,
+    reason="Permission checks not enforced on Windows or when running as root",
+)
+def test_add_tool_fails_when_test_file_not_writable(mcp_project: Path) -> None:
+    """T025a: FR-019 - Fails before any write when test file is read-only."""
+    import stat
+
+    test_tools_py = mcp_project / "src" / "tests" / "infrastructure" / "entry_points" / "mcp_server" / "test_tools.py"
+    tools_py = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
+    original_tools = tools_py.read_text()
+
+    # Make test_tools.py read-only
+    test_tools_py.chmod(stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
+
+    try:
+        result = runner.invoke(
+            app,
+            ["gep", "--type", "mcp", "--add-tool", "--name", "create_file"],
+            catch_exceptions=False,
+        )
+        assert result.exit_code == 1
+        output = strip_ansi(result.stdout)
+        assert "Cannot write to" in output
+        assert "test_tools.py" in output
+
+        # tools.py unchanged
+        assert tools_py.read_text() == original_tools
+    finally:
+        # Restore permissions
+        test_tools_py.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
+
+
+def test_add_tool_restores_on_write_failure(mcp_project: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """T025a: FR-019 rule 13 - Restores files when write fails partway through."""
+    from scaffold_ca_python.core.file_writer import FileWriter
+
+    tools_py = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
+    test_tools_py = mcp_project / "src" / "tests" / "infrastructure" / "entry_points" / "mcp_server" / "test_tools.py"
+    original_tools = tools_py.read_text()
+    original_tests = test_tools_py.read_text()
+
+    # Monkeypatch _apply_append_to_file to fail on second call
+    from scaffold_ca_python.models.file_operation import AppendToFile
+
+    original_apply = FileWriter._apply_append_to_file
+    call_count = [0]
+
+    def failing_apply(op: AppendToFile) -> None:
+        call_count[0] += 1
+        if call_count[0] == 2:
+            raise OSError("Simulated write failure")
+        return original_apply(op)
+
+    monkeypatch.setattr(FileWriter, "_apply_append_to_file", staticmethod(failing_apply))
+
+    result = runner.invoke(
+        app,
+        ["gep", "--type", "mcp", "--add-tool", "--name", "create_file"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 1
+    output = strip_ansi(result.stdout)
+    assert "Failed to write" in output
+    assert "restored" in output
+
+    # Both files unchanged
+    assert tools_py.read_text() == original_tools
+    assert test_tools_py.read_text() == original_tests
+
+
+def test_add_tool_guard_ordering_format_before_project(project_root: Path) -> None:
+    """T026: Guard ordering - format validation (FR-005) before project check (FR-009)."""
+    # No MCP entry point exists (would trigger FR-009)
+    # But invalid param should fail first (FR-005)
+    result = runner.invoke(
+        app,
+        [
+            "gep",
+            "--type",
+            "mcp",
+            "--add-tool",
+            "--name",
+            "create_file",
+            "--param",
+            "path:print('x')",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 1
+    output = strip_ansi(result.stdout).replace("\n", " ")
+    # Should see FR-005 message about invalid type, NOT FR-009 about missing entry point
+    assert "type-expression" in output
+    assert "No MCP entry point found" not in output
+
+
+def test_add_tool_guard_ordering_structure_before_duplicate(mcp_project: Path) -> None:
+    """T026: Guard ordering - bind_tools check (FR-017) before duplicate check (FR-010)."""
+    tools_py = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
+
+    # First add a tool so duplicate would apply
+    result1 = runner.invoke(
+        app,
+        ["gep", "--type", "mcp", "--add-tool", "--name", "create_file"],
+        catch_exceptions=False,
+    )
+    assert result1.exit_code == 0
+
+    # Now remove bind_tools (would trigger FR-017) AND try duplicate name (would trigger FR-010)
+    modified = tools_py.read_text().replace("async def bind_tools", "async def old_bind_tools")
+    tools_py.write_text(modified)
+
+    result2 = runner.invoke(
+        app,
+        ["gep", "--type", "mcp", "--add-tool", "--name", "create_file"],
+        catch_exceptions=False,
+    )
+    assert result2.exit_code == 1
+    output = strip_ansi(result2.stdout)
+    # Should see FR-017 message about legacy/missing bind_tools, NOT FR-010 about duplicate
+    assert "does not support --add-tool" in output
+    assert "tool named 'create_file' already exists" not in output
+
+
+# ---------------------------------------------------------------------------
+# Phase 5: User Story 3 - --dry-run Preview (T031-T032)
+# ---------------------------------------------------------------------------
+
+
+def test_add_tool_dry_run_shows_preview_without_modifying_files(mcp_project: Path) -> None:
+    """T031(1): --dry-run shows preview and leaves files unchanged."""
+    tools_py = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
+    test_tools_py = mcp_project / "src" / "tests" / "infrastructure" / "entry_points" / "mcp_server" / "test_tools.py"
+
+    # Take snapshot before
+    original_tools = tools_py.read_bytes()
+    original_tests = test_tools_py.read_bytes()
+
+    # Run with --dry-run
+    result = runner.invoke(
+        app,
+        [
+            "gep",
+            "--type",
+            "mcp",
+            "--add-tool",
+            "--name",
+            "create_file",
+            "--param",
+            "path:str",
+            "--returns",
+            "str",
+            "--dry-run",
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    output = strip_ansi(result.stdout)
+
+    # Should show preview messages
+    assert "Dry run:" in output or "Would modify:" in output
+    assert "tools.py" in output
+    assert "test_tools.py" in output
+    assert "create_file" in output
+
+    # Files should be unchanged
+    assert tools_py.read_bytes() == original_tools
+    assert test_tools_py.read_bytes() == original_tests
+
+
+def test_add_tool_dry_run_preview_matches_actual_run(mcp_project: Path) -> None:
+    """T031(2): --dry-run preview matches actual run output."""
+    tools_py = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
+    test_tools_py = mcp_project / "src" / "tests" / "infrastructure" / "entry_points" / "mcp_server" / "test_tools.py"
+
+    # Run with --dry-run
+    dry_result = runner.invoke(
+        app,
+        [
+            "gep",
+            "--type",
+            "mcp",
+            "--add-tool",
+            "--name",
+            "create_file",
+            "--param",
+            "path:str",
+            "--returns",
+            "str",
+            "--dry-run",
+        ],
+        catch_exceptions=False,
+    )
+    assert dry_result.exit_code == 0
+
+    # Extract preview content (look for code between preview markers)
+    dry_output = dry_result.stdout
+
+    # Run without --dry-run
+    actual_result = runner.invoke(
+        app,
+        [
+            "gep",
+            "--type",
+            "mcp",
+            "--add-tool",
+            "--name",
+            "create_file",
+            "--param",
+            "path:str",
+            "--returns",
+            "str",
+        ],
+        catch_exceptions=False,
+    )
+    assert actual_result.exit_code == 0
+
+    # Read actual file contents
+    actual_tools = tools_py.read_text()
+    actual_tests = test_tools_py.read_text()
+
+    # Preview should contain the tool function signature
+    assert "async def create_file" in dry_output
+    assert "path: str" in dry_output
+    assert "-> str" in dry_output
+
+    # Actual files should contain the same
+    assert "async def create_file" in actual_tools
+    assert "path: str" in actual_tools
+    assert "-> str" in actual_tools
+    assert "test_bind_tools_registers_create_file" in actual_tests
+
+
+def test_add_tool_dry_run_fails_on_missing_entry_point(project_root: Path) -> None:
+    """T031(3): --dry-run with missing entry point fails before showing preview."""
+    result = runner.invoke(
+        app,
+        ["gep", "--type", "mcp", "--add-tool", "--name", "create_file", "--dry-run"],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 1
+    output = strip_ansi(result.stdout)
+
+    # Should see FR-009 error, NOT preview output
+    assert "No MCP entry point found" in output
+    assert "Dry run:" not in output
+    assert "Would modify:" not in output

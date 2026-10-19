@@ -1,0 +1,5 @@
+
+    @mcp.tool("{{ name }}")
+    async def {{ name }}({% for param in params %}{{ param.name }}: {{ param.type }}{% if not loop.last %}, {% endif %}{% endfor %}) -> {{ returns }}:
+        """{{ docstring }}"""
+        raise NotImplementedError("Tool '{{ name }}' is not yet implemented.")

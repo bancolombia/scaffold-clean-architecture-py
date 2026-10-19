@@ -44,4 +44,22 @@ class InsertAfter(BaseModel):
     content: str
 
 
-FileOperation = Annotated[CreateFile | DeleteFile | InsertAfter, "FileOperation"]
+class AppendToFile(BaseModel):
+    """Append *content* to the end of an existing file, or create the file.
+
+    When *path* exists, its trailing blank lines are normalized to a single
+    newline before *content* is appended. When *path* does not exist, it is
+    created (including parent directories) with *content* as initial contents.
+
+    Raises
+    ------
+    OSError
+        When file operations fail (permissions, disk space, etc.)
+    """
+
+    kind: Literal["append_to_file"] = "append_to_file"
+    path: Path
+    content: str
+
+
+FileOperation = Annotated[CreateFile | DeleteFile | InsertAfter | AppendToFile, "FileOperation"]

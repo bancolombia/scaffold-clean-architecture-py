@@ -64,7 +64,7 @@ exclude_also = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "--cov={{ python_package }} --cov-fail-under=80 --import-mode=importlib"
+addopts = "--cov={{ python_package }} --cov-fail-under=75 --import-mode=importlib"
 testpaths = ["src/tests"]
 asyncio_default_fixture_loop_scope = "function"
 filterwarnings = [

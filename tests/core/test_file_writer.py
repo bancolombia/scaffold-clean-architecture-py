@@ -228,3 +228,50 @@ def test_insert_after_inserts_at_first_occurrence_only(tmp_path: Path) -> None:
     assert lines[1] == "INSERTED = True"
     # second LOG_LEVEL is now at index 2; no second insertion
     assert lines.count("INSERTED = True") == 1
+
+
+# ---------------------------------------------------------------------------
+# AppendToFile tests (T013)
+# ---------------------------------------------------------------------------
+
+
+def _append_op(path: Path, content: str) -> object:
+    """Helper to create AppendToFile operation."""
+    from scaffold_ca_python.models.file_operation import AppendToFile
+
+    return AppendToFile(path=path, content=content)
+
+
+def test_append_to_existing_file_normalizes_trailing_newlines(tmp_path: Path) -> None:
+    """AppendToFile normalizes trailing blank lines to one before appending."""
+    target = tmp_path / "tools.py"
+    target.write_text("existing content\n\n\n")
+    writer = FileWriter()
+    writer.execute([_append_op(target, "\n    @mcp.tool('new')\n    async def new(): pass")], dry_run=False)
+
+    result = target.read_text()
+    # Should have: "existing content\n" + appended content
+    assert result.startswith("existing content\n")
+    assert "@mcp.tool('new')" in result
+
+
+def test_append_to_nonexistent_file_creates_it(tmp_path: Path) -> None:
+    """AppendToFile creates the file if it doesn't exist."""
+    target = tmp_path / "new.py"
+    writer = FileWriter()
+    writer.execute([_append_op(target, "# New file content")], dry_run=False)
+
+    assert target.exists()
+    assert target.read_text() == "# New file content"
+
+
+def test_append_dry_run_returns_path_without_writing(tmp_path: Path) -> None:
+    """AppendToFile dry-run returns the path without modifying the file."""
+    target = tmp_path / "tools.py"
+    original = "original\n"
+    target.write_text(original)
+    writer = FileWriter()
+    result = writer.execute([_append_op(target, "\nadded")], dry_run=True)
+
+    assert target in result
+    assert target.read_text() == original
