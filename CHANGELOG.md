@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/bancolombia/scaffold-clean-architecture-py/compare/v0.1.4...v0.2.0) (2026-10-19)
+
+
+### Features
+
+* **mcp:** add incremental tool support via `--add-tool` flag ([0e919f6](https://github.com/bancolombia/scaffold-clean-architecture-py/commit/0e919f65a4805ed1ec348ef3a4efe1ed834a5c6d))
+
 ## [0.1.4](https://github.com/bancolombia/scaffold-clean-architecture-py/compare/v0.1.3...v0.1.4) (2026-09-21)
 
 
