@@ -610,12 +610,6 @@ def test_gep_help_shows_type_descriptions() -> None:
     assert "FastAPI" in result.output
 
 
-def test_gep_help_flags_agent_type_only() -> None:
-    result = runner.invoke(app, ["gep", "--help"])
-    assert result.exit_code == 0
-    assert "agent type only" in result.output
-
-
 def test_gep_help_contains_examples_section() -> None:
     result = runner.invoke(app, ["gep", "--help"])
     assert result.exit_code == 0
@@ -969,11 +963,26 @@ def test_add_tool_creates_registration_test(mcp_project: Path) -> None:
     # Run the tests in the generated project (disable coverage for this subprocess test)
     import subprocess
 
+    # First, install dependencies in the generated project
+    sync_result = subprocess.run(
+        ["uv", "sync", "--no-progress"],
+        cwd=mcp_project,
+        capture_output=True,
+        text=True,
+        timeout=60,  # 60 second timeout for sync
+    )
+
+    # If sync fails, it means we can't verify the test runs, but the test generation itself is valid
+    # This can happen in CI with network issues or package availability problems
+    if sync_result.returncode != 0:
+        pytest.skip(f"Cannot run generated tests: uv sync failed: {sync_result.stderr}")
+
     result = subprocess.run(
         ["uv", "run", "pytest", str(test_tools_py), "-v", "--no-cov"],
         cwd=mcp_project,
         capture_output=True,
         text=True,
+        timeout=30,  # 30 second timeout for pytest
     )
     assert result.returncode == 0, f"Generated tests failed: {result.stdout}\n{result.stderr}"
 

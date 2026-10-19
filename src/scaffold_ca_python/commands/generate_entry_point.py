@@ -48,8 +48,6 @@ _GEP_EPILOG = (
     "  * mcp        MCP server entry point\n\n"
     "  * generic    Plain entry point\n\n"
     " ==================================================\n\n"
-    "Notes: --enable-kafka and --enable-mcp-client are agent type only.\n\n"
-    " ==================================================\n\n"
     "Examples:\n\n"
     "  * scaffold gep --type restapi\n\n"
     "  * scaffold gep --type agent --enable-kafka\n\n"
