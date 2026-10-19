@@ -1,5 +1,6 @@
 """Template rendering tests for entry_point/ group — all 4 types (T087)."""
 
+import ast
 import importlib.resources
 
 from scaffold_ca_python.core.template_renderer import TemplateRenderer
@@ -177,6 +178,41 @@ def test_mcp_tools_has_fastmcp_import() -> None:
 def test_mcp_tools_is_async() -> None:
     out = renderer.render_string(_tmpl("entry_point/mcp/tools.py.jinja2"), _ctx().model_dump())
     assert "async def bind_tools" in out
+
+
+def test_mcp_tools_bind_tools_is_last_statement() -> None:
+    """T005: Regression guard — bind_tools must be the last top-level statement.
+
+    The --add-tool feature relies on this invariant: appending to the end of
+    tools.py effectively inserts inside bind_tools because bind_tools is always last.
+    """
+    out = renderer.render_string(_tmpl("entry_point/mcp/tools.py.jinja2"), _ctx().model_dump())
+    module = ast.parse(out)
+    assert module.body, "tools.py template must have at least one statement"
+    last_stmt = module.body[-1]
+    assert isinstance(last_stmt, ast.AsyncFunctionDef), "Last statement must be an async function"
+    assert last_stmt.name == "bind_tools", "Last function must be named 'bind_tools'"
+
+
+def test_mcp_tools_contains_nested_example_tool() -> None:
+    """T005: Regression guard — bind_tools contains nested @mcp.tool decorator.
+
+    The --add-tool feature appends new tool stubs in the same nested pattern.
+    """
+    out = renderer.render_string(_tmpl("entry_point/mcp/tools.py.jinja2"), _ctx().model_dump())
+    module = ast.parse(out)
+    bind_tools_func = module.body[-1]
+    assert isinstance(bind_tools_func, ast.AsyncFunctionDef)
+
+    # Find @mcp.tool decorator inside bind_tools
+    has_mcp_tool_decorator = False
+    for node in ast.walk(bind_tools_func):
+        if isinstance(node, ast.AsyncFunctionDef) and node.name == "example_tool":
+            has_mcp_tool_decorator = True
+            break
+
+    assert has_mcp_tool_decorator, "bind_tools must contain nested example_tool function"
+    assert '@mcp.tool("example_tool")' in out, "bind_tools must use @mcp.tool decorator"
 
 
 # ---------------------------------------------------------------------------
@@ -410,3 +446,83 @@ def test_entry_point_restapi_test_rest_controller_has_testclient() -> None:
     assert "TestClient" in out
     assert "/v1/health" in out
     assert "assert response.status_code == 200" in out
+
+
+# ---------------------------------------------------------------------------
+# mcp — tool_stub.py.jinja2 template (T008)
+# ---------------------------------------------------------------------------
+
+
+def test_tool_stub_template_renders_nested_function_with_decorator() -> None:
+    """T008: tool_stub.py.jinja2 renders 4-space-indented nested @mcp.tool function."""
+    context = {
+        "name": "create_file",
+        "params": [
+            {"name": "path", "type": "str"},
+            {"name": "content", "type": "str"},
+        ],
+        "returns": "str",
+        "docstring": "Creates a file on disk",
+    }
+    out = renderer.render_string(_tmpl("entry_point/mcp/tool_stub.py.jinja2"), context)
+
+    # Must be 4-space indented (for insertion inside bind_tools)
+    assert '    @mcp.tool("create_file")' in out
+    assert "    async def create_file(path: str, content: str) -> str:" in out
+    assert '        """Creates a file on disk"""' in out
+    assert "        raise NotImplementedError(\"Tool 'create_file' is not yet implemented.\")" in out
+
+
+def test_tool_stub_template_with_no_params() -> None:
+    """T008: tool_stub.py.jinja2 renders correctly with zero parameters."""
+    context = {
+        "name": "list_files",
+        "params": [],
+        "returns": "list[str]",
+        "docstring": "Lists all files",
+    }
+    out = renderer.render_string(_tmpl("entry_point/mcp/tool_stub.py.jinja2"), context)
+
+    assert '    @mcp.tool("list_files")' in out
+    assert "    async def list_files() -> list[str]:" in out
+    assert "        raise NotImplementedError(" in out
+
+
+def test_tool_stub_template_not_wrapped_in_registrar() -> None:
+    """T008: tool_stub.py.jinja2 must NOT use @_register_tool or def _bind_."""
+    context = {
+        "name": "search",
+        "params": [{"name": "query", "type": "str"}],
+        "returns": "str",
+        "docstring": "Search query",
+    }
+    out = renderer.render_string(_tmpl("entry_point/mcp/tool_stub.py.jinja2"), context)
+
+    assert "@_register_tool" not in out
+    assert "def _bind_" not in out
+
+
+# ---------------------------------------------------------------------------
+# mcp — test_tool_stub.py.jinja2 template (T008)
+# ---------------------------------------------------------------------------
+
+
+def test_test_tool_stub_template_renders_registration_test() -> None:
+    """T008: test_tool_stub.py.jinja2 renders registration assertion test."""
+    context = {"name": "create_file"}
+    out = renderer.render_string(_tmpl("entry_point/mcp/test_tool_stub.py.jinja2"), context)
+
+    # Must be a top-level function (not indented)
+    assert "def test_bind_tools_registers_create_file() -> None:" in out
+    assert '"create_file" in registered' in out or "'create_file' in registered" in out
+    assert "_make_mock_mcp()" in out
+
+
+def test_test_tool_stub_template_does_not_call_tool() -> None:
+    """T008: test_tool_stub.py.jinja2 must NOT call/await the tool itself."""
+    context = {"name": "do_action"}
+    out = renderer.render_string(_tmpl("entry_point/mcp/test_tool_stub.py.jinja2"), context)
+
+    # Should only check registration, not invoke the tool
+    assert "registered[" not in out or 'await registered["do_action"]' not in out
+    assert "do_action(" not in out or "await do_action(" not in out

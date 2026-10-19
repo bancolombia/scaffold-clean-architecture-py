@@ -1,0 +1,8 @@
+
+
+def test_bind_tools_registers_{{ name }}() -> None:
+    """Calling bind_tools registers '{{ name }}' on the mcp instance."""
+    mock_mcp, registered = _make_mock_mcp()
+    fn = getattr(bind_tools, "__wrapped__", bind_tools)
+    asyncio.run(fn(mock_mcp))
+    assert "{{ name }}" in registered

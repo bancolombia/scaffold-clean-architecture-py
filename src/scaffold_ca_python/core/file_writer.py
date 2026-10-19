@@ -7,7 +7,7 @@ import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from scaffold_ca_python.models.file_operation import CreateFile, DeleteFile, FileOperation, InsertAfter
+from scaffold_ca_python.models.file_operation import AppendToFile, CreateFile, DeleteFile, FileOperation, InsertAfter
 
 if TYPE_CHECKING:
     pass
@@ -60,7 +60,7 @@ class FileWriter:
         for op in operations:
             if isinstance(op, CreateFile):
                 result.append(op.file.path)
-            elif isinstance(op, (DeleteFile, InsertAfter)):
+            elif isinstance(op, (DeleteFile, InsertAfter, AppendToFile)):
                 result.append(op.path)
         return result
 
@@ -110,6 +110,11 @@ class FileWriter:
         for op in inserts:
             self._apply_insert_after(op)
 
+        # Process append_to_file mutations in declaration order
+        appends: list[AppendToFile] = [op for op in operations if isinstance(op, AppendToFile)]
+        for op in appends:
+            self._apply_append_to_file(op)
+
         return committed
 
     @staticmethod
@@ -126,3 +131,23 @@ class FileWriter:
                 op.path.write_text("".join(lines), encoding="utf-8")
                 return
         raise ValueError(f"insert_after anchor {op.anchor!r} not found in {op.path}")
+
+    @staticmethod
+    def _apply_append_to_file(op: AppendToFile) -> None:
+        """Append *op.content* to the end of *op.path*, or create the file.
+
+        When the file exists, trailing blank lines are normalized to a single newline
+        before appending. When it doesn't exist, it's created with *op.content* as
+        initial contents (leading blank lines stripped).
+        """
+        if op.path.exists():
+            # File exists - normalize trailing newlines and append
+            original = op.path.read_text(encoding="utf-8")
+            # Strip all trailing newlines, then ensure exactly one
+            normalized = original.rstrip("\n") + "\n"
+            op.path.write_text(normalized + op.content, encoding="utf-8")
+        else:
+            # File doesn't exist - create it with content (strip leading blank lines)
+            op.path.parent.mkdir(parents=True, exist_ok=True)
+            content = op.content.lstrip("\n")
+            op.path.write_text(content, encoding="utf-8")

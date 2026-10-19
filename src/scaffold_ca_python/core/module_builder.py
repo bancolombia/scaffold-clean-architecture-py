@@ -17,7 +17,14 @@ from scaffold_ca_python.core.pyproject_writer import (
     update_project_scripts,
 )
 from scaffold_ca_python.core.template_renderer import TemplateRenderer
-from scaffold_ca_python.models.file_operation import CreateFile, DeleteFile, FileOperation, GeneratedFile, InsertAfter
+from scaffold_ca_python.models.file_operation import (
+    AppendToFile,
+    CreateFile,
+    DeleteFile,
+    FileOperation,
+    GeneratedFile,
+    InsertAfter,
+)
 
 if TYPE_CHECKING:
     from scaffold_ca_python.models.context import ModuleContext, ProjectContext
@@ -87,6 +94,16 @@ class ModuleBuilder:
         included in the preview list without modifying the file.
         """
         self._operations.append(InsertAfter(path=path, anchor=anchor, content=content))
+
+    def append_to_file(self, path: Path, content: str) -> None:
+        """Queue an append-to-file operation.
+
+        *content* will be appended to the end of *path*. If *path* does not exist,
+        it will be created. When the file exists, its trailing blank lines are
+        normalized to a single newline before appending. In dry-run mode the path
+        is included in the preview list without modifying the file.
+        """
+        self._operations.append(AppendToFile(path=path, content=content))
 
     def render(self, template_name: str, context: BaseModel | dict[str, Any]) -> str:
         """Render a template through the shared renderer."""
