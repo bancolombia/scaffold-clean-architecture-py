@@ -241,27 +241,27 @@ The suite must stay green (baseline: 739 passed, 1 skipped, 96.50%).
 
 ### Tests for User Story 3 ⚠️ (write first, must fail)
 
-- [ ] T026 [P] [US3] Create `tests/core/test_project_context.py` with these `load_project_context` cases:
+- [X] T026 [P] [US3] Create `tests/core/test_project_context.py` with these `load_project_context` cases:
   - **(a)** With `[tool.scaffold-ca-python] name = "my-app"`, it returns `name == "my-app"` and `python_package == "my_app"`.
   - **(b)** Without that section, in a `demo_dir` directory, it returns `name == "demo_dir"`.
   - **(c)** With `[project].name = "other-name"` and `[tool.scaffold-ca-python].name = "my-app"`, it uses `my-app`.
-- [ ] T027 [P] [US3] Add an integration regression test to `tests/core/test_project_context.py`. Start from `ca --name my-app` and edit `[project].name = "renamed"` in `pyproject.toml`. Then:
+- [X] T027 [P] [US3] Add an integration regression test to `tests/core/test_project_context.py`. Start from `ca --name my-app` and edit `[project].name = "renamed"` in `pyproject.toml`. Then:
   - `gep --type generic --dry-run` and `gm --name order --dry-run` show paths under `src/my_app/`. Today gep would use `src/renamed/`.
   - `gep --type mcp` followed by `gep --type mcp --add-tool --name ping` finds `src/my_app/infrastructure/entry_points/mcp_server/tools.py`.
 
 ### Implementation for User Story 3
 
-- [ ] T028 [US3] Implement `load_project_context(root: Path) -> ProjectContext` in `src/scaffold_ca_python/core/project_detector.py`. It reads `[tool.scaffold-ca-python].name` and falls back to `root.name`. Makes T026 pass.
-- [ ] T029 [US3] Replace the local `_load_project_context` with `load_project_context` in `src/scaffold_ca_python/commands/generate_entry_point.py`, the copy that reads `[project].name` today. Also remove the `to_snake_case` import if it becomes unused. Makes T027 pass.
-- [ ] T030 [P] [US3] Replace `_load_project_context` with `load_project_context` and delete the local copy, along with any `tomllib`/`ProjectContext` imports left unused, in:
+- [X] T028 [US3] Implement `load_project_context(root: Path) -> ProjectContext` in `src/scaffold_ca_python/core/project_detector.py`. It reads `[tool.scaffold-ca-python].name` and falls back to `root.name`. Makes T026 pass.
+- [X] T029 [US3] Replace the local `_load_project_context` with `load_project_context` in `src/scaffold_ca_python/commands/generate_entry_point.py`, the copy that reads `[project].name` today. Also remove the `to_snake_case` import if it becomes unused. Makes T027 pass.
+- [X] T030 [P] [US3] Replace `_load_project_context` with `load_project_context` and delete the local copy, along with any `tomllib`/`ProjectContext` imports left unused, in:
   - `src/scaffold_ca_python/commands/generate_model.py`
   - `src/scaffold_ca_python/commands/generate_use_case.py`
   - `src/scaffold_ca_python/commands/generate_helper.py`
-- [ ] T031 [P] [US3] Do the same as T030 in:
+- [X] T031 [P] [US3] Do the same as T030 in:
   - `src/scaffold_ca_python/commands/generate_driven_adapter.py`
   - `src/scaffold_ca_python/commands/generate_pipeline.py`
   - `src/scaffold_ca_python/commands/delete_module.py`
-- [ ] T032 [US3] Check that `grep -rn "_load_project_context\|def load_project_context" src/` returns a single line (SC-004).
+- [X] T032 [US3] Check that `grep -rn "_load_project_context\|def load_project_context" src/` returns a single line (SC-004).
 
 **Checkpoint**: US3 is complete, with T026 and T027 green.
 

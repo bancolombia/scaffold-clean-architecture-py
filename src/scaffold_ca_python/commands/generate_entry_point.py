@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import ast
 import json
-import tomllib
 from pathlib import Path
 from typing import Annotated
 
@@ -18,11 +17,11 @@ from rich.tree import Tree
 from scaffold_ca_python.commands._entry_point_rules import check_conflicts, check_flags
 from scaffold_ca_python.core import mcp_tool_spec
 from scaffold_ca_python.core.module_builder import ModuleBuilder
-from scaffold_ca_python.core.name_utils import ScaffoldError, to_snake_case
-from scaffold_ca_python.core.project_detector import find_project_root, resolve_tests_root
+from scaffold_ca_python.core.name_utils import ScaffoldError
+from scaffold_ca_python.core.project_detector import find_project_root, load_project_context, resolve_tests_root
 from scaffold_ca_python.factory.entry_points import ENTRY_POINT_FACTORIES
 from scaffold_ca_python.factory.entry_points.base import EntryPointFlag
-from scaffold_ca_python.models.context import ModuleContext, ProjectContext
+from scaffold_ca_python.models.context import ModuleContext
 from scaffold_ca_python.models.layer import Layer
 
 console = Console()
@@ -48,15 +47,6 @@ _GEP_EPILOG = (
     "  * scaffold gep --type mcp --add-tool --name create_file --param path:str --returns str\n\n"
     "  * scaffold generate-entry-point --type generic\n"
 )
-
-
-def _load_project_context(project_root: Path) -> ProjectContext:
-    """Load project context from pyproject.toml."""
-    pyproject_path = project_root / "pyproject.toml"
-    with open(pyproject_path, "rb") as f:
-        data = tomllib.load(f)
-    project_name = to_snake_case(data.get("project", {}).get("name", "project"))
-    return ProjectContext(name=project_name)
 
 
 def _add_tool_impl(
@@ -120,7 +110,7 @@ def _add_tool_impl(
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(code=1) from None
 
-    project_ctx = _load_project_context(project_root)
+    project_ctx = load_project_context(project_root)
 
     tools_py_path = (
         project_root
@@ -351,7 +341,7 @@ def _generate_entry_point_impl(
         console.print("[red]Error:[/red] No scaffold-ca-python project found. Run 'scaffold ca' first.")
         raise typer.Exit(code=1) from None
 
-    project_ctx = _load_project_context(project_root)
+    project_ctx = load_project_context(project_root)
     pkg = project_ctx.python_package
 
     # --- Conflict check ---

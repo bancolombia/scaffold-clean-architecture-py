@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import tomllib
-from pathlib import Path
 from typing import Annotated
 
 import typer
@@ -13,9 +11,9 @@ from rich.tree import Tree
 
 from scaffold_ca_python.core.module_builder import ModuleBuilder
 from scaffold_ca_python.core.name_utils import ScaffoldError, to_snake_case, validate_module_name
-from scaffold_ca_python.core.project_detector import find_project_root
+from scaffold_ca_python.core.project_detector import find_project_root, load_project_context
 from scaffold_ca_python.factory.driven_adapters import DRIVEN_ADAPTER_FACTORIES
-from scaffold_ca_python.models.context import ModuleContext, ProjectContext
+from scaffold_ca_python.models.context import ModuleContext
 from scaffold_ca_python.models.layer import Layer
 
 console = Console()
@@ -66,7 +64,7 @@ def _generate_driven_adapter_impl(type_: str, name: str | None, dry_run: bool) -
         console.print("[red]Error:[/red] No scaffold-ca-python project found. Run 'scaffold ca' first.")
         raise typer.Exit(code=1) from None
 
-    project_ctx = _load_project_context(project_root)
+    project_ctx = load_project_context(project_root)
     subdir = to_snake_case(mod_name)
     module_ctx = ModuleContext(name=mod_name, layer=Layer.DRIVEN_ADAPTERS, project=project_ctx)
 
@@ -151,18 +149,3 @@ def register(app: typer.Typer) -> None:
             typer.echo(ctx.get_help())
             raise typer.Exit(0)
         _generate_driven_adapter_impl(type_, name, dry_run)
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def _load_project_context(root: Path) -> ProjectContext:
-    pyproject = root / "pyproject.toml"
-    with pyproject.open("rb") as fh:
-        data = tomllib.load(fh)
-    section = data.get("tool", {}).get("scaffold-ca-python", {})
-    return ProjectContext(
-        name=section.get("name", root.name),
-    )

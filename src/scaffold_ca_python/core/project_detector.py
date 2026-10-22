@@ -1,4 +1,4 @@
-"""project_detector: locate the Clean Architecture project root (T022)."""
+"""project_detector: locate and read project metadata."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ from collections.abc import Iterator
 from pathlib import Path
 
 from scaffold_ca_python.core.name_utils import ScaffoldError
+from scaffold_ca_python.models.context import ProjectContext
 
 _CA_MARKERS: frozenset[str] = frozenset({"domain", "infrastructure", "application"})
 _SCAFFOLD_SECTION = "scaffold-ca-python"
@@ -58,6 +59,15 @@ def find_project_root(cwd: Path | None = None) -> Path:
         "Hint: a valid project root has either [tool.scaffold-ca-python] in pyproject.toml "
         "or the canonical CA directory layout (domain/, infrastructure/, application/)."
     )
+
+
+def load_project_context(root: Path) -> ProjectContext:
+    """Read [tool.scaffold-ca-python].name from pyproject.toml, falling back to root.name."""
+    pyproject = root / "pyproject.toml"
+    with pyproject.open("rb") as fh:
+        data = tomllib.load(fh)
+    section = data.get("tool", {}).get("scaffold-ca-python", {})
+    return ProjectContext(name=section.get("name", root.name))
 
 
 def resolve_tests_root(project_root: Path) -> Path:

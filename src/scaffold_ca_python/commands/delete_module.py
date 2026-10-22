@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import tomllib
 from pathlib import Path
 from typing import Annotated
 
@@ -11,10 +10,10 @@ from rich.console import Console
 
 from scaffold_ca_python.core.module_builder import ModuleBuilder
 from scaffold_ca_python.core.name_utils import ScaffoldError, to_snake_case, validate_module_name
-from scaffold_ca_python.core.project_detector import find_project_root, resolve_tests_root
+from scaffold_ca_python.core.project_detector import find_project_root, load_project_context, resolve_tests_root
 from scaffold_ca_python.factory import ModuleFactory
 from scaffold_ca_python.factory.simple.delete_module_factory import DeleteModuleFactory
-from scaffold_ca_python.models.context import ModuleContext, ProjectContext
+from scaffold_ca_python.models.context import ModuleContext
 from scaffold_ca_python.models.layer import Layer
 
 console = Console()
@@ -96,7 +95,7 @@ def _delete_module_impl(name: str, confirm: bool, dry_run: bool) -> None:
         console.print("[red]Error:[/red] No scaffold-ca-python project found. Run 'scaffold ca' first.")
         raise typer.Exit(code=1) from None
 
-    project_ctx = _load_project_context(project_root)
+    project_ctx = load_project_context(project_root)
 
     # Create a placeholder ModuleContext for the factory (layer doesn't matter for delete)
     module_ctx = ModuleContext(name=name, layer=Layer.HELPERS, project=project_ctx)
@@ -184,18 +183,3 @@ def register(app: typer.Typer) -> None:
             typer.echo(ctx.get_help())
             raise typer.Exit(0)
         _delete_module_impl(name, confirm, dry_run)
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def _load_project_context(root: Path) -> ProjectContext:
-    pyproject = root / "pyproject.toml"
-    with pyproject.open("rb") as fh:
-        data = tomllib.load(fh)
-    section = data.get("tool", {}).get("scaffold-ca-python", {})
-    return ProjectContext(
-        name=section.get("name", root.name),
-    )

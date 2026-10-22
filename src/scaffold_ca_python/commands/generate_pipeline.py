@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import tomllib
-from pathlib import Path
 from typing import TYPE_CHECKING, Annotated
 
 import typer
@@ -12,9 +10,8 @@ from rich.tree import Tree
 
 from scaffold_ca_python.core.module_builder import ModuleBuilder
 from scaffold_ca_python.core.name_utils import ScaffoldError
-from scaffold_ca_python.core.project_detector import find_project_root
+from scaffold_ca_python.core.project_detector import find_project_root, load_project_context
 from scaffold_ca_python.factory.pipelines import PIPELINE_PROVIDERS
-from scaffold_ca_python.models.context import ProjectContext
 
 if TYPE_CHECKING:
     from scaffold_ca_python.core.file_writer import FileWriter
@@ -63,7 +60,7 @@ def _generate_pipeline_impl(
         console.print("[red]Error:[/red] No scaffold-ca-python project found. Run 'scaffold ca' first.")
         raise typer.Exit(code=1) from None
 
-    project_ctx = _load_project_context(project_root)
+    project_ctx = load_project_context(project_root)
     out_path = project_root / pipeline.output_path
 
     # --- Duplicate guard ---
@@ -132,18 +129,3 @@ def register(app: typer.Typer) -> None:
             typer.echo(ctx.get_help())
             raise typer.Exit(0)
         _generate_pipeline_impl(provider, dry_run)
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def _load_project_context(root: Path) -> ProjectContext:
-    pyproject = root / "pyproject.toml"
-    with pyproject.open("rb") as fh:
-        data = tomllib.load(fh)
-    section = data.get("tool", {}).get("scaffold-ca-python", {})
-    return ProjectContext(
-        name=section.get("name", root.name),
-    )
