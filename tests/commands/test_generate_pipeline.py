@@ -193,3 +193,40 @@ def test_gpipe_no_args_exits_0() -> None:
 def test_gpipe_no_args_shows_provider_option() -> None:
     result = runner.invoke(app, ["gpipe"])
     assert "--provider" in strip_ansi(result.output)
+
+
+# ---------------------------------------------------------------------------
+# T014: injectable renderer/writer (FR-014)
+# ---------------------------------------------------------------------------
+
+
+def test_generate_pipeline_uses_injected_renderer_and_writer(
+    project_root: Path,
+) -> None:
+    """_generate_pipeline_impl accepts renderer= and writer= kwargs and uses them."""
+    from scaffold_ca_python.commands.generate_pipeline import (  # noqa: PLC0415
+        _generate_pipeline_impl,
+    )
+
+    rendered: list[str] = []
+    written: list[str] = []
+
+    class FakeRenderer:
+        def render(self, template_name: str, context: object) -> str:
+            rendered.append(template_name)
+            return "# fake"
+
+    class FakeWriter:
+        def execute(self, operations: object, *, dry_run: bool) -> list[object]:
+            written.append("called")
+            return []
+
+    _generate_pipeline_impl(
+        "github",
+        dry_run=False,
+        renderer=FakeRenderer(),  # type: ignore[arg-type]
+        writer=FakeWriter(),  # type: ignore[arg-type]
+    )
+
+    assert rendered != [], "Injected renderer was not called"
+    assert written != [], "Injected writer was not called"
