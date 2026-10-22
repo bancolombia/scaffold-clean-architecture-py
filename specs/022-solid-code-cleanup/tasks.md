@@ -137,7 +137,7 @@ The suite must stay green (baseline: 739 passed, 1 skipped, 96.50%).
 
 ### Tests for User Story 2 ⚠️ (write first, must fail)
 
-- [ ] T011 [P] [US2] Rewrite `tests/factory/test_extensibility.py`:
+- [X] T011 [P] [US2] Rewrite `tests/factory/test_extensibility.py`:
   - **Factory `_StubFactory(EntryPointFactory)`**:
     - `subdir = "stub_ep"`;
     - `supported_flags = frozenset({EntryPointFlag.ENABLE_KAFKA})`;
@@ -148,11 +148,11 @@ The suite must stay green (baseline: 739 passed, 1 skipped, 96.50%).
   - **(c)** If `infrastructure/entry_points/api` exists, it fails with `Incompatible entry point 'restapi'`.
   - **(d)** `main.py will be replaced with stub entrypoint.` is shown.
   - **(e)** Over `src/scaffold_ca_python/commands/*.py` (excluding `add_mcp_tool.py`), `grep` finds none of the literals `"restapi"`, `"agent"`, `"generic"`, `"rest-consumer"`, `"secrets"`, `"github"`, `"azure"`. The `"mcp"` literal may only appear in `add_mcp_tool.py`.
-- [ ] T012 [P] [US2] Add these tests to `tests/factory/test_module_builder.py`:
+- [X] T012 [P] [US2] Add these tests to `tests/factory/test_module_builder.py`:
   - `set_project_script()` sets `pending_project_script == "start_server"`, and `set_project_script("main")` sets `"main"`;
   - `persist()` calls `update_project_scripts(root, ctx, "main")` in real mode and `dry_run_scripts_update` in dry-run (checked with `monkeypatch`);
   - without a `set_project_script` call, `[project.scripts]` is not touched.
-- [ ] T013 [P] [US2] Add `tests/factory/test_registry.py::test_factory_descriptors`, asserting the values in the [data-model.md](data-model.md) table:
+- [X] T013 [P] [US2] Add `tests/factory/test_registry.py::test_factory_descriptors`, asserting the values in the [data-model.md](data-model.md) table:
 
   | Type | `subdir` | `supported_flags` | `conflicts` |
   |---|---|---|---|
@@ -162,16 +162,16 @@ The suite must stay green (baseline: 739 passed, 1 skipped, 96.50%).
   | `generic` | `"generic"` | `{ENABLE_MCP_CLIENT, ENABLE_KAFKA}` | `()` |
 
   It also asserts the driven adapters' `fixed_name` (`rest-consumer` → `"rest_consumer"`, `secrets` → `"secrets"`, `generic` → `None`) and that `PIPELINE_PROVIDERS` has the keys `["github", "azure"]` in that order.
-- [ ] T014 [P] [US2] Add an injection test (FR-014) to `tests/commands/test_generate_pipeline.py`. It must fail. Inside a project created with `ca`, it calls `_generate_pipeline_impl("github", dry_run=False, renderer=FakeRenderer(), writer=FakeWriter())` and checks that the injected dependencies are used.
+- [X] T014 [P] [US2] Add an injection test (FR-014) to `tests/commands/test_generate_pipeline.py`. It must fail. Inside a project created with `ca`, it calls `_generate_pipeline_impl("github", dry_run=False, renderer=FakeRenderer(), writer=FakeWriter())` and checks that the injected dependencies are used.
 
 ### Implementation for User Story 2
 
-- [ ] T015 [US2] Add to `src/scaffold_ca_python/core/module_builder.py`:
+- [X] T015 [US2] Add to `src/scaffold_ca_python/core/module_builder.py`:
   - the method `set_project_script(entry_fn: str = "start_server") -> None`;
   - the property `pending_project_script: str | None`.
 
   `persist()` uses this value instead of `_params["scripts_entry"]` / `_params["scripts_entry_fn"]`. Makes T012 pass.
-- [ ] T016 [US2] Replace the `add_param("scripts_entry", …)` and `add_param("scripts_entry_fn", …)` calls:
+- [X] T016 [US2] Replace the `add_param("scripts_entry", …)` and `add_param("scripts_entry_fn", …)` calls:
   - with `builder.set_project_script()` in `src/scaffold_ca_python/factory/entry_points/ep_restapi.py`;
   - with `builder.set_project_script("main")` in `src/scaffold_ca_python/factory/entry_points/ep_mcp.py`.
 
@@ -196,13 +196,13 @@ The suite must stay green (baseline: 739 passed, 1 skipped, 96.50%).
   - **`check_flags(type_key, factory, active_flags, registry)`**: derives the messages per research R-02. If exactly one registered type supports the flag, the message is `"{label} {verb} only valid with --type {single}."`; otherwise it is `"{label} {verb} not valid with --type {type_key}."`.
   - **`check_conflicts(…)`**: reproduces the current text, `Incompatible entry point '[bold]{label}[/bold]' already exists at: {rel}` + `Hint: A project may have only one entry-point type. Remove '{rel}' before adding {type_key}.`
 - [X] T020 [US2] Rewrite the creation part of `src/scaffold_ca_python/commands/generate_entry_point.py` to use `ENTRY_POINT_FACTORIES`, `check_flags`, `check_conflicts`, `factory.subdir` and `factory.result_notes`. Remove the `if type_ == …` branches. Leave the `--add-tool` flow untouched; T049 handles it.
-- [ ] T021 [P] [US2] Create `src/scaffold_ca_python/factory/driven_adapters/base.py` with:
+- [X] T021 [P] [US2] Create `src/scaffold_ca_python/factory/driven_adapters/base.py` with:
   - `DrivenAdapterFactory(ABC)`;
   - the `ClassVar` `fixed_name: ClassVar[str | None] = None`;
   - the method `module_name(name: str | None) -> str | None`, which returns `fixed_name or name`.
 
   The classes in `da_rest_consumer.py` (`fixed_name = "rest_consumer"`), `da_secrets.py` (`"secrets"`) and `da_generic.py` (`None`) inherit from it.
-- [ ] T022 [US2] Move the registry to `src/scaffold_ca_python/factory/driven_adapters/__init__.py` as `DRIVEN_ADAPTER_FACTORIES`, in the order `rest-consumer`, `secrets`, `generic`. Rewrite `src/scaffold_ca_python/commands/generate_driven_adapter.py` so that it:
+- [X] T022 [US2] Move the registry to `src/scaffold_ca_python/factory/driven_adapters/__init__.py` as `DRIVEN_ADAPTER_FACTORIES`, in the order `rest-consumer`, `secrets`, `generic`. Rewrite `src/scaffold_ca_python/commands/generate_driven_adapter.py` so that it:
   - validates the type;
   - fails with `--name is required when --type is {type_}.` when `module_name(name)` is `None`;
   - validates `name` when given;
@@ -210,7 +210,7 @@ The suite must stay green (baseline: 739 passed, 1 skipped, 96.50%).
   - has no `if/elif` per type and no `assert`.
 
   Remove the `# noqa: ANN001`.
-- [ ] T023 [P] [US2] Create `src/scaffold_ca_python/factory/pipelines/__init__.py` and `src/scaffold_ca_python/factory/pipelines/pipeline_factory.py`:
+- [X] T023 [P] [US2] Create `src/scaffold_ca_python/factory/pipelines/__init__.py` and `src/scaffold_ca_python/factory/pipelines/pipeline_factory.py`:
   - **`PipelineFactory`**: a frozen dataclass with `output_path: PurePosixPath`, `template: str`, `display_name: str`, and a `build(builder)` method that does `builder.add_file(project_root / output_path, builder.render(template, project_ctx), template_name=template)`.
   - **`PIPELINE_PROVIDERS`**:
     ```python
@@ -219,7 +219,7 @@ The suite must stay green (baseline: 739 passed, 1 skipped, 96.50%).
         "azure": PipelineFactory(PurePosixPath("azure-pipelines.yml"), "pipeline/azure/azure_pipelines.yml.jinja2", "azure-pipelines.yml"),
     }
     ```
-- [ ] T024 [US2] Rewrite `src/scaffold_ca_python/commands/generate_pipeline.py`:
+- [X] T024 [US2] Rewrite `src/scaffold_ca_python/commands/generate_pipeline.py`:
   - it uses `PIPELINE_PROVIDERS`, `ModuleBuilder` and `_shared`;
   - the signature is `_generate_pipeline_impl(provider: str | None, dry_run: bool, *, renderer: TemplateRenderer | None = None, writer: FileWriter | None = None)`, and both are passed to `ModuleBuilder(file_writer=writer, template_renderer=renderer)`. This makes T014 pass;
   - the `Allowed:` message comes from the registry keys;

@@ -14,20 +14,13 @@ from rich.tree import Tree
 from scaffold_ca_python.core.module_builder import ModuleBuilder
 from scaffold_ca_python.core.name_utils import ScaffoldError, to_snake_case, validate_module_name
 from scaffold_ca_python.core.project_detector import find_project_root
-from scaffold_ca_python.factory import ModuleFactory
-from scaffold_ca_python.factory.driven_adapters.da_generic import DrivenAdapterGeneric
-from scaffold_ca_python.factory.driven_adapters.da_rest_consumer import DrivenAdapterRestConsumer
-from scaffold_ca_python.factory.driven_adapters.da_secrets import DrivenAdapterSecrets
+from scaffold_ca_python.factory.driven_adapters import DRIVEN_ADAPTER_FACTORIES
 from scaffold_ca_python.models.context import ModuleContext, ProjectContext
 from scaffold_ca_python.models.layer import Layer
 
 console = Console()
 
-_REGISTRY: dict[str, type[ModuleFactory]] = {
-    "rest-consumer": DrivenAdapterRestConsumer,
-    "secrets": DrivenAdapterSecrets,
-    "generic": DrivenAdapterGeneric,
-}
+_REGISTRY = DRIVEN_ADAPTER_FACTORIES
 
 _GDA_HELP = "Scaffold a driven adapter and test stub. Alias 'gda'."
 _GDA_EPILOG = (
@@ -42,15 +35,20 @@ _GDA_EPILOG = (
 )
 
 
-def _generate_driven_adapter_impl(type_: str, name: str | None, dry_run: bool) -> None:  # noqa: ANN001
+def _generate_driven_adapter_impl(type_: str, name: str | None, dry_run: bool) -> None:
     # --- Validate type ---
-    if type_ not in _REGISTRY:
-        console.print(f"[red]Error:[/red] Unknown type '{type_}'. Allowed: {', '.join(_REGISTRY.keys())}.")
+    if type_ not in DRIVEN_ADAPTER_FACTORIES:
+        allowed = ", ".join(DRIVEN_ADAPTER_FACTORIES.keys())
+        console.print(f"[red]Error:[/red] Unknown type '{type_}'. Allowed: {allowed}.")
         raise typer.Exit(code=1) from None
 
-    # --- Validate name requirement for generic ---
-    if type_ == "generic" and not name:
-        console.print("[red]Error:[/red] --name is required when --type is generic.")
+    factory_class = DRIVEN_ADAPTER_FACTORIES[type_]
+    factory = factory_class()
+    mod_name = factory.module_name(name)
+
+    # --- Validate name requirement ---
+    if mod_name is None:
+        console.print(f"[red]Error:[/red] --name is required when --type is {type_}.")
         raise typer.Exit(code=1) from None
 
     # --- Validate name if provided ---
@@ -69,18 +67,8 @@ def _generate_driven_adapter_impl(type_: str, name: str | None, dry_run: bool) -
         raise typer.Exit(code=1) from None
 
     project_ctx = _load_project_context(project_root)
-
-    # --- Determine module context and subdir from type/name ---
-    if type_ == "rest-consumer":
-        subdir = "rest_consumer"
-        module_ctx = ModuleContext(name="rest_consumer", layer=Layer.DRIVEN_ADAPTERS, project=project_ctx)
-    elif type_ == "secrets":
-        subdir = "secrets"
-        module_ctx = ModuleContext(name="secrets", layer=Layer.DRIVEN_ADAPTERS, project=project_ctx)
-    else:  # generic
-        assert name is not None  # validated above
-        subdir = to_snake_case(name)
-        module_ctx = ModuleContext(name=name, layer=Layer.DRIVEN_ADAPTERS, project=project_ctx)
+    subdir = to_snake_case(mod_name)
+    module_ctx = ModuleContext(name=mod_name, layer=Layer.DRIVEN_ADAPTERS, project=project_ctx)
 
     pkg = project_ctx.python_package
     src_dir = project_root / "src" / pkg / "infrastructure" / "driven_adapters" / subdir
@@ -93,7 +81,7 @@ def _generate_driven_adapter_impl(type_: str, name: str | None, dry_run: bool) -
         )
         raise typer.Exit(code=1) from None
 
-    # --- Create builder and get factory from registry ---
+    # --- Create builder ---
     builder = ModuleBuilder(
         project_root=project_root,
         project_ctx=project_ctx,
@@ -101,14 +89,7 @@ def _generate_driven_adapter_impl(type_: str, name: str | None, dry_run: bool) -
         dry_run=dry_run,
     )
 
-    # Get factory class and instantiate
-    factory_class = _REGISTRY[type_]
-    factory = factory_class()
-
-    # Invoke factory to build via ModuleBuilder
     factory.build(builder)
-
-    # Persist all operations
     created = builder.persist()
 
     # --- Display results ---
