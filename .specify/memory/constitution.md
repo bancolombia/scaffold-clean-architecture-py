@@ -34,6 +34,19 @@ None — all placeholders resolved.
 
 ---
 
+### Amendment v2.1.0 (2026-10-22) — MINOR
+**Type**: MINOR — new governance clause (materially expanded guidance).
+
+**Changes**:
+- Governance: added "Pre-existing violations" clause. A feature MAY keep a violation that
+  already existed on `main` if the plan documents it as pre-existing debt in Complexity
+  Tracking and names a numbered follow-up feature whose spec directory exists before merge.
+  New code introduced by a feature MUST still comply with every principle.
+
+**Templates updated**: None. First applied by `specs/022-solid-code-cleanup/plan.md`.
+
+---
+
 ### Amendment v2.0.3 (2026-04-10) — PATCH
 **Type**: PATCH — branch naming exception; no semantic change to other governance rules.
 
@@ -75,7 +88,7 @@ or artifact structure was affected.
 
 # scaffold-ca-python Constitution
 
-**Version**: 2.0.3 | **Ratified**: 2026-03-25 | **Last amended**: 2026-04-10
+**Version**: 2.1.0 | **Ratified**: 2026-03-25 | **Last amended**: 2026-10-22
 
 ## Core Principles
 
@@ -255,7 +268,17 @@ dependencies listed in Principle III, installed via `uv` at generation time.
   - **PATCH**: clarifications, wording improvements, or typo fixes with no semantic change.
 - All pull requests MUST include a Constitution Check section in their plan document
   verifying compliance with every applicable principle.
+- **Pre-existing violations**: A feature MAY leave a violation of a principle in place only if
+  all of the following hold:
+  1. The violation existed on `main` before the feature branch was created (it is not
+     introduced or worsened by the feature).
+  2. The plan's Constitution Check marks the principle as "⚠️ pre-existing debt" and the
+     Complexity Tracking table records the violation, its measured extent, and why fixing it
+     is out of scope.
+  3. A numbered follow-up feature (e.g. `023-error-hints`) is named in Complexity Tracking
+     and its spec directory is created before the feature is merged.
+  New code introduced by the feature MUST comply with every principle.
 - Compliance reviews MUST occur at the start of each new feature branch and before
   merging to `main`.
 
-**Version**: 2.0.3 | **Ratified**: 2026-03-25 | **Last Amended**: 2026-04-10
+**Version**: 2.1.0 | **Ratified**: 2026-03-25 | **Last Amended**: 2026-10-22
