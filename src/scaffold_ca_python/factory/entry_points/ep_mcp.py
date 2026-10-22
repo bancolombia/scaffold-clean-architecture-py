@@ -133,6 +133,4 @@ class EntryPointMcp(ModuleFactory):
         builder.add_dependency("dependency-injector~=4.49.1")
         builder.add_dependency("pydantic-settings~=2.15.0")
 
-        # Signal to module_builder.persist() to update pyproject.toml scripts
-        builder.add_param("scripts_entry", True)
-        builder.add_param("scripts_entry_fn", "main")
+        builder.set_project_script("main")

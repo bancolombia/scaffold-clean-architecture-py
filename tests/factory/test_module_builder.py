@@ -326,7 +326,7 @@ def test_set_project_script_persist_calls_update(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """persist() calls update_project_scripts when set_project_script was called."""
-    import scaffold_ca_python.core.pyproject_writer as pw  # noqa: PLC0415
+    import scaffold_ca_python.core.module_builder as mb  # noqa: PLC0415
 
     calls: list[tuple[object, ...]] = []
 
@@ -334,7 +334,7 @@ def test_set_project_script_persist_calls_update(
         calls.append((root, ctx, entry_fn))
         return True
 
-    monkeypatch.setattr(pw, "update_project_scripts", _fake_update)
+    monkeypatch.setattr(mb, "update_project_scripts", _fake_update)
     _write_pyproject_with_scripts(tmp_path)
     project = _project_ctx()
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, dry_run=False)
@@ -349,7 +349,7 @@ def test_set_project_script_dry_run_calls_dry_run_update(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """In dry-run, persist() calls dry_run_scripts_update instead."""
-    import scaffold_ca_python.core.pyproject_writer as pw  # noqa: PLC0415
+    import scaffold_ca_python.core.module_builder as mb  # noqa: PLC0415
 
     calls: list[tuple[object, ...]] = []
 
@@ -357,7 +357,7 @@ def test_set_project_script_dry_run_calls_dry_run_update(
         calls.append((root, ctx, entry_fn))
         return True
 
-    monkeypatch.setattr(pw, "dry_run_scripts_update", _fake_dry)
+    monkeypatch.setattr(mb, "dry_run_scripts_update", _fake_dry)
     _write_pyproject_with_scripts(tmp_path)
     project = _project_ctx()
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, dry_run=True)

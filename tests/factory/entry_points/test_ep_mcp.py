@@ -153,14 +153,14 @@ def test_mcp_dependencies_injected(tmp_path: Path) -> None:
 
 
 def test_mcp_scripts_entry_fn_param_is_main(tmp_path: Path) -> None:
-    """T008: factory must set scripts_entry_fn='main' on builder."""
+    """Factory must set pending_project_script='main' on builder."""
     builder = _make_builder(tmp_path)
 
     from scaffold_ca_python.factory.entry_points.ep_mcp import EntryPointMcp
 
     EntryPointMcp().build(builder)
 
-    assert builder.get_param("scripts_entry_fn") == "main"
+    assert builder.pending_project_script == "main"
 
 
 def test_mcp_main_py_overwritten(tmp_path: Path) -> None:

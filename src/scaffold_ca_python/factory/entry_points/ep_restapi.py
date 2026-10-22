@@ -129,5 +129,4 @@ class EntryPointRestApi(ModuleFactory):
         for dep in deps:
             builder.add_dependency(dep)
 
-        # Set scripts param to indicate main.py was removed and scripts need updating
-        builder.add_param("scripts_entry", True)
+        builder.set_project_script()
