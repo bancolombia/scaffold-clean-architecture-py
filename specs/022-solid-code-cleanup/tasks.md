@@ -275,28 +275,28 @@ The suite must stay green (baseline: 739 passed, 1 skipped, 96.50%).
 
 ### Tests for User Story 4 ⚠️ (write first, must fail)
 
-- [ ] T033 [P] [US4] Create `tests/models/test_options.py` for `EntryPointOptions`:
+- [X] T033 [P] [US4] Create `tests/models/test_options.py` for `EntryPointOptions`:
   - it is frozen: assigning a field raises `FrozenInstanceError`;
   - `creation_flags()` returns `["--swagger", "--enable-kafka", "--enable-mcp-client", "--with-resources", "--with-prompts"]`, filtered to the active ones, in that order;
   - `apply_to(builder, routes)` leaves `routes`, `enable_kafka`, `enable_mcp_client`, `with_resources` and `with_prompts` in the builder.
-- [ ] T034 [P] [US4] Create `tests/core/test_openapi_routes.py` for `parse_routes(path)`. Move the `_parse_swagger` cases if they exist in `tests/commands/test_generate_entry_point.py`, and add:
+- [X] T034 [P] [US4] Create `tests/core/test_openapi_routes.py` for `parse_routes(path)`. Move the `_parse_swagger` cases if they exist in `tests/commands/test_generate_entry_point.py`, and add:
   - YAML with `get`/`post` → `[("/x", "get"), ("/x", "post")]`;
   - JSON;
   - a non-dict root → `[]`;
   - non-dict `paths` → `[]`;
   - non-HTTP methods ignored (`parameters`).
-- [ ] T035 [P] [US4] Create `tests/core/test_module_locator.py` for `find_module_targets(project_root, pkg, snake)`:
+- [X] T035 [P] [US4] Create `tests/core/test_module_locator.py` for `find_module_targets(project_root, pkg, snake)`:
   - a model with its test returns `[(src, test)]`;
   - an adapter without a test returns `[(dir, None)]`;
   - no match returns `[]`;
   - the search order is model, usecase, driven_adapters, entry_points, helpers.
-- [ ] T036 [P] [US4] Add a test to `tests/commands/test_generate_project.py` that calls `_generate_project_impl(name, dry_run=False, renderer=FakeRenderer(), writer=FakeWriter())` and checks that the injected dependencies are used, with no module-level singletons (FR-014).
-- [ ] T037 [P] [US4] Add two tests to `tests/templates/test_project_templates.py`. They must fail:
+- [X] T036 [P] [US4] Add a test to `tests/commands/test_generate_project.py` that calls `_generate_project_impl(name, dry_run=False, renderer=FakeRenderer(), writer=FakeWriter())` and checks that the injected dependencies are used, with no module-level singletons (FR-014).
+- [X] T037 [P] [US4] Add two tests to `tests/templates/test_project_templates.py`. They must fail:
   - `project/package_init.py.jinja2` rendered with `{"name": "my-app"}` produces exactly `'"""my-app package."""\n'`;
   - `project/empty.jinja2` produces `""`.
 
   This satisfies Constitution II for the two files that don't come from a template today (FR-004 allows adding templates).
-- [ ] T038 [P] [US4] Add these cases to `tests/core/test_file_writer.py`:
+- [X] T038 [P] [US4] Add these cases to `tests/core/test_file_writer.py`:
   - a `FileExistsError` during pre-validation leaves no partial files;
   - deletes happen after creates;
   - inserts and appends are applied in declaration order.
@@ -305,7 +305,7 @@ The suite must stay green (baseline: 739 passed, 1 skipped, 96.50%).
 
 ### Implementation for User Story 4
 
-- [ ] T039 [P] [US4] Create `src/scaffold_ca_python/models/options.py` with `EntryPointOptions`, a `@dataclass(frozen=True, slots=True)` with these fields:
+- [X] T039 [P] [US4] Create `src/scaffold_ca_python/models/options.py` with `EntryPointOptions`, a `@dataclass(frozen=True, slots=True)` with these fields:
   - `type_: str`
   - `swagger: str | None = None`
   - `enable_kafka: bool = False`
@@ -320,8 +320,8 @@ The suite must stay green (baseline: 739 passed, 1 skipped, 96.50%).
   - `dry_run: bool = False`
 
   Implement `creation_flags()` and `apply_to(builder, routes)`. Makes T033 pass.
-- [ ] T040 [P] [US4] Create `src/scaffold_ca_python/core/openapi_routes.py` with `parse_routes(path: Path) -> list[tuple[str, str]]`. Move `_parse_swagger` there from `generate_entry_point.py` and use a `_HTTP_METHODS` `frozenset`. Makes T034 pass.
-- [ ] T041 [P] [US4] Create `src/scaffold_ca_python/core/module_locator.py` with `find_module_targets(...)`, using the code that lives in `commands/delete_module.py::_find_module_targets` today. Express the 5 candidates as a `(layer_subpath, is_file)` table to lower complexity. Makes T035 pass.
+- [X] T040 [P] [US4] Create `src/scaffold_ca_python/core/openapi_routes.py` with `parse_routes(path: Path) -> list[tuple[str, str]]`. Move `_parse_swagger` there from `generate_entry_point.py` and use a `_HTTP_METHODS` `frozenset`. Makes T034 pass.
+- [X] T041 [P] [US4] Create `src/scaffold_ca_python/core/module_locator.py` with `find_module_targets(...)`, using the code that lives in `commands/delete_module.py::_find_module_targets` today. Express the 5 candidates as a `(layer_subpath, is_file)` table to lower complexity. Makes T035 pass.
 - [ ] T042 [US4] Make `src/scaffold_ca_python/commands/delete_module.py` and `src/scaffold_ca_python/factory/simple/delete_module_factory.py` use `find_module_targets`:
   - remove the local copy and the single-entry `_REGISTRY`, and instantiate `DeleteModuleFactory()` directly;
   - the preview uses a `_display(path, root)` helper (`relative_to` with fallback) instead of the two try/except blocks;
