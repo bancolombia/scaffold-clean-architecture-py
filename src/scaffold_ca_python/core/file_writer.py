@@ -88,7 +88,7 @@ class FileWriter:
             # Pre-flight: create ALL parent directories before any os.replace().
             # If any mkdir fails, the exception propagates here; the TemporaryDirectory
             # is cleaned up on __exit__ and no target files are committed yet.
-            for op, (_, target) in zip(creates, staged):
+            for op, (_, target) in zip(creates, staged, strict=True):
                 target.parent.mkdir(parents=True, exist_ok=True)
                 if target.exists() and not op.file.overwrite:
                     raise FileExistsError(

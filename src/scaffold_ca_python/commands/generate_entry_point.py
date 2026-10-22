@@ -166,7 +166,7 @@ def _add_tool_impl(
             "[dim]Hint:[/dim] Restore test_tools.py, or regenerate the entry point with "
             "[cyan]scaffold gep --type mcp[/cyan]."
         )
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
 
     # Check bind_tools is last top-level statement
     if not mcp_tool_spec.has_bind_tools_function(original_tools_py):
@@ -235,7 +235,7 @@ def _add_tool_impl(
             "[red]Error:[/red] infrastructure/entry_points/mcp_server/tools.py cannot accept the new tool stub.\n"
             "[dim]Hint:[/dim] Regenerate the entry point with [cyan]scaffold gep --type mcp[/cyan]."
         )
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
 
     # T030a: Check writability before any writes (FR-019)
     import os
@@ -271,10 +271,7 @@ def _add_tool_impl(
 
         # Determine which file failed
         error_str = str(e).lower()
-        if "test_tools" in error_str or str(test_tools_py_path) in str(e):
-            failed_file = "test_tools.py"
-        else:
-            failed_file = "tools.py"
+        failed_file = "test_tools.py" if "test_tools" in error_str or str(test_tools_py_path) in str(e) else "tools.py"
 
         console.print(
             f"[red]Error:[/red] Failed to write {failed_file} ({e}). "
