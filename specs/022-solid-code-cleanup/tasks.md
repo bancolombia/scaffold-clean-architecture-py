@@ -227,7 +227,7 @@ The suite must stay green (baseline: 739 passed, 1 skipped, 96.50%).
   - keep the local `_load_project_context` until T031, unless T031 is already done (then use `load_project_context`).
 
   The duplicate message stays unchanged in this task; T059 changes it.
-- [ ] T025 [US2] Update `tests/factory/test_registry.py` and `tests/factory/test_dry_run_parity.py` to import `ENTRY_POINT_FACTORIES` / `DRIVEN_ADAPTER_FACTORIES` instead of `generate_entry_point._REGISTRY` / `generate_driven_adapter._REGISTRY` (research R-08). Confirm that T008–T014 and the full suite pass.
+- [X] T025 [US2] Update `tests/factory/test_registry.py` and `tests/factory/test_dry_run_parity.py` to import `ENTRY_POINT_FACTORIES` / `DRIVEN_ADAPTER_FACTORIES` instead of `generate_entry_point._REGISTRY` / `generate_driven_adapter._REGISTRY` (research R-08). Confirm that T008–T014 and the full suite pass.
 
 **Checkpoint**: US2 is complete, `commands/` has no type literals, and T011 is green.
 

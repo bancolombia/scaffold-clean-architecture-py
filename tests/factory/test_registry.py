@@ -1,7 +1,7 @@
-"""Tests for the command _REGISTRY dispatch tables (T042 / 015-factory-builder-refactor).
+"""Tests for the factory registry dispatch tables.
 
-Verifies each command exposes a factory registry keyed by its supported types, and
-that dispatching an unknown type fails with an error that lists the valid keys.
+Verifies each factory registry has the expected keys and that dispatching an unknown
+type fails with an error that lists the valid keys.
 """
 
 from __future__ import annotations
@@ -11,23 +11,23 @@ from typer.testing import CliRunner
 from scaffold_ca_python.cli import app
 from scaffold_ca_python.commands import (
     delete_module,
-    generate_driven_adapter,
-    generate_entry_point,
     generate_helper,
     generate_model,
     generate_use_case,
 )
+from scaffold_ca_python.factory.driven_adapters import DRIVEN_ADAPTER_FACTORIES
+from scaffold_ca_python.factory.entry_points import ENTRY_POINT_FACTORIES
 from tests.conftest import strip_ansi
 
 runner = CliRunner()
 
 
 def test_entry_point_registry_keys() -> None:
-    assert set(generate_entry_point._REGISTRY) == {"restapi", "agent", "mcp", "generic"}
+    assert set(ENTRY_POINT_FACTORIES) == {"restapi", "agent", "mcp", "generic"}
 
 
 def test_driven_adapter_registry_keys() -> None:
-    assert set(generate_driven_adapter._REGISTRY) == {"rest-consumer", "secrets", "generic"}
+    assert set(DRIVEN_ADAPTER_FACTORIES) == {"rest-consumer", "secrets", "generic"}
 
 
 def test_simple_command_registries_expose_single_key() -> None:
@@ -42,7 +42,7 @@ def test_gep_unknown_type_lists_valid_keys() -> None:
     assert result.exit_code == 1
     # Flatten soft-wrapped console output so key tokens stay intact.
     out = strip_ansi(result.output).replace("\n", " ")
-    for key in generate_entry_point._REGISTRY:
+    for key in ENTRY_POINT_FACTORIES:
         assert key in out, f"Expected valid key '{key}' listed in error output"
 
 
@@ -50,7 +50,7 @@ def test_gda_unknown_type_lists_valid_keys() -> None:
     result = runner.invoke(app, ["gda", "--type", "bogus"], catch_exceptions=False)
     assert result.exit_code == 1
     out = strip_ansi(result.output).replace("\n", " ")
-    for key in generate_driven_adapter._REGISTRY:
+    for key in DRIVEN_ADAPTER_FACTORIES:
         assert key in out, f"Expected valid key '{key}' listed in error output"
 
 
@@ -61,9 +61,8 @@ def test_gda_unknown_type_lists_valid_keys() -> None:
 
 def test_factory_descriptors() -> None:
     """Verify ClassVar descriptor values for all registered entry-point factories."""
-    from scaffold_ca_python.factory.entry_points.base import EntryPointFlag  # noqa: PLC0415
-
     from scaffold_ca_python.factory.entry_points import ENTRY_POINT_FACTORIES  # noqa: PLC0415
+    from scaffold_ca_python.factory.entry_points.base import EntryPointFlag  # noqa: PLC0415
 
     ep = ENTRY_POINT_FACTORIES
 
