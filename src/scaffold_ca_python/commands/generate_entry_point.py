@@ -15,26 +15,19 @@ from rich.markup import escape
 from rich.syntax import Syntax
 from rich.tree import Tree
 
+from scaffold_ca_python.commands._entry_point_rules import check_conflicts, check_flags
 from scaffold_ca_python.core import mcp_tool_spec
 from scaffold_ca_python.core.module_builder import ModuleBuilder
 from scaffold_ca_python.core.name_utils import ScaffoldError, to_snake_case
 from scaffold_ca_python.core.project_detector import find_project_root, resolve_tests_root
-from scaffold_ca_python.factory import ModuleFactory
-from scaffold_ca_python.factory.entry_points.ep_agent import EntryPointAgent
-from scaffold_ca_python.factory.entry_points.ep_generic import EntryPointGeneric
-from scaffold_ca_python.factory.entry_points.ep_mcp import EntryPointMcp
-from scaffold_ca_python.factory.entry_points.ep_restapi import EntryPointRestApi
+from scaffold_ca_python.factory.entry_points import ENTRY_POINT_FACTORIES
+from scaffold_ca_python.factory.entry_points.base import EntryPointFlag
 from scaffold_ca_python.models.context import ModuleContext, ProjectContext
 from scaffold_ca_python.models.layer import Layer
 
 console = Console()
 
-_REGISTRY: dict[str, type[ModuleFactory]] = {
-    "restapi": EntryPointRestApi,
-    "agent": EntryPointAgent,
-    "mcp": EntryPointMcp,
-    "generic": EntryPointGeneric,
-}
+_REGISTRY = ENTRY_POINT_FACTORIES
 
 _TYPE_HELP = "Entry-point type: restapi, agent, mcp, generic."
 _SWAGGER_HELP = "Path to OpenAPI YAML/JSON (restapi only)."
@@ -324,22 +317,23 @@ def _generate_entry_point_impl(
         return
 
     # --- Validate type ---
-    if type_ not in _REGISTRY:
-        console.print(f"[red]Error:[/red] Unknown type '{type_}'. Allowed: {', '.join(_REGISTRY.keys())}.")
+    if type_ not in ENTRY_POINT_FACTORIES:
+        console.print(f"[red]Error:[/red] Unknown type '{type_}'. Allowed: {', '.join(ENTRY_POINT_FACTORIES.keys())}.")
         raise typer.Exit(code=1) from None
+
+    factory_class = ENTRY_POINT_FACTORIES[type_]
 
     # --- Flag compatibility checks ---
-    if swagger and type_ != "restapi":
-        console.print("[red]Error:[/red] --swagger is only valid with --type restapi.")
-        raise typer.Exit(code=1) from None
-
-    if enable_mcp_client and type_ == "mcp":
-        console.print("[red]Error:[/red] --enable-mcp-client is not valid with --type mcp.")
-        raise typer.Exit(code=1) from None
-
-    if (with_resources or with_prompts) and type_ != "mcp":
-        console.print("[red]Error:[/red] --with-resources and --with-prompts are only valid with --type mcp.")
-        raise typer.Exit(code=1) from None
+    active_flags: list[EntryPointFlag] = []
+    if swagger is not None:
+        active_flags.append(EntryPointFlag.SWAGGER)
+    if enable_mcp_client:
+        active_flags.append(EntryPointFlag.ENABLE_MCP_CLIENT)
+    if with_resources or with_prompts:
+        active_flags.append(EntryPointFlag.MCP_PRIMITIVES)
+    if enable_kafka:
+        active_flags.append(EntryPointFlag.ENABLE_KAFKA)
+    check_flags(type_, factory_class, active_flags, ENTRY_POINT_FACTORIES)
 
     # --- Validate swagger path ---
     routes: list[tuple[str, str]] = []
@@ -358,39 +352,13 @@ def _generate_entry_point_impl(
         raise typer.Exit(code=1) from None
 
     project_ctx = _load_project_context(project_root)
+    pkg = project_ctx.python_package
 
-    # --- Compatibility guard (restapi vs mcp/agent) --------------------------
-    if type_ == "restapi":
-        pkg_ep = project_root / "src" / project_ctx.python_package / "infrastructure" / "entry_points"
-        for incompatible in ("mcp_server", "agent"):
-            conflict_dir = pkg_ep / incompatible
-            if conflict_dir.exists():
-                console.print(
-                    f"[red]Error:[/red] Incompatible entry point '[bold]{incompatible}[/bold]' "
-                    f"already exists at: {conflict_dir.relative_to(project_root)}\n"
-                    "[dim]Hint:[/dim] A project may have only one entry-point type. "
-                    f"Remove '{conflict_dir.relative_to(project_root)}' before adding restapi."
-                )
-                raise typer.Exit(code=1) from None
-
-    if type_ in ("mcp", "agent"):
-        restapi_dir = project_root / "src" / project_ctx.python_package / "infrastructure" / "entry_points" / "api"
-        if restapi_dir.exists():
-            console.print(
-                f"[red]Error:[/red] Incompatible entry point '[bold]restapi[/bold]' "
-                f"already exists at: {restapi_dir.relative_to(project_root)}\n"
-                "[dim]Hint:[/dim] A project may have only one entry-point type. "
-                f"Remove '{restapi_dir.relative_to(project_root)}' before adding {type_}."
-            )
-            raise typer.Exit(code=1) from None
+    # --- Conflict check ---
+    check_conflicts(project_root, pkg, type_, factory_class)
 
     # --- Determine subdir and module context ---
-    if type_ == "restapi":
-        subdir = "api/v1"
-    elif type_ == "mcp":
-        subdir = "mcp_server"
-    else:
-        subdir = type_
+    subdir = factory_class.subdir
     module_ctx = ModuleContext(
         name=type_.replace("-", "_"),
         layer=Layer.ENTRY_POINTS,
@@ -398,7 +366,6 @@ def _generate_entry_point_impl(
         subtype=type_,
     )
 
-    pkg = project_ctx.python_package
     src_dir = project_root / "src" / pkg / "infrastructure" / "entry_points" / subdir
 
     # --- Duplicate guard ---
@@ -409,7 +376,7 @@ def _generate_entry_point_impl(
         )
         raise typer.Exit(code=1) from None
 
-    # --- Create builder and get factory from registry ---
+    # --- Create builder ---
     builder = ModuleBuilder(
         project_root=project_root,
         project_ctx=project_ctx,
@@ -417,21 +384,14 @@ def _generate_entry_point_impl(
         dry_run=dry_run,
     )
 
-    # Add flags to builder params for factory use
     builder.add_param("routes", routes)
     builder.add_param("enable_kafka", enable_kafka)
     builder.add_param("enable_mcp_client", enable_mcp_client)
     builder.add_param("with_resources", with_resources)
     builder.add_param("with_prompts", with_prompts)
 
-    # Get factory class and instantiate
-    factory_class = _REGISTRY[type_]
     factory = factory_class()
-
-    # Invoke factory to build via ModuleBuilder
     factory.build(builder)
-
-    # Persist all operations
     created = builder.persist()
 
     # --- Display results ---
@@ -441,30 +401,17 @@ def _generate_entry_point_impl(
             tree.add(str(p.relative_to(project_root)))
         console.print(tree)
 
-        # Report any runtime dependencies queued for injection
         if builder.pending_dependencies:
             target = escape("[project.dependencies]")
             console.print(f"[dim]Would add to {target}: {', '.join(builder.pending_dependencies)}[/dim]")
 
-        if type_ == "restapi":
-            main_py = project_root / "src" / pkg / "main.py"
-            if main_py.exists():
-                console.print(f"[dim]Would delete: src/{pkg}/main.py[/dim]")
-            console.print(f'[dim]Would update [project.scripts]: {pkg} = "{pkg}.server:start_server"[/dim]')
-        else:
-            console.print(f"[yellow]⚠[/yellow] main.py will be replaced with {type_} entrypoint.")
+        for note in factory.result_notes(project_root, pkg, type_, dry_run=True):
+            console.print(note)
         return
 
     console.print(f"[green]✓[/green] Entry point [bold]{subdir}[/bold] created. Created {len(created)} file(s).")
-
-    # --- Show results for special handling ---
-    if type_ == "restapi":
-        main_py = project_root / "src" / pkg / "main.py"
-        if main_py.exists():
-            console.print(f"[green]\u2713[/green] Deleted src/{pkg}/main.py")
-        console.print(f'[green]\u2713[/green] Updated [project.scripts]: {pkg} = "{pkg}.server:start_server"')
-    else:
-        console.print(f"[yellow]⚠[/yellow] main.py replaced with {type_} entrypoint.")
+    for note in factory.result_notes(project_root, pkg, type_, dry_run=False):
+        console.print(note)
 
 
 def _parse_swagger(path: Path) -> list[tuple[str, str]]:

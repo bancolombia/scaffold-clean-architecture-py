@@ -40,12 +40,12 @@ The suite must stay green (baseline: 739 passed, 1 skipped, 96.50%).
 
 **Purpose**: Capture the reference and enable the guardrails without leaving the branch red.
 
-- [ ] T001 Capture the reference trees from `main` by following step 1 of `specs/022-solid-code-cleanup/quickstart.md`:
+- [x] T001 Capture the reference trees from `main` by following step 1 of `specs/022-solid-code-cleanup/quickstart.md`:
   - `/tmp/ref022.sha` (mcp + the other commands);
   - `/tmp/ref022-restapi.sha` (`ca --name demo-api` + `gep --type restapi` + `gda --type secrets`).
 
   In both, remove the `created_at` line from `pyproject.toml` before hashing.
-- [ ] T002 Enable the new rules in `pyproject.toml`:
+- [x] T002 Enable the new rules in `pyproject.toml`:
   - `select = ["E", "F", "I", "UP", "ANN", "B", "SIM", "C90"]` and a `[tool.ruff.lint.mccabe]` section with `max-complexity = 10`;
   - a temporary `[tool.ruff.lint.per-file-ignores]` with `C901` for:
     - `src/scaffold_ca_python/commands/generate_entry_point.py`
@@ -54,9 +54,9 @@ The suite must stay green (baseline: 739 passed, 1 skipped, 96.50%).
     - `src/scaffold_ca_python/core/structure_validator.py`
     - `src/scaffold_ca_python/factory/simple/delete_module_factory.py`
   - the comment `# Temporary: removed by the end of feature 022.` above that block.
-- [ ] T003 [P] Fix B905 in `src/scaffold_ca_python/core/file_writer.py` with `zip(creates, staged, strict=True)`.
-- [ ] T004 [P] Fix the 2 B017 in `tests/`: replace `pytest.raises(Exception)` with the concrete exception the code raises. Find them with `uv run ruff check tests/ --select B017`.
-- [ ] T005 Fix the 2 B904 and the SIM108 in `src/scaffold_ca_python/commands/generate_entry_point.py`:
+- [x] T003 [P] Fix B905 in `src/scaffold_ca_python/core/file_writer.py` with `zip(creates, staged, strict=True)`.
+- [x] T004 [P] Fix the 2 B017 in `tests/`: replace `pytest.raises(Exception)` with the concrete exception the code raises. Find them with `uv run ruff check tests/ --select B017`.
+- [x] T005 Fix the 2 B904 and the SIM108 in `src/scaffold_ca_python/commands/generate_entry_point.py`:
   - the `raise typer.Exit(code=1)` lines inside `except OSError` / `except SyntaxError`;
   - the `failed_file` `if/else`.
 
@@ -70,14 +70,14 @@ The suite must stay green (baseline: 739 passed, 1 skipped, 96.50%).
 
 **⚠️ CRITICAL**: No story that modifies commands may start before this phase and Phase 3 (safety net) are complete.
 
-- [ ] T006 Write `tests/commands/test_shared.py`. It must fail, because the module doesn't exist yet. It covers:
+- [x] T006 Write `tests/commands/test_shared.py`. It must fail, because the module doesn't exist yet. It covers:
   - `fail()` prints `Error: <msg>`, prints `Hint: <hint>` only when given, and raises `typer.Exit` with `exit_code == 1`.
   - `require_project_root()` outside a project prints `"No scaffold-ca-python project found. Run 'scaffold ca' first."`.
   - `require_project_root(not_found_message=None)` prints the `ScaffoldError` text.
   - `ensure_absent()` prints `File '<rel>' already exists.` with `kind="File"` and `Directory '<rel>/' already exists.` with `kind="Directory"`. Both are followed by the given hint.
   - `print_dry_run_tree()` lists the paths sorted and relative to the base, under the title `<title> (dry run)`.
   - `print_pending_dependencies()` prints `Would add to [project.dependencies]: …` and one line per `[dependency-groups.<g>]` group.
-- [ ] T007 Implement `src/scaffold_ca_python/commands/_shared.py` according to research R-07. It exposes:
+- [x] T007 Implement `src/scaffold_ca_python/commands/_shared.py` according to research R-07. It exposes:
   - `console`
   - `fail(message: str, hint: str | None = None) -> NoReturn`
   - `require_project_root(not_found_message: str | None = PROJECT_NOT_FOUND) -> Path`
@@ -102,7 +102,7 @@ The suite must stay green (baseline: 739 passed, 1 skipped, 96.50%).
 
 ### Tests for User Story 1 ⚠️ (must pass immediately: they pin current behavior)
 
-- [ ] T008 [P] [US1] Create `tests/commands/test_behavior_contract.py` with parametrized `gep` cases, on a project created with `ca --name my-app` in `tmp_path`. Each case asserts the exact text after `strip_ansi` and `exit_code == 1`:
+- [x] T008 [P] [US1] Create `tests/commands/test_behavior_contract.py` with parametrized `gep` cases, on a project created with `ca --name my-app` in `tmp_path`. Each case asserts the exact text after `strip_ansi` and `exit_code == 1`:
   - `--type x` → `Unknown type 'x'. Allowed: restapi, agent, mcp, generic.`
   - `--type mcp --swagger f.yaml` → `--swagger is only valid with --type restapi.`
   - `--type mcp --enable-mcp-client` → `--enable-mcp-client is not valid with --type mcp.`
@@ -112,14 +112,14 @@ The suite must stay green (baseline: 739 passed, 1 skipped, 96.50%).
   - `mcp` twice → `Directory '…/mcp_server/' already exists.`
   - `--add-tool` without `--type` → `--add-tool is only valid with --type mcp.`
   - `--type mcp --add-tool --name x --enable-kafka` → `--add-tool is incompatible with --enable-kafka.`
-- [ ] T009 [P] [US1] Add to `tests/commands/test_behavior_contract.py` the `gda`, `gpipe`, `gm`, `guc`, `gh` and `dm` cases:
+- [x] T009 [P] [US1] Add to `tests/commands/test_behavior_contract.py` the `gda`, `gpipe`, `gm`, `guc`, `gh` and `dm` cases:
   - `gda --type generic` → `--name is required when --type is generic.`
   - `gda --type x` → `Unknown type 'x'. Allowed: rest-consumer, secrets, generic.`
   - `gpipe --provider x` → `Unknown provider 'x'. Allowed: github, azure.`
   - `gm --name order` twice → `File '…order.py' already exists.`
   - any command outside a project → `No scaffold-ca-python project found. Run 'scaffold ca' first.`
   - `dm --name nope` → `No module named 'nope' found in project.`
-- [ ] T010 [P] [US1] Add to `tests/commands/test_behavior_contract.py` the `gep` success and dry-run outputs:
+- [x] T010 [P] [US1] Add to `tests/commands/test_behavior_contract.py` the `gep` success and dry-run outputs:
   - `gep --type restapi --dry-run` contains `Would update : my_app = "my_app.server:start_server"`. This is the current output: Rich swallows `[project.scripts]`. T060 fixes it (C-3) and updates this assertion at that point.
   - `gep --type mcp` contains `main.py replaced with mcp entrypoint.`
   - `gep --type agent --dry-run` contains `main.py will be replaced with agent entrypoint.`
@@ -176,7 +176,7 @@ The suite must stay green (baseline: 739 passed, 1 skipped, 96.50%).
   - with `builder.set_project_script("main")` in `src/scaffold_ca_python/factory/entry_points/ep_mcp.py`.
 
   Update `tests/factory/entry_points/test_ep_mcp.py` and `tests/factory/entry_points/test_ep_restapi.py` to check `pending_project_script` instead of `get_param("scripts_entry")` (research R-08).
-- [ ] T017 [US2] Create `src/scaffold_ca_python/factory/entry_points/base.py` with:
+- [X] T017 [US2] Create `src/scaffold_ca_python/factory/entry_points/base.py` with:
   - **`EntryPointFlag(Enum)`**, members in order `SWAGGER`, `ENABLE_MCP_CLIENT`, `MCP_PRIMITIVES`, `ENABLE_KAFKA`. Each has a `label` (`"--swagger"`, `"--enable-mcp-client"`, `"--with-resources and --with-prompts"`, `"--enable-kafka"`) and a `verb` (`"is"`, `"is"`, `"are"`, `"is"`).
   - **`EntryPointConflict(NamedTuple)`** with `label: str` and `subdir: str`.
   - **`EntryPointFactory(ABC)`** with:
@@ -185,17 +185,17 @@ The suite must stay green (baseline: 739 passed, 1 skipped, 96.50%).
     - `conflicts: ClassVar[tuple[EntryPointConflict, ...]] = ()`
     - the abstract `build(builder)`
     - `result_notes(project_root: Path, pkg: str, type_key: str, *, dry_run: bool) -> list[str]`. By default it returns `["[yellow]⚠[/yellow] main.py will be replaced with {type_key} entrypoint."]` in dry-run and `["[yellow]⚠[/yellow] main.py replaced with {type_key} entrypoint."]` in real mode.
-- [ ] T018 [US2] Make `EntryPointRestApi`, `EntryPointMcp`, `EntryPointAgent` and `EntryPointGeneric` (in `src/scaffold_ca_python/factory/entry_points/ep_*.py`) inherit from `EntryPointFactory` and declare the `ClassVar`s from the [data-model.md](data-model.md) table.
+- [X] T018 [US2] Make `EntryPointRestApi`, `EntryPointMcp`, `EntryPointAgent` and `EntryPointGeneric` (in `src/scaffold_ca_python/factory/entry_points/ep_*.py`) inherit from `EntryPointFactory` and declare the `ClassVar`s from the [data-model.md](data-model.md) table.
 
   `EntryPointRestApi.result_notes` reproduces the current text of `generate_entry_point.py` exactly, so this task does **not** apply the C-3 fix:
   - **Dry-run**: `[dim]Would delete: src/{pkg}/main.py[/dim]` if `main.py` exists, plus `[dim]Would update [project.scripts]: {pkg} = "{pkg}.server:start_server"[/dim]`.
   - **Real mode**: `[green]✓[/green] Deleted src/{pkg}/main.py` if it exists, plus `[green]✓[/green] Updated [project.scripts]: {pkg} = "{pkg}.server:start_server"`.
 
   Note: `result_notes` is evaluated **after** `persist()`, as today. In real mode, the `Deleted src/{pkg}/main.py` line therefore only appears if `main.py` still exists. In practice it never appears, because `persist()` has already deleted it. Keep that order so the output doesn't change (covered by T010). Record it as a possible bug for a later feature.
-- [ ] T019 [US2] Move the registry to `src/scaffold_ca_python/factory/entry_points/__init__.py` as `ENTRY_POINT_FACTORIES: dict[str, type[EntryPointFactory]]`, in the order `restapi`, `agent`, `mcp`, `generic`. Also create `src/scaffold_ca_python/commands/_entry_point_rules.py` with:
+- [X] T019 [US2] Move the registry to `src/scaffold_ca_python/factory/entry_points/__init__.py` as `ENTRY_POINT_FACTORIES: dict[str, type[EntryPointFactory]]`, in the order `restapi`, `agent`, `mcp`, `generic`. Also create `src/scaffold_ca_python/commands/_entry_point_rules.py` with:
   - **`check_flags(type_key, factory, active_flags, registry)`**: derives the messages per research R-02. If exactly one registered type supports the flag, the message is `"{label} {verb} only valid with --type {single}."`; otherwise it is `"{label} {verb} not valid with --type {type_key}."`.
   - **`check_conflicts(…)`**: reproduces the current text, `Incompatible entry point '[bold]{label}[/bold]' already exists at: {rel}` + `Hint: A project may have only one entry-point type. Remove '{rel}' before adding {type_key}.`
-- [ ] T020 [US2] Rewrite the creation part of `src/scaffold_ca_python/commands/generate_entry_point.py` to use `ENTRY_POINT_FACTORIES`, `check_flags`, `check_conflicts`, `factory.subdir` and `factory.result_notes`. Remove the `if type_ == …` branches. Leave the `--add-tool` flow untouched; T049 handles it.
+- [X] T020 [US2] Rewrite the creation part of `src/scaffold_ca_python/commands/generate_entry_point.py` to use `ENTRY_POINT_FACTORIES`, `check_flags`, `check_conflicts`, `factory.subdir` and `factory.result_notes`. Remove the `if type_ == …` branches. Leave the `--add-tool` flow untouched; T049 handles it.
 - [ ] T021 [P] [US2] Create `src/scaffold_ca_python/factory/driven_adapters/base.py` with:
   - `DrivenAdapterFactory(ABC)`;
   - the `ClassVar` `fixed_name: ClassVar[str | None] = None`;

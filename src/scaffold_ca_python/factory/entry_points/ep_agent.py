@@ -1,17 +1,26 @@
-"""EntryPointAgent factory implementation (T017)."""
+"""EntryPointAgent factory implementation."""
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from scaffold_ca_python.core.project_detector import resolve_tests_root
-from scaffold_ca_python.factory import ModuleFactory
+from scaffold_ca_python.factory.entry_points.base import (
+    EntryPointConflict,
+    EntryPointFactory,
+    EntryPointFlag,
+)
 
 if TYPE_CHECKING:
     from scaffold_ca_python.core.module_builder import ModuleBuilder
 
 
-class EntryPointAgent(ModuleFactory):
+class EntryPointAgent(EntryPointFactory):
+    subdir: ClassVar[str] = "agent"
+    supported_flags: ClassVar[frozenset[EntryPointFlag]] = frozenset(
+        {EntryPointFlag.ENABLE_MCP_CLIENT, EntryPointFlag.ENABLE_KAFKA}
+    )
+    conflicts: ClassVar[tuple[EntryPointConflict, ...]] = (EntryPointConflict(label="restapi", subdir="api"),)
     """Factory for Agent entry-point type."""
 
     def build(self, builder: ModuleBuilder) -> None:
