@@ -333,7 +333,7 @@ The suite must stay green (baseline: 739 passed, 1 skipped, 96.50%).
   - `src/scaffold_ca_python/commands/generate_use_case.py`, with factory `UseCaseFactory`;
   - `src/scaffold_ca_python/commands/generate_helper.py`, with factory `HelperFactory` and `ensure_absent(kind="Directory", hint="Choose a different name or remove the existing directory first.")`.
 - [X] T045 [P] [US4] Migrate `src/scaffold_ca_python/commands/validate_structure.py` and `src/scaffold_ca_python/commands/update_project.py` to `require_project_root` and `dry_run_option(help=...)`, keeping their current help texts. In `update_project.py`, extract `_run_uv(cmd: list[str], cwd: Path, failure_message: str) -> None`. It keeps the current texts and exit codes: 1 when `uv` is missing, 2 on `CalledProcessError`.
-- [ ] T046 [US4] Migrate `src/scaffold_ca_python/commands/generate_driven_adapter.py` to `_shared` (`print_dry_run_tree`, `print_pending_dependencies`, `ensure_absent(kind="Directory", ...)`, `build_and_persist`) and remove its C901 `per-file-ignores` from `pyproject.toml`.
+- [X] T046 [US4] Migrate `src/scaffold_ca_python/commands/generate_driven_adapter.py` to `_shared` (`print_dry_run_tree`, `print_pending_dependencies`, `ensure_absent(kind="Directory", ...)`, `build_and_persist`) and remove its C901 `per-file-ignores` from `pyproject.toml`.
 - [ ] T047 [US4] Rewrite `src/scaffold_ca_python/commands/generate_project.py`:
   - **`_ROOT_FILES: tuple[tuple[str, str], ...]`**: the 7 root files (`pyproject.toml`, `README.md`, `.gitignore`, `mypy.ini`, `Dockerfile`, `.dockerignore`, `.python-version`) with their templates.
   - **`_DI_CONFIG_FILES`**: the 6 files in `application/config/`.
