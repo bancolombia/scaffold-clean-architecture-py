@@ -1,17 +1,18 @@
-"""DrivenAdapterSecrets factory implementation (T027)."""
+"""DrivenAdapterSecrets factory implementation."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
 from scaffold_ca_python.core.project_detector import resolve_tests_root
-from scaffold_ca_python.factory import ModuleFactory
+from scaffold_ca_python.factory.driven_adapters.base import DrivenAdapterFactory
 
 if TYPE_CHECKING:
     from scaffold_ca_python.core.module_builder import ModuleBuilder
 
 
-class DrivenAdapterSecrets(ModuleFactory):
+class DrivenAdapterSecrets(DrivenAdapterFactory):
+    fixed_name = "secrets"
     """Factory for Secrets driven-adapter type."""
 
     def build(self, builder: ModuleBuilder) -> None:

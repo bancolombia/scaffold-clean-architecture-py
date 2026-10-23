@@ -1,4 +1,4 @@
-"""name_utils: name validation, snake_case, and PascalCase conversion (T021)."""
+"""name_utils: name validation, snake_case, and PascalCase conversion."""
 
 from __future__ import annotations
 
@@ -15,11 +15,6 @@ _CAMEL_BOUNDARY_RE = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z]
 
 class ScaffoldError(Exception):
     """Raised for user-facing errors (exit code 1)."""
-
-
-# ---------------------------------------------------------------------------
-# Public helpers
-# ---------------------------------------------------------------------------
 
 
 def validate_name(name: str) -> str:

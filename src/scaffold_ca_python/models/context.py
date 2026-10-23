@@ -1,4 +1,4 @@
-"""ProjectContext and ModuleContext Pydantic v2 models (T014)."""
+"""ProjectContext and ModuleContext Pydantic v2 models."""
 
 from pydantic import BaseModel, computed_field, field_validator
 

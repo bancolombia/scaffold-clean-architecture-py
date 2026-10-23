@@ -16,9 +16,10 @@ import pytest
 from typer.testing import CliRunner
 
 from scaffold_ca_python.cli import app
-from scaffold_ca_python.commands import generate_driven_adapter, generate_entry_point
 from scaffold_ca_python.core.module_builder import ModuleBuilder
 from scaffold_ca_python.factory import ModuleFactory
+from scaffold_ca_python.factory.driven_adapters import DRIVEN_ADAPTER_FACTORIES
+from scaffold_ca_python.factory.entry_points import ENTRY_POINT_FACTORIES
 from scaffold_ca_python.models.context import ModuleContext, ProjectContext
 from scaffold_ca_python.models.layer import Layer
 
@@ -75,7 +76,7 @@ def test_gep_dry_run_parity(project_root: Path, type_: str) -> None:
         project=ProjectContext(name="my-app"),
         subtype=type_,
     )
-    preview = _preview(project_root, module_ctx, generate_entry_point._REGISTRY[type_], _GEP_PARAMS)
+    preview = _preview(project_root, module_ctx, ENTRY_POINT_FACTORIES[type_], _GEP_PARAMS)
     assert preview == _BASELINE[f"gep:{type_}"]
 
 
@@ -92,5 +93,5 @@ def test_gda_dry_run_parity(project_root: Path, type_: str, name: str | None) ->
     else:
         assert name is not None
         module_ctx = ModuleContext(name=name, layer=Layer.DRIVEN_ADAPTERS, project=proj)
-    preview = _preview(project_root, module_ctx, generate_driven_adapter._REGISTRY[type_])
+    preview = _preview(project_root, module_ctx, DRIVEN_ADAPTER_FACTORIES[type_])
     assert preview == _BASELINE[f"gda:{type_}"]

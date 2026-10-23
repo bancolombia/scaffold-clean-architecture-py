@@ -1,4 +1,4 @@
-"""project_detector: locate the Clean Architecture project root (T022)."""
+"""project_detector: locate and read project metadata."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ from collections.abc import Iterator
 from pathlib import Path
 
 from scaffold_ca_python.core.name_utils import ScaffoldError
+from scaffold_ca_python.models.context import ProjectContext
 
 _CA_MARKERS: frozenset[str] = frozenset({"domain", "infrastructure", "application"})
 _SCAFFOLD_SECTION = "scaffold-ca-python"
@@ -15,7 +16,7 @@ _SCAFFOLD_SECTION = "scaffold-ca-python"
 def find_project_root(cwd: Path | None = None) -> Path:
     """Walk upward from *cwd* to locate the project root.
 
-    Strategy (R-10):
+    Strategy:
     1. Look for a ``pyproject.toml`` that contains ``[tool.scaffold-ca-python]``.
     2. If not found, fall back to a directory whose children include the three
        canonical CA layout directories (``domain/``, ``infrastructure/``,
@@ -29,7 +30,7 @@ def find_project_root(cwd: Path | None = None) -> Path:
     """
     current = (cwd or Path.cwd()).resolve()
 
-    # --- Strategy 1: pyproject.toml with [tool.scaffold-ca-python] ----------
+    # Strategy 1: pyproject.toml with [tool.scaffold-ca-python]
     candidate: Path | None = None
     for directory in _iter_parents(current):
         pyproject = directory / "pyproject.toml"
@@ -46,7 +47,7 @@ def find_project_root(cwd: Path | None = None) -> Path:
     if candidate is not None:
         return candidate
 
-    # --- Strategy 2: canonical CA directory layout --------------------------
+    # Strategy 2: canonical CA directory layout
     for directory in _iter_parents(current):
         children = {p.name for p in directory.iterdir() if p.is_dir()}
         if _CA_MARKERS.issubset(children):
@@ -58,6 +59,15 @@ def find_project_root(cwd: Path | None = None) -> Path:
         "Hint: a valid project root has either [tool.scaffold-ca-python] in pyproject.toml "
         "or the canonical CA directory layout (domain/, infrastructure/, application/)."
     )
+
+
+def load_project_context(root: Path) -> ProjectContext:
+    """Read [tool.scaffold-ca-python].name from pyproject.toml, falling back to root.name."""
+    pyproject = root / "pyproject.toml"
+    with pyproject.open("rb") as fh:
+        data = tomllib.load(fh)
+    section = data.get("tool", {}).get("scaffold-ca-python", {})
+    return ProjectContext(name=section.get("name", root.name))
 
 
 def resolve_tests_root(project_root: Path) -> Path:
@@ -75,11 +85,6 @@ def resolve_tests_root(project_root: Path) -> Path:
     if root_tests.exists():
         return root_tests
     return src_tests
-
-
-# ---------------------------------------------------------------------------
-# Internal helpers
-# ---------------------------------------------------------------------------
 
 
 def _iter_parents(start: Path) -> Iterator[Path]:

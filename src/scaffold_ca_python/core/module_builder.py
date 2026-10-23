@@ -59,6 +59,7 @@ class ModuleBuilder:
         self._dependencies: list[str] = []
         self._group_dependencies: dict[str, list[str]] = {}
         self._params: dict[str, object] = {}
+        self._pending_project_script: str | None = None
 
     def add_file(
         self,
@@ -137,6 +138,15 @@ class ModuleBuilder:
         """Dependency-group deps queued for injection, keyed by group (read-only copy)."""
         return {group: list(pkgs) for group, pkgs in self._group_dependencies.items()}
 
+    def set_project_script(self, entry_fn: str = "start_server") -> None:
+        """Schedule an update to [project.scripts] with *entry_fn* as the entry function."""
+        self._pending_project_script = entry_fn
+
+    @property
+    def pending_project_script(self) -> str | None:
+        """Entry function name queued for [project.scripts] update, or None."""
+        return self._pending_project_script
+
     def add_param(self, key: str, value: object) -> None:
         """Store an ad-hoc value used by factories/commands."""
         self._params[key] = value
@@ -165,13 +175,10 @@ class ModuleBuilder:
             else:
                 inject_group_dependencies(self.project_root, grp, pkgs)
 
-        # Optional script update hook used by entry-point factory implementations.
-        if bool(self._params.get("scripts_entry", False)):
-            pkg = self.project_ctx
-            entry_fn: str = str(self._params.get("scripts_entry_fn", "start_server"))
+        if self._pending_project_script is not None:
             if self.dry_run:
-                dry_run_scripts_update(self.project_root, pkg, entry_fn)
+                dry_run_scripts_update(self.project_root, self.project_ctx, self._pending_project_script)
             else:
-                update_project_scripts(self.project_root, pkg, entry_fn)
+                update_project_scripts(self.project_root, self.project_ctx, self._pending_project_script)
 
         return paths

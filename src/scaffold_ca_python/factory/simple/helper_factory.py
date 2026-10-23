@@ -1,4 +1,4 @@
-"""HelperFactory implementation (T037)."""
+"""HelperFactory implementation."""
 
 from __future__ import annotations
 

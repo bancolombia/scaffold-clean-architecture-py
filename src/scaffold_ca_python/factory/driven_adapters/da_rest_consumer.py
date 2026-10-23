@@ -1,17 +1,18 @@
-"""DrivenAdapterRestConsumer factory implementation (T025)."""
+"""DrivenAdapterRestConsumer factory implementation."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
 from scaffold_ca_python.core.project_detector import resolve_tests_root
-from scaffold_ca_python.factory import ModuleFactory
+from scaffold_ca_python.factory.driven_adapters.base import DrivenAdapterFactory
 
 if TYPE_CHECKING:
     from scaffold_ca_python.core.module_builder import ModuleBuilder
 
 
-class DrivenAdapterRestConsumer(ModuleFactory):
+class DrivenAdapterRestConsumer(DrivenAdapterFactory):
+    fixed_name = "rest_consumer"
     """Factory for REST Consumer driven-adapter type."""
 
     def build(self, builder: ModuleBuilder) -> None:

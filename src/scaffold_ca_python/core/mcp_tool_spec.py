@@ -1,4 +1,4 @@
-"""MCP tool specification parsing and validation (T012).
+"""MCP tool specification parsing and validation.
 
 This module provides utilities for parsing and validating --add-tool CLI arguments,
 including tool names, parameters, type expressions, and duplicate-name detection.

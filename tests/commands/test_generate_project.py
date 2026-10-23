@@ -253,3 +253,35 @@ def test_kebab_name_generates_snake_case_files(tmp_path: Path, monkeypatch: pyte
         if stripped.endswith(".py"):
             stem = stripped.split("/")[-1][:-3]
             assert stem == stem.lower() and "-" not in stem
+
+
+# ---------------------------------------------------------------------------
+# T036: injection test — renderer and writer are used when injected
+# ---------------------------------------------------------------------------
+
+
+def test_generate_project_uses_injected_renderer_and_writer(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """_generate_project_impl must pass renderer/writer to ModuleBuilder (FR-014)."""
+    monkeypatch.chdir(tmp_path)
+    from scaffold_ca_python.commands.generate_project import _generate_project_impl
+
+    class FakeRenderer:
+        called = False
+
+        def render(self, template: str, ctx: object) -> str:
+            FakeRenderer.called = True
+            return "# fake"
+
+    class FakeWriter:
+        called = False
+
+        def write(self, path: object, content: str) -> None:
+            FakeWriter.called = True
+
+        def delete(self, path: object) -> None:
+            pass
+
+    _generate_project_impl("my-test-app", dry_run=False, renderer=FakeRenderer(), writer=FakeWriter())  # type: ignore[arg-type]
+
+    assert FakeRenderer.called, "Expected the injected renderer to be called"
+    assert FakeWriter.called, "Expected the injected writer to be called"

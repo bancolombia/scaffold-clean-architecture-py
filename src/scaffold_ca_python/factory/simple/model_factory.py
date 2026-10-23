@@ -1,4 +1,4 @@
-"""ModelFactory implementation (T033)."""
+"""ModelFactory implementation."""
 
 from __future__ import annotations
 

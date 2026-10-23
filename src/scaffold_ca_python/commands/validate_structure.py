@@ -1,18 +1,20 @@
-"""validate_structure: AST-based CA layer import checker (T060)."""
+"""validate_structure: AST-based CA layer import checker."""
 
 from __future__ import annotations
 
 from typing import Annotated
 
 import typer
-from rich.console import Console
 from rich.table import Table
 
+from scaffold_ca_python.commands._shared import (
+    console,
+    fail,
+    require_project_root,
+)
 from scaffold_ca_python.core.name_utils import ScaffoldError
-from scaffold_ca_python.core.project_detector import find_project_root
 from scaffold_ca_python.core.structure_validator import StructureValidator
 
-console = Console()
 _validator = StructureValidator()
 
 _GVS_HELP = "Scan src/ for Clean Architecture import violations. Alias: 'vs'."
@@ -20,23 +22,17 @@ _GVS_EPILOG = "Example:\n\n  * scaffold vs\n\n  * scaffold validate-structure\n"
 
 
 def _validate_structure_impl(dry_run: bool) -> None:
-    try:
-        project_root = find_project_root()
-    except ScaffoldError:
-        console.print("[red]Error:[/red] No scaffold-ca-python project found. Run 'scaffold ca' first.")
-        raise typer.Exit(code=1) from None
+    project_root = require_project_root()
 
     try:
         report = _validator.validate(project_root)
     except ScaffoldError as exc:
-        console.print(f"[red]Error:[/red] {exc}")
-        raise typer.Exit(code=1) from None
+        fail(str(exc))
 
     if report.passed:
         console.print(f"[green]✓[/green] Validated [bold]{report.files_scanned}[/bold] file(s) — no violations found.")
         return
 
-    # --- Print violation table ---
     table = Table(
         title=f"[red]✗[/red] {len(report.violations)} violation(s) found",
         show_header=True,

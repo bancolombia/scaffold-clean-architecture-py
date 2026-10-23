@@ -131,6 +131,4 @@ def test_restapi_scripts_param_set(tmp_path: Path) -> None:
 
     _ = builder.persist()
 
-    # Verify scripts param is set
-    scripts_param = builder.get_param("scripts_entry")
-    assert scripts_param is True, "Expected scripts_entry param to be True"
+    assert builder.pending_project_script == "start_server"

@@ -172,7 +172,7 @@ def test_dry_run_with_empty_packages_returns_empty(tmp_path: Path) -> None:
 def test_malformed_toml_raises_on_inject(tmp_path: Path) -> None:
     bad = tmp_path / "pyproject.toml"
     bad.write_text("this is not valid toml ][", encoding="utf-8")
-    with pytest.raises(Exception):
+    with pytest.raises(tomllib.TOMLDecodeError):
         inject_dependencies(tmp_path, ["fastapi>=0.100"])
 
 

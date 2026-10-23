@@ -1,18 +1,47 @@
-"""EntryPointRestApi factory implementation (T015)."""
+"""EntryPointRestApi factory implementation."""
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING, ClassVar
+
+from rich.markup import escape
 
 from scaffold_ca_python.core.project_detector import resolve_tests_root
-from scaffold_ca_python.factory import ModuleFactory
+from scaffold_ca_python.factory.entry_points.base import (
+    EntryPointConflict,
+    EntryPointFactory,
+    EntryPointFlag,
+)
 
 if TYPE_CHECKING:
     from scaffold_ca_python.core.module_builder import ModuleBuilder
 
 
-class EntryPointRestApi(ModuleFactory):
+class EntryPointRestApi(EntryPointFactory):
     """Factory for REST API entry-point type."""
+
+    subdir: ClassVar[str] = "api/v1"
+    supported_flags: ClassVar[frozenset[EntryPointFlag]] = frozenset(
+        {EntryPointFlag.SWAGGER, EntryPointFlag.ENABLE_MCP_CLIENT, EntryPointFlag.ENABLE_KAFKA}
+    )
+    conflicts: ClassVar[tuple[EntryPointConflict, ...]] = (
+        EntryPointConflict(label="mcp_server", subdir="mcp_server"),
+        EntryPointConflict(label="agent", subdir="agent"),
+    )
+
+    def result_notes(self, project_root: Path, pkg: str, type_key: str, *, dry_run: bool) -> list[str]:
+        notes: list[str] = []
+        main_py = project_root / "src" / pkg / "main.py"
+        if dry_run:
+            if main_py.exists():
+                notes.append(f"[dim]Would delete: src/{pkg}/main.py[/dim]")
+            notes.append(f'[dim]Would update {escape("[project.scripts]")}: {pkg} = "{pkg}.server:start_server"[/dim]')
+        else:
+            if main_py.exists():
+                notes.append(f"[green]✓[/green] Deleted src/{pkg}/main.py")
+            notes.append(f'[green]✓[/green] Updated {escape("[project.scripts]")}: {pkg} = "{pkg}.server:start_server"')
+        return notes
 
     def build(self, builder: ModuleBuilder) -> None:
         """Build REST API entry-point files and dependencies.
@@ -129,5 +158,4 @@ class EntryPointRestApi(ModuleFactory):
         for dep in deps:
             builder.add_dependency(dep)
 
-        # Set scripts param to indicate main.py was removed and scripts need updating
-        builder.add_param("scripts_entry", True)
+        builder.set_project_script()

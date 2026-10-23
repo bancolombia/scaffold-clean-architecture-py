@@ -145,6 +145,15 @@ def test_duplicate_github_error_message(project_root: Path) -> None:
     assert "already exists" in result.output
 
 
+def test_duplicate_github_no_force_flag(project_root: Path) -> None:
+    runner.invoke(app, ["gpipe", "--provider", "github"], catch_exceptions=False)
+    result = runner.invoke(app, ["gpipe", "--provider", "github"], catch_exceptions=False)
+    assert result.exit_code == 1
+    assert "ci.yml' already exists at '.github/workflows/ci.yml'" in result.output
+    assert "Hint: Remove the existing file first or choose a different provider." in result.output
+    assert "--force" not in result.output
+
+
 def test_no_project_root_exits_1(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.chdir(tmp_path)
     result = runner.invoke(app, ["gpipe", "--provider", "github"], catch_exceptions=False)
@@ -193,3 +202,40 @@ def test_gpipe_no_args_exits_0() -> None:
 def test_gpipe_no_args_shows_provider_option() -> None:
     result = runner.invoke(app, ["gpipe"])
     assert "--provider" in strip_ansi(result.output)
+
+
+# ---------------------------------------------------------------------------
+# T014: injectable renderer/writer (FR-014)
+# ---------------------------------------------------------------------------
+
+
+def test_generate_pipeline_uses_injected_renderer_and_writer(
+    project_root: Path,
+) -> None:
+    """_generate_pipeline_impl accepts renderer= and writer= kwargs and uses them."""
+    from scaffold_ca_python.commands.generate_pipeline import (  # noqa: PLC0415
+        _generate_pipeline_impl,
+    )
+
+    rendered: list[str] = []
+    written: list[str] = []
+
+    class FakeRenderer:
+        def render(self, template_name: str, context: object) -> str:
+            rendered.append(template_name)
+            return "# fake"
+
+    class FakeWriter:
+        def execute(self, operations: object, *, dry_run: bool) -> list[object]:
+            written.append("called")
+            return []
+
+    _generate_pipeline_impl(
+        "github",
+        dry_run=False,
+        renderer=FakeRenderer(),  # type: ignore[arg-type]
+        writer=FakeWriter(),  # type: ignore[arg-type]
+    )
+
+    assert rendered != [], "Injected renderer was not called"
+    assert written != [], "Injected writer was not called"

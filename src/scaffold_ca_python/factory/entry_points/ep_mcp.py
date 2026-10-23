@@ -2,16 +2,25 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from scaffold_ca_python.core.project_detector import resolve_tests_root
-from scaffold_ca_python.factory import ModuleFactory
+from scaffold_ca_python.factory.entry_points.base import (
+    EntryPointConflict,
+    EntryPointFactory,
+    EntryPointFlag,
+)
 
 if TYPE_CHECKING:
     from scaffold_ca_python.core.module_builder import ModuleBuilder
 
 
-class EntryPointMcp(ModuleFactory):
+class EntryPointMcp(EntryPointFactory):
+    subdir: ClassVar[str] = "mcp_server"
+    supported_flags: ClassVar[frozenset[EntryPointFlag]] = frozenset(
+        {EntryPointFlag.MCP_PRIMITIVES, EntryPointFlag.ENABLE_KAFKA}
+    )
+    conflicts: ClassVar[tuple[EntryPointConflict, ...]] = (EntryPointConflict(label="restapi", subdir="api"),)
     """Factory for MCP entry-point type."""
 
     def build(self, builder: ModuleBuilder) -> None:
@@ -92,7 +101,7 @@ class EntryPointMcp(ModuleFactory):
                 is_test=True,
             )
 
-        # server.py at package root — replaces main.py (Phase 4 / T025)
+        # server.py at package root — replaces main.py
         server_path = project_root / "src" / pkg / "server.py"
         main_py = project_root / "src" / pkg / "main.py"
         builder.add_file(
@@ -111,7 +120,7 @@ class EntryPointMcp(ModuleFactory):
             content='    HOST: str = "0.0.0.0"\n    PORT: int = 8000',
         )
 
-        # app.py composition root (Phase 5 / T031) — no overwrite guard
+        # app.py composition root — no overwrite guard
         app_py_path = project_root / "src" / pkg / "application" / "app.py"
         app_ctx: dict[str, object] = {**ctx_dict, "with_resources": with_resources, "with_prompts": with_prompts}
         builder.add_file(
@@ -133,6 +142,4 @@ class EntryPointMcp(ModuleFactory):
         builder.add_dependency("dependency-injector~=4.49.1")
         builder.add_dependency("pydantic-settings~=2.15.0")
 
-        # Signal to module_builder.persist() to update pyproject.toml scripts
-        builder.add_param("scripts_entry", True)
-        builder.add_param("scripts_entry_fn", "main")
+        builder.set_project_script("main")

@@ -1,29 +1,35 @@
-"""update_project: upgrade dependencies via uv (T075)."""
+"""update_project: upgrade dependencies via uv."""
 
 from __future__ import annotations
 
 import subprocess
+from pathlib import Path
 from typing import Annotated
 
 import typer
-from rich.console import Console
 
-from scaffold_ca_python.core.name_utils import ScaffoldError
-from scaffold_ca_python.core.project_detector import find_project_root
-
-console = Console()
+from scaffold_ca_python.commands._shared import console, require_project_root
 
 _GUP = "Update project dependencies via uv lock --upgrade + uv sync. Alias: 'up'"
 _GUP_EPILOG = "Example:\n\n  * scaffold up --dry-run\n\n  * scaffold update-project --dry-run"
 
 
-def _update_project_impl(dry_run: bool) -> None:
-    # Locate project root
+def _run_uv(cmd: list[str], cwd: Path, failure_message: str) -> None:
+    """Run a uv command, exiting 1 if uv is missing or 2 on a non-zero return code."""
     try:
-        project_root = find_project_root()
-    except ScaffoldError:
-        console.print("[red]Error:[/red] No scaffold-ca-python project found. Run 'scaffold ca' first.")
+        subprocess.run(cmd, check=True, cwd=cwd)
+    except FileNotFoundError:
+        console.print(
+            "[red]Error:[/red] 'uv' is not installed or not on PATH. Install it from https://docs.astral.sh/uv/"
+        )
         raise typer.Exit(code=1) from None
+    except subprocess.CalledProcessError:
+        console.print(f"[red]Error:[/red] {failure_message}")
+        raise typer.Exit(code=2) from None
+
+
+def _update_project_impl(dry_run: bool) -> None:
+    project_root = require_project_root()
 
     lock_cmd = ["uv", "lock", "--upgrade"]
     sync_cmd = ["uv", "sync"]
@@ -34,27 +40,8 @@ def _update_project_impl(dry_run: bool) -> None:
         console.print(f"  {' '.join(sync_cmd)}             (cwd: {project_root})")
         return
 
-    try:
-        subprocess.run(lock_cmd, check=True, cwd=project_root)
-    except FileNotFoundError:
-        console.print(
-            "[red]Error:[/red] 'uv' is not installed or not on PATH. Install it from https://docs.astral.sh/uv/"
-        )
-        raise typer.Exit(code=1) from None
-    except subprocess.CalledProcessError:
-        console.print("[red]Error:[/red] Dependency lock failed. See output above.")
-        raise typer.Exit(code=2) from None
-
-    try:
-        subprocess.run(sync_cmd, check=True, cwd=project_root)
-    except FileNotFoundError:
-        console.print(
-            "[red]Error:[/red] 'uv' is not installed or not on PATH. Install it from https://docs.astral.sh/uv/"
-        )
-        raise typer.Exit(code=1) from None
-    except subprocess.CalledProcessError:
-        console.print("[red]Error:[/red] Sync failed. See output above.")
-        raise typer.Exit(code=2) from None
+    _run_uv(lock_cmd, project_root, "Dependency lock failed. See output above.")
+    _run_uv(sync_cmd, project_root, "Sync failed. See output above.")
 
     console.print("[green]✓[/green] Locked updated dependencies.")
     console.print("[green]✓[/green] Synced virtual environment.")

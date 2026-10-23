@@ -1,4 +1,4 @@
-"""template_renderer: Jinja2 rendering via importlib.resources (T024)."""
+"""template_renderer: Jinja2 rendering via importlib.resources."""
 
 from __future__ import annotations
 
@@ -50,10 +50,6 @@ class TemplateRenderer:
             keep_trailing_newline=True,
         )
 
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
-
     def render(self, template_name: str, context: BaseModel | dict[str, Any]) -> str:
         """Render *template_name* with the fields from *context*.
 
@@ -83,10 +79,6 @@ class TemplateRenderer:
         ctx_dict = self._to_dict(context)
         tmpl = self._env.from_string(source)
         return tmpl.render(**ctx_dict)
-
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
 
     @staticmethod
     def _to_dict(context: BaseModel | dict[str, Any]) -> dict[str, Any]:

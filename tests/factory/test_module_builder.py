@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from scaffold_ca_python.core.module_builder import ModuleBuilder
 from scaffold_ca_python.models.context import ModuleContext, ProjectContext
 from scaffold_ca_python.models.layer import Layer
@@ -277,3 +279,88 @@ def test_pending_properties_return_copies(tmp_path: Path) -> None:
 
     assert builder.pending_dependencies == ["httpx>=0.27"]
     assert builder.pending_group_dependencies == {"test": ["respx>=0.22"]}
+
+
+# ---------------------------------------------------------------------------
+# T012: set_project_script API
+# ---------------------------------------------------------------------------
+
+
+def _write_pyproject_with_scripts(root: Path) -> None:
+    (root / "pyproject.toml").write_text(
+        '[project]\nname = "demo"\nversion = "0.1.0"\ndependencies = []\n\n[project.scripts]\n',
+        encoding="utf-8",
+    )
+
+
+def test_set_project_script_default_sets_start_server(tmp_path: Path) -> None:
+    """set_project_script() sets pending_project_script to 'start_server'."""
+    project = _project_ctx()
+    builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, dry_run=True)
+    assert builder.pending_project_script is None
+    builder.set_project_script()
+    assert builder.pending_project_script == "start_server"
+
+
+def test_set_project_script_custom_value(tmp_path: Path) -> None:
+    """set_project_script('main') sets pending_project_script to 'main'."""
+    project = _project_ctx()
+    builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, dry_run=True)
+    builder.set_project_script("main")
+    assert builder.pending_project_script == "main"
+
+
+def test_without_set_project_script_persist_does_not_touch_scripts(tmp_path: Path) -> None:
+    """Without a set_project_script call, [project.scripts] is not modified."""
+
+    _write_pyproject_with_scripts(tmp_path)
+    original = (tmp_path / "pyproject.toml").read_bytes()
+    project = _project_ctx()
+    builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, dry_run=False)
+    builder.persist()
+    assert (tmp_path / "pyproject.toml").read_bytes() == original
+
+
+def test_set_project_script_persist_calls_update(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """persist() calls update_project_scripts when set_project_script was called."""
+    import scaffold_ca_python.core.module_builder as mb  # noqa: PLC0415
+
+    calls: list[tuple[object, ...]] = []
+
+    def _fake_update(root: Path, ctx: object, entry_fn: str = "start_server") -> bool:
+        calls.append((root, ctx, entry_fn))
+        return True
+
+    monkeypatch.setattr(mb, "update_project_scripts", _fake_update)
+    _write_pyproject_with_scripts(tmp_path)
+    project = _project_ctx()
+    builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, dry_run=False)
+    builder.set_project_script("main")
+    builder.persist()
+    assert calls != [], "update_project_scripts was not called"
+    assert calls[0][2] == "main"
+
+
+def test_set_project_script_dry_run_calls_dry_run_update(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """In dry-run, persist() calls dry_run_scripts_update instead."""
+    import scaffold_ca_python.core.module_builder as mb  # noqa: PLC0415
+
+    calls: list[tuple[object, ...]] = []
+
+    def _fake_dry(root: Path, ctx: object, entry_fn: str = "start_server") -> bool:
+        calls.append((root, ctx, entry_fn))
+        return True
+
+    monkeypatch.setattr(mb, "dry_run_scripts_update", _fake_dry)
+    _write_pyproject_with_scripts(tmp_path)
+    project = _project_ctx()
+    builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, dry_run=True)
+    builder.set_project_script()
+    builder.persist()
+    assert calls != [], "dry_run_scripts_update was not called"

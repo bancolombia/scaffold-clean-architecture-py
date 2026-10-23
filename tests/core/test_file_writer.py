@@ -110,7 +110,7 @@ def test_no_partial_files_on_failure(tmp_path: Path) -> None:
     bad = blocker_file / "nested.py"  # parent is a file → mkdir fails
 
     writer = FileWriter()
-    with pytest.raises(Exception):
+    with pytest.raises(OSError):
         writer.execute([_create_op(good), _create_op(bad)], dry_run=False)
 
     # The good file should NOT be left behind (atomicity)
@@ -275,3 +275,38 @@ def test_append_dry_run_returns_path_without_writing(tmp_path: Path) -> None:
 
     assert target in result
     assert target.read_text() == original
+
+
+# ---------------------------------------------------------------------------
+# T038: delete ordering and mutation order
+# ---------------------------------------------------------------------------
+
+
+def test_deletes_happen_after_creates(tmp_path: Path) -> None:
+    """Creates are committed before deletes, so a create can target the same name as a delete."""
+    to_delete = tmp_path / "to_delete.py"
+    to_create = tmp_path / "new.py"
+    to_delete.write_text("# old")
+
+    writer = FileWriter()
+    writer.execute([_delete_op(to_delete), _create_op(to_create)], dry_run=False)
+
+    assert to_create.exists()
+    assert not to_delete.exists()
+
+
+def test_inserts_applied_in_declaration_order(tmp_path: Path) -> None:
+    """InsertAfter operations are applied in declaration order."""
+    target = tmp_path / "code.py"
+    target.write_text("# section_a\n# section_b\n")
+
+    op1 = InsertAfter(path=target, anchor="# section_a", content="# after_a")
+    op2 = InsertAfter(path=target, anchor="# section_b", content="# after_b")
+
+    writer = FileWriter()
+    writer.execute([op1, op2], dry_run=False)
+
+    content = target.read_text()
+    assert "# after_a" in content
+    assert "# after_b" in content
+    assert content.index("# after_a") < content.index("# after_b")

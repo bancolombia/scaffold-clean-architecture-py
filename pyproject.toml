@@ -75,7 +75,13 @@ line-length = 120
 target-version = "py313"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "ANN"]
+select = ["E", "F", "I", "UP", "ANN", "B", "SIM", "C90"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+# Temporary: removed by the end of feature 022.
+[tool.ruff.lint.per-file-ignores]
 
 [tool.mypy]
 strict = true

@@ -1,4 +1,4 @@
-"""DrivenAdapterGeneric factory implementation (T029)."""
+"""DrivenAdapterGeneric factory implementation."""
 
 from __future__ import annotations
 
@@ -6,13 +6,13 @@ from typing import TYPE_CHECKING
 
 from scaffold_ca_python.core.name_utils import to_snake_case
 from scaffold_ca_python.core.project_detector import resolve_tests_root
-from scaffold_ca_python.factory import ModuleFactory
+from scaffold_ca_python.factory.driven_adapters.base import DrivenAdapterFactory
 
 if TYPE_CHECKING:
     from scaffold_ca_python.core.module_builder import ModuleBuilder
 
 
-class DrivenAdapterGeneric(ModuleFactory):
+class DrivenAdapterGeneric(DrivenAdapterFactory):
     """Factory for Generic driven-adapter type."""
 
     def build(self, builder: ModuleBuilder) -> None:

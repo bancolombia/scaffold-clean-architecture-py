@@ -1,17 +1,26 @@
-"""EntryPointGeneric factory implementation (T021)."""
+"""EntryPointGeneric factory implementation."""
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from scaffold_ca_python.core.project_detector import resolve_tests_root
-from scaffold_ca_python.factory import ModuleFactory
+from scaffold_ca_python.factory.entry_points.base import (
+    EntryPointConflict,
+    EntryPointFactory,
+    EntryPointFlag,
+)
 
 if TYPE_CHECKING:
     from scaffold_ca_python.core.module_builder import ModuleBuilder
 
 
-class EntryPointGeneric(ModuleFactory):
+class EntryPointGeneric(EntryPointFactory):
+    subdir: ClassVar[str] = "generic"
+    supported_flags: ClassVar[frozenset[EntryPointFlag]] = frozenset(
+        {EntryPointFlag.ENABLE_MCP_CLIENT, EntryPointFlag.ENABLE_KAFKA}
+    )
+    conflicts: ClassVar[tuple[EntryPointConflict, ...]] = ()
     """Factory for Generic entry-point type."""
 
     def build(self, builder: ModuleBuilder) -> None:
