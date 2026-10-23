@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/bancolombia/scaffold-clean-architecture-py/compare/v0.2.0...v0.2.1) (2026-10-23)
+
+
+### Bug Fixes
+
+* **refactor:** simplify scaffolder internals and improve extensibility ([8cb0a96](https://github.com/bancolombia/scaffold-clean-architecture-py/commit/8cb0a967d8e00dc5f995e8178d537a3fe5bb7865))
+
 ## [0.2.0](https://github.com/bancolombia/scaffold-clean-architecture-py/compare/v0.1.4...v0.2.0) (2026-10-19)
 
 
