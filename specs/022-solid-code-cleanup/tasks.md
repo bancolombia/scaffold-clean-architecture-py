@@ -469,18 +469,18 @@ The suite must stay green (baseline: 739 passed, 1 skipped, 96.50%).
 
 ## Phase 9: Polish & Cross-Cutting Concerns
 
-- [ ] T062 [P] Update the extension docs in `README.md`, if there is a section about adding types, to point to `factory/*/__init__.py` and `specs/022-solid-code-cleanup/contracts/factory-extension.md`.
-- [ ] T063 [P] Create the follow-up spec directories required by Constitution v2.1.0 ("Pre-existing violations" clause, point 3), each with an initial `spec.md` describing the debt measured in the `plan.md` Complexity Tracking:
+- [X] T062 [P] Update the extension docs in `README.md`, if there is a section about adding types, to point to `factory/*/__init__.py` and `specs/022-solid-code-cleanup/contracts/factory-extension.md`.
+- [X] T063 [P] Create the follow-up spec directories required by Constitution v2.1.0 ("Pre-existing violations" clause, point 3), each with an initial `spec.md` describing the debt measured in the `plan.md` Complexity Tracking:
   - `specs/023-error-hints/` (38 messages without `Hint:`);
   - `specs/024-typed-template-contexts/` (`dict` template contexts; includes the typed `build(builder, options)` idea from research R-05 and the shared `render_into` helper from R-16).
-- [ ] T064 Run the full validation in `specs/022-solid-code-cleanup/quickstart.md`:
+- [X] T064 Run the full validation in `specs/022-solid-code-cleanup/quickstart.md`:
   - **Step 1**: regenerate the trees in `/tmp/new022` and `/tmp/new022-restapi` and `diff` them against T001. An empty diff is expected: C-1 does not apply to unedited projects, and C-2/C-3 only affect console output.
   - **Templates (FR-004)**: `git diff --stat main -- src/scaffold_ca_python/templates` shows only the 2 new files from T047 (`package_init.py.jinja2` and `empty.jinja2`), with no changes to existing templates.
   - **Steps 2 to 5**: full suite, `ruff`, `mypy`, the measurable criteria, the allowed changes and extensibility.
 
   Record the results (test count and coverage) in the PR description.
-- [ ] T065 Run `uv run pytest tests/commands/test_performance.py` and compare with `main` (no regression above 10%).
-- [ ] T066 Mark every task as completed and confirm that `.specify/feature.json` points to `specs/022-solid-code-cleanup`.
+- [X] T065 Run `uv run pytest tests/commands/test_performance.py` and compare with `main` (no regression above 10%).
+- [X] T066 Mark every task as completed and confirm that `.specify/feature.json` points to `specs/022-solid-code-cleanup`.
 
 ---
 
