@@ -101,7 +101,7 @@ class EntryPointMcp(EntryPointFactory):
                 is_test=True,
             )
 
-        # server.py at package root — replaces main.py (Phase 4 / T025)
+        # server.py at package root — replaces main.py
         server_path = project_root / "src" / pkg / "server.py"
         main_py = project_root / "src" / pkg / "main.py"
         builder.add_file(
@@ -120,7 +120,7 @@ class EntryPointMcp(EntryPointFactory):
             content='    HOST: str = "0.0.0.0"\n    PORT: int = 8000',
         )
 
-        # app.py composition root (Phase 5 / T031) — no overwrite guard
+        # app.py composition root — no overwrite guard
         app_py_path = project_root / "src" / pkg / "application" / "app.py"
         app_ctx: dict[str, object] = {**ctx_dict, "with_resources": with_resources, "with_prompts": with_prompts}
         builder.add_file(

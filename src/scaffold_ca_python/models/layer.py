@@ -1,4 +1,4 @@
-"""Layer enum and FORBIDDEN_IMPORTS dependency mapping (T013)."""
+"""Layer enum and FORBIDDEN_IMPORTS dependency mapping."""
 
 from enum import StrEnum
 

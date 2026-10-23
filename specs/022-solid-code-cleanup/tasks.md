@@ -400,24 +400,24 @@ The suite must stay green (baseline: 739 passed, 1 skipped, 96.50%).
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T053 [P] [US5] Create `tests/test_source_hygiene.py`. It must fail today. It walks `src/scaffold_ca_python/**/*.py`, excluding `templates/`, and asserts:
+- [X] T053 [P] [US5] Create `tests/test_source_hygiene.py`. It must fail today. It walks `src/scaffold_ca_python/**/*.py`, excluding `templates/`, and asserts:
   - no matches for the regex `\b(T0\d{2}|FR-\d{3}|US-?\d|R-\d{2})\b|Phase \d`;
   - no lines starting with `# ---`.
 
 ### Implementation for User Story 5
 
-- [ ] T054 [P] [US5] Clean up `src/scaffold_ca_python/commands/*.py`:
+- [X] T054 [P] [US5] Clean up `src/scaffold_ca_python/commands/*.py`:
   - remove the `(Txxx)` suffix from module docstrings;
   - remove comments that repeat the next line (`# --- Validate name ---`, `# Get factory class and instantiate`, `# Invoke factory…`, `# Persist all operations`);
   - remove banners;
   - remove the comment `# Both names route to the same handler…` if it adds nothing.
 
   The docstrings of the `_impl` functions and of the commands become one line stating what and why.
-- [ ] T055 [P] [US5] Clean up `src/scaffold_ca_python/core/*.py` and `src/scaffold_ca_python/models/*.py`:
+- [X] T055 [P] [US5] Clean up `src/scaffold_ca_python/core/*.py` and `src/scaffold_ca_python/models/*.py`:
   - convert the NumPy-style docstrings (underlined `Parameters`/`Returns`/`Raises`) in `module_builder.py`, `file_writer.py`, `project_detector.py` and `template_renderer.py` to Google style, with `Args:`/`Returns:`/`Raises:` only when they add something the signature doesn't say;
   - in `mcp_tool_spec.py`, remove `Args:` entries that just repeat the parameter name;
   - remove `(R-10)`, `(T0xx)`, banners and comments that merely paraphrase the code (in `file_writer.py`: `# File exists - normalize…`, `# Strip all trailing newlines…`).
-- [ ] T056 [P] [US5] Clean up `src/scaffold_ca_python/factory/**/*.py`:
+- [X] T056 [P] [US5] Clean up `src/scaffold_ca_python/factory/**/*.py`:
   - `build()` docstrings become one line, with no lists of files or dependency versions;
   - remove `# Phase 4 / T025`, `# Phase 5 / T031`, `# Always-generated files`, `# Dependencies` and similar;
   - keep comments that explain why, such as the `mcp~=1.30.0` cap.

@@ -1,4 +1,4 @@
-"""delete_module: safely remove a previously generated module and its test mirror (T039)."""
+"""delete_module: safely remove a previously generated module and its test mirror."""
 
 from __future__ import annotations
 

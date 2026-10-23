@@ -16,7 +16,7 @@ _SCAFFOLD_SECTION = "scaffold-ca-python"
 def find_project_root(cwd: Path | None = None) -> Path:
     """Walk upward from *cwd* to locate the project root.
 
-    Strategy (R-10):
+    Strategy:
     1. Look for a ``pyproject.toml`` that contains ``[tool.scaffold-ca-python]``.
     2. If not found, fall back to a directory whose children include the three
        canonical CA layout directories (``domain/``, ``infrastructure/``,
@@ -30,7 +30,7 @@ def find_project_root(cwd: Path | None = None) -> Path:
     """
     current = (cwd or Path.cwd()).resolve()
 
-    # --- Strategy 1: pyproject.toml with [tool.scaffold-ca-python] ----------
+    # Strategy 1: pyproject.toml with [tool.scaffold-ca-python]
     candidate: Path | None = None
     for directory in _iter_parents(current):
         pyproject = directory / "pyproject.toml"
@@ -47,7 +47,7 @@ def find_project_root(cwd: Path | None = None) -> Path:
     if candidate is not None:
         return candidate
 
-    # --- Strategy 2: canonical CA directory layout --------------------------
+    # Strategy 2: canonical CA directory layout
     for directory in _iter_parents(current):
         children = {p.name for p in directory.iterdir() if p.is_dir()}
         if _CA_MARKERS.issubset(children):
@@ -85,11 +85,6 @@ def resolve_tests_root(project_root: Path) -> Path:
     if root_tests.exists():
         return root_tests
     return src_tests
-
-
-# ---------------------------------------------------------------------------
-# Internal helpers
-# ---------------------------------------------------------------------------
 
 
 def _iter_parents(start: Path) -> Iterator[Path]:

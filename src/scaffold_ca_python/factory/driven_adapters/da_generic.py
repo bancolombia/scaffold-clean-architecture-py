@@ -1,4 +1,4 @@
-"""DrivenAdapterGeneric factory implementation (T029)."""
+"""DrivenAdapterGeneric factory implementation."""
 
 from __future__ import annotations
 

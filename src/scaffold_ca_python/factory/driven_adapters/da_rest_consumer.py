@@ -1,4 +1,4 @@
-"""DrivenAdapterRestConsumer factory implementation (T025)."""
+"""DrivenAdapterRestConsumer factory implementation."""
 
 from __future__ import annotations
 

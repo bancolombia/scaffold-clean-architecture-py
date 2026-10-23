@@ -47,10 +47,6 @@ class FileWriter:
         """Delete the file at *path*."""
         self._commit([DeleteFile(path=path)])
 
-    # ------------------------------------------------------------------
-    # Private helpers
-    # ------------------------------------------------------------------
-
     def _dry_run(self, operations: list[FileOperation]) -> list[Path]:
         result: list[Path] = []
         for op in operations:

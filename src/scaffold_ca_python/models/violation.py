@@ -1,4 +1,4 @@
-"""Violation and ValidationReport Pydantic v2 models (T016)."""
+"""Violation and ValidationReport Pydantic v2 models."""
 
 from pathlib import Path
 

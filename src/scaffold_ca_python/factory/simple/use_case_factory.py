@@ -1,4 +1,4 @@
-"""UseCaseFactory implementation (T035)."""
+"""UseCaseFactory implementation."""
 
 from __future__ import annotations
 

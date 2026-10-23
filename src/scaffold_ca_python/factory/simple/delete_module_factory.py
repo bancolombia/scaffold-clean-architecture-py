@@ -1,4 +1,4 @@
-"""DeleteModuleFactory implementation (T039)."""
+"""DeleteModuleFactory implementation."""
 
 from __future__ import annotations
 
