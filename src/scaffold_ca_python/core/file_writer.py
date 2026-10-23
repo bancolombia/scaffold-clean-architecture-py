@@ -1,11 +1,10 @@
-"""file_writer: atomic file creation and deletion using tempdir staging (T023)."""
+"""file_writer: atomic file creation and deletion using tempdir staging."""
 
 from __future__ import annotations
 
 import os
 import tempfile
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from scaffold_ca_python.models.file_operation import (
     AppendToFile,
@@ -15,9 +14,6 @@ from scaffold_ca_python.models.file_operation import (
     GeneratedFile,
     InsertAfter,
 )
-
-if TYPE_CHECKING:
-    pass
 
 
 class FileWriter:
@@ -38,22 +34,7 @@ class FileWriter:
         *,
         dry_run: bool = False,
     ) -> list[Path]:
-        """Execute *operations*.
-
-        Parameters
-        ----------
-        operations:
-            Sequence of :class:`CreateFile` or :class:`DeleteFile` operations.
-        dry_run:
-            When ``True`` no disk writes occur; the method returns the list of
-            paths that *would* be affected.
-
-        Returns
-        -------
-        list[Path]
-            In dry-run mode: the paths that would be written/deleted.
-            In real mode: the paths that were successfully written.
-        """
+        """Execute *operations*, returning affected paths."""
         if dry_run:
             return self._dry_run(operations)
         return self._commit(operations)
@@ -79,57 +60,53 @@ class FileWriter:
                 result.append(op.path)
         return result
 
-    def _commit(self, operations: list[FileOperation]) -> list[Path]:
-        """Stage all creates in a temp dir, then commit atomically."""
-        creates: list[CreateFile] = []
-        deletes: list[DeleteFile] = []
-        for op in operations:
-            if isinstance(op, CreateFile):
-                creates.append(op)
-            elif isinstance(op, DeleteFile):
-                deletes.append(op)
+    def _partition(self, operations: list[FileOperation]) -> tuple[list[CreateFile], list[DeleteFile]]:
+        creates = [op for op in operations if isinstance(op, CreateFile)]
+        deletes = [op for op in operations if isinstance(op, DeleteFile)]
+        return creates, deletes
 
-        committed: list[Path] = []
+    def _stage(self, creates: list[CreateFile], tmpdir: str) -> list[tuple[Path, Path]]:
+        staged: list[tuple[Path, Path]] = []
+        for i, op in enumerate(creates):
+            tmp_file = Path(tmpdir) / f"staged_{i}"
+            tmp_file.write_text(op.file.content, encoding="utf-8")
+            staged.append((tmp_file, op.file.path))
+        return staged
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Stage all created files — any error here rolls back automatically
-            # because the TemporaryDirectory is discarded on __exit__.
-            staged: list[tuple[Path, Path]] = []
-            for i, op in enumerate(creates):
-                tmp_file = Path(tmpdir) / f"staged_{i}"
-                tmp_file.write_text(op.file.content, encoding="utf-8")
-                staged.append((tmp_file, op.file.path))
+    def _preflight(self, creates: list[CreateFile], staged: list[tuple[Path, Path]]) -> None:
+        for op, (_, target) in zip(creates, staged, strict=True):
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if target.exists() and not op.file.overwrite:
+                raise FileExistsError(
+                    f"File already exists: {target}. Use overwrite=True on GeneratedFile to replace it."
+                )
 
-            # Pre-flight: create ALL parent directories before any os.replace().
-            # If any mkdir fails, the exception propagates here; the TemporaryDirectory
-            # is cleaned up on __exit__ and no target files are committed yet.
-            for op, (_, target) in zip(creates, staged, strict=True):
-                target.parent.mkdir(parents=True, exist_ok=True)
-                if target.exists() and not op.file.overwrite:
-                    raise FileExistsError(
-                        f"File already exists: {target}. Use overwrite=True on GeneratedFile to replace it."
-                    )
-
-            # All parents exist — commit via os.replace (atomic on POSIX)
-            for tmp_file, target in staged:
-                os.replace(tmp_file, target)
-                committed.append(target)
-
-        # Process deletes after all creates are committed
+    def _apply_deletes(self, deletes: list[DeleteFile]) -> None:
         for op in deletes:
             if op.path.exists():
                 op.path.unlink()
 
-        # Process insert_after mutations in declaration order
-        inserts: list[InsertAfter] = [op for op in operations if isinstance(op, InsertAfter)]
-        for op in inserts:
-            self._apply_insert_after(op)
+    def _apply_mutations(self, operations: list[FileOperation]) -> None:
+        for op in operations:
+            if isinstance(op, InsertAfter):
+                self._apply_insert_after(op)
+            elif isinstance(op, AppendToFile):
+                self._apply_append_to_file(op)
 
-        # Process append_to_file mutations in declaration order
-        appends: list[AppendToFile] = [op for op in operations if isinstance(op, AppendToFile)]
-        for op in appends:
-            self._apply_append_to_file(op)
+    def _commit(self, operations: list[FileOperation]) -> list[Path]:
+        """Stage all creates in a temp dir, then commit atomically."""
+        creates, deletes = self._partition(operations)
+        committed: list[Path] = []
 
+        with tempfile.TemporaryDirectory() as tmpdir:
+            staged = self._stage(creates, tmpdir)
+            self._preflight(creates, staged)
+            for tmp_file, target in staged:
+                os.replace(tmp_file, target)
+                committed.append(target)
+
+        self._apply_deletes(deletes)
+        self._apply_mutations(operations)
         return committed
 
     @staticmethod
@@ -156,13 +133,10 @@ class FileWriter:
         initial contents (leading blank lines stripped).
         """
         if op.path.exists():
-            # File exists - normalize trailing newlines and append
             original = op.path.read_text(encoding="utf-8")
-            # Strip all trailing newlines, then ensure exactly one
             normalized = original.rstrip("\n") + "\n"
             op.path.write_text(normalized + op.content, encoding="utf-8")
         else:
-            # File doesn't exist - create it with content (strip leading blank lines)
             op.path.parent.mkdir(parents=True, exist_ok=True)
             content = op.content.lstrip("\n")
             op.path.write_text(content, encoding="utf-8")

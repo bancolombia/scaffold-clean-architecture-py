@@ -1,17 +1,14 @@
-"""StructureValidator: AST-based Clean Architecture import checker (T059)."""
+"""StructureValidator: AST-based Clean Architecture import checker."""
 
 from __future__ import annotations
 
 import ast
+import warnings
 from pathlib import Path
 
 from scaffold_ca_python.core.name_utils import ScaffoldError
 from scaffold_ca_python.models.layer import FORBIDDEN_IMPORTS, Layer
 from scaffold_ca_python.models.violation import ValidationReport, Violation
-
-# ---------------------------------------------------------------------------
-# Path → Layer mapping (filesystem directory names use underscores)
-# ---------------------------------------------------------------------------
 
 _PATH_SEGMENTS_TO_LAYER: list[tuple[tuple[str, ...], Layer]] = [
     (("domain", "model"), Layer.DOMAIN_MODEL),
@@ -46,11 +43,6 @@ def _make_hint(source: Layer, target: Layer) -> str:
     return f"{source} must not import from {target}. Pass dependencies via constructor injection instead."
 
 
-# ---------------------------------------------------------------------------
-# Validator
-# ---------------------------------------------------------------------------
-
-
 class StructureValidator:
     """Walks ``src/`` and reports Clean Architecture import violations."""
 
@@ -70,73 +62,88 @@ class StructureValidator:
         if not src.exists():
             raise ScaffoldError("Could not locate src/ under project root.")
 
-        py_files = sorted(src.rglob("*.py"))
         violations: list[Violation] = []
         files_scanned = 0
 
-        for py_file in py_files:
-            # Determine source layer from the file path: skip files outside known layers.
-            try:
-                rel = py_file.relative_to(src)
-            except ValueError:
+        for py_file in sorted(src.rglob("*.py")):
+            classified = self._classify(py_file, src)
+            if classified is None:
                 continue
-
-            parts = rel.parts
-            # parts[0] = python_package, parts[1:] = layer path
-            if len(parts) < 2:
-                continue
-
-            python_package = parts[0]
-            source_layer = _layer_from_path_parts(parts[1:])
-            if source_layer is None:
-                continue  # file outside any registered layer directory
-
+            python_package, source_layer = classified
             files_scanned += 1
-            forbidden = FORBIDDEN_IMPORTS.get(source_layer, [])
 
-            try:
-                content = py_file.read_text(encoding="utf-8")
-                tree = ast.parse(content, filename=str(py_file))
-            except SyntaxError:
-                # Non-fatal — warn and continue scanning other files.
-                import warnings
-
-                warnings.warn(f"could not parse '{py_file}' — skipping", stacklevel=2)
+            tree = self._parse(py_file)
+            if tree is None:
                 continue
 
-            for node in ast.walk(tree):
-                if isinstance(node, ast.ImportFrom) and node.module:
-                    target = _layer_from_module(node.module, python_package)
-                    if target is not None and target in forbidden:
-                        names = ", ".join(a.name for a in node.names)
-                        violations.append(
-                            Violation(
-                                source_file=py_file,
-                                line_number=node.lineno,
-                                import_statement=f"from {node.module} import {names}",
-                                source_layer=source_layer,
-                                target_layer=target,
-                                resolution_hint=_make_hint(source_layer, target),
-                            )
-                        )
-
-                elif isinstance(node, ast.Import):
-                    for alias in node.names:
-                        target = _layer_from_module(alias.name, python_package)
-                        if target is not None and target in forbidden:
-                            violations.append(
-                                Violation(
-                                    source_file=py_file,
-                                    line_number=node.lineno,
-                                    import_statement=f"import {alias.name}",
-                                    source_layer=source_layer,
-                                    target_layer=target,
-                                    resolution_hint=_make_hint(source_layer, target),
-                                )
-                            )
+            violations.extend(self._violations_in(tree, py_file, python_package, source_layer))
 
         return ValidationReport(
             project_root=project_root,
             files_scanned=files_scanned,
             violations=violations,
         )
+
+    @staticmethod
+    def _classify(py_file: Path, src: Path) -> tuple[str, Layer] | None:
+        """Return (python_package, source_layer) if the file is in a known layer, else None."""
+        try:
+            rel = py_file.relative_to(src)
+        except ValueError:
+            return None
+        parts = rel.parts
+        if len(parts) < 2:
+            return None
+        python_package = parts[0]
+        source_layer = _layer_from_path_parts(parts[1:])
+        if source_layer is None:
+            return None
+        return python_package, source_layer
+
+    @staticmethod
+    def _parse(py_file: Path) -> ast.Module | None:
+        """Parse *py_file* and return the AST, or None on SyntaxError (with a warning)."""
+        try:
+            content = py_file.read_text(encoding="utf-8")
+            return ast.parse(content, filename=str(py_file))
+        except SyntaxError:
+            warnings.warn(f"could not parse '{py_file}' — skipping", stacklevel=2)
+            return None
+
+    @staticmethod
+    def _violations_in(tree: ast.Module, py_file: Path, python_package: str, source_layer: Layer) -> list[Violation]:
+        """Return all CA import violations found in *tree*."""
+        forbidden = FORBIDDEN_IMPORTS.get(source_layer, [])
+        violations: list[Violation] = []
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and node.module:
+                target = _layer_from_module(node.module, python_package)
+                if target is not None and target in forbidden:
+                    names = ", ".join(a.name for a in node.names)
+                    violations.append(
+                        Violation(
+                            source_file=py_file,
+                            line_number=node.lineno,
+                            import_statement=f"from {node.module} import {names}",
+                            source_layer=source_layer,
+                            target_layer=target,
+                            resolution_hint=_make_hint(source_layer, target),
+                        )
+                    )
+            elif isinstance(node, ast.Import):
+                for alias in node.names:
+                    target = _layer_from_module(alias.name, python_package)
+                    if target is not None and target in forbidden:
+                        violations.append(
+                            Violation(
+                                source_file=py_file,
+                                line_number=node.lineno,
+                                import_statement=f"import {alias.name}",
+                                source_layer=source_layer,
+                                target_layer=target,
+                                resolution_hint=_make_hint(source_layer, target),
+                            )
+                        )
+
+        return violations

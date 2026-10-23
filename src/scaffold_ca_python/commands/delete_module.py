@@ -6,17 +6,15 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
-from rich.console import Console
 
+from scaffold_ca_python.commands._shared import console, require_project_root, validate_name_or_exit
 from scaffold_ca_python.core.module_builder import ModuleBuilder
 from scaffold_ca_python.core.module_locator import find_module_targets
-from scaffold_ca_python.core.name_utils import ScaffoldError, to_snake_case, validate_module_name
-from scaffold_ca_python.core.project_detector import find_project_root, load_project_context
+from scaffold_ca_python.core.name_utils import to_snake_case, validate_module_name
+from scaffold_ca_python.core.project_detector import load_project_context
 from scaffold_ca_python.factory.simple.delete_module_factory import DeleteModuleFactory
 from scaffold_ca_python.models.context import ModuleContext
 from scaffold_ca_python.models.layer import Layer
-
-console = Console()
 
 _DM_HELP = "Delete a previously generated module and its test mirror. Alias 'dm'."
 _DM_EPILOG = "Examples:\n\n  * scaffold dm --name order\n\n  * scaffold delete-module --name my_adapter\n\n"
@@ -30,20 +28,8 @@ def _display(path: Path, root: Path) -> Path:
 
 
 def _delete_module_impl(name: str, confirm: bool, dry_run: bool) -> None:
-    # Validate name
-    try:
-        validate_module_name(name)
-    except ScaffoldError as exc:
-        console.print(f"[red]Error:[/red] {exc}")
-        raise typer.Exit(code=1) from None
-
-    # Locate project root
-    try:
-        project_root = find_project_root()
-    except ScaffoldError:
-        console.print("[red]Error:[/red] No scaffold-ca-python project found. Run 'scaffold ca' first.")
-        raise typer.Exit(code=1) from None
-
+    validate_name_or_exit(name, validate_module_name)
+    project_root = require_project_root()
     project_ctx = load_project_context(project_root)
 
     # Create a placeholder ModuleContext for the factory (layer doesn't matter for delete)

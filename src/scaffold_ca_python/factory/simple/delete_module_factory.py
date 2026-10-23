@@ -70,16 +70,15 @@ class DeleteModuleFactory(ModuleFactory):
             if src_rel.exists():
                 candidates.append((src_rel, test_rel if test_rel.exists() else None))
 
-        # Delete all found modules
         if not builder.dry_run:
             for src_path, test_path in candidates:
-                if src_path.is_file():
-                    src_path.unlink()
-                elif src_path.is_dir():
-                    shutil.rmtree(src_path)
-
+                self._delete_path(src_path)
                 if test_path:
-                    if test_path.is_file():
-                        test_path.unlink()
-                    elif test_path.is_dir():
-                        shutil.rmtree(test_path)
+                    self._delete_path(test_path)
+
+    @staticmethod
+    def _delete_path(path: Path) -> None:
+        if path.is_file():
+            path.unlink()
+        elif path.is_dir():
+            shutil.rmtree(path)

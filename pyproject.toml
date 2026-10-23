@@ -82,9 +82,6 @@ max-complexity = 10
 
 # Temporary: removed by the end of feature 022.
 [tool.ruff.lint.per-file-ignores]
-"src/scaffold_ca_python/core/file_writer.py" = ["C901"]
-"src/scaffold_ca_python/core/structure_validator.py" = ["C901"]
-"src/scaffold_ca_python/factory/simple/delete_module_factory.py" = ["C901"]
 
 [tool.mypy]
 strict = true

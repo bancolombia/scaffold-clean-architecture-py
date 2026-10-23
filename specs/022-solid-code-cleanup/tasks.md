@@ -372,7 +372,7 @@ The suite must stay green (baseline: 739 passed, 1 skipped, 96.50%).
   - use `require_project_root(not_found_message=None)` to keep the current detailed message;
   - make `generate_entry_point.py` delegate to `add_mcp_tool` only when `options.add_tool` is set;
   - remove the C901 `per-file-ignores` for `generate_entry_point.py`.
-- [ ] T050 [P] [US4] Split `FileWriter._commit` in `src/scaffold_ca_python/core/file_writer.py` into:
+- [X] T050 [P] [US4] Split `FileWriter._commit` in `src/scaffold_ca_python/core/file_writer.py` into:
   - `_partition(operations)`
   - `_stage(creates, tmpdir)`
   - `_preflight(creates, staged)`
@@ -380,13 +380,13 @@ The suite must stay green (baseline: 739 passed, 1 skipped, 96.50%).
   - `_apply_mutations(operations)` (inserts and appends, in order)
 
   Also remove the empty `if TYPE_CHECKING: pass` and its import, and remove its C901 `per-file-ignores`. T038 must stay green.
-- [ ] T051 [P] [US4] Split `StructureValidator.validate` in `src/scaffold_ca_python/core/structure_validator.py` into:
+- [X] T051 [P] [US4] Split `StructureValidator.validate` in `src/scaffold_ca_python/core/structure_validator.py` into:
   - `_classify(py_file, src) -> tuple[str, Layer] | None`
   - `_parse(py_file) -> ast.Module | None`, with the warning and a module-level `import warnings`
   - `_violations_in(tree, py_file, python_package, source_layer) -> list[Violation]`
 
   Remove its C901 `per-file-ignores`. `tests/core/test_structure_validator.py` must stay green.
-- [ ] T052 [US4] Check that `pyproject.toml` no longer has any C901 `per-file-ignores` and that `uv run ruff check src/ tests/` passes (SC-002). With `grep`, check that `src/scaffold_ca_python/commands/` has no `Tree(`, no `typer.Option("--dry-run` and no `find_project_root()` outside `_shared.py` (SC-004, FR-012).
+- [X] T052 [US4] Check that `pyproject.toml` no longer has any C901 `per-file-ignores` and that `uv run ruff check src/ tests/` passes (SC-002). With `grep`, check that `src/scaffold_ca_python/commands/` has no `Tree(`, no `typer.Option("--dry-run` and no `find_project_root()` outside `_shared.py` (SC-004, FR-012).
 
 **Checkpoint**: US4 is complete, with complexity ≤ 10 across `src/`.
 

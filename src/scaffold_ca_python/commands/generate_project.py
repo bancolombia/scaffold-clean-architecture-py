@@ -8,7 +8,7 @@ from typing import Annotated
 
 import typer
 
-from scaffold_ca_python.commands._shared import console, fail
+from scaffold_ca_python.commands._shared import console, fail, print_dry_run_tree
 from scaffold_ca_python.core.file_writer import FileWriter
 from scaffold_ca_python.core.name_utils import ScaffoldError, to_snake_case, validate_name
 from scaffold_ca_python.core.template_renderer import TemplateRenderer
@@ -107,15 +107,7 @@ def _generate_project_impl(
     files = _collect_files(name, python_pkg, target_dir, _renderer)
 
     if dry_run:
-        from rich.tree import Tree
-
-        tree = Tree(f"[bold]{python_pkg}/[/bold] (dry run)")
-        for path, _ in sorted(files, key=lambda t: t[0]):
-            try:
-                tree.add(str(path.relative_to(target_dir)))
-            except ValueError:
-                tree.add(str(path))
-        console.print(tree)
+        print_dry_run_tree(f"{python_pkg}/", [p for p, _ in files], target_dir)
         return
 
     for path, content in files:
