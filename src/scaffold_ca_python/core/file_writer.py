@@ -7,7 +7,14 @@ import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from scaffold_ca_python.models.file_operation import AppendToFile, CreateFile, DeleteFile, FileOperation, InsertAfter
+from scaffold_ca_python.models.file_operation import (
+    AppendToFile,
+    CreateFile,
+    DeleteFile,
+    FileOperation,
+    GeneratedFile,
+    InsertAfter,
+)
 
 if TYPE_CHECKING:
     pass
@@ -50,6 +57,14 @@ class FileWriter:
         if dry_run:
             return self._dry_run(operations)
         return self._commit(operations)
+
+    def write(self, path: Path, content: str) -> None:
+        """Write a single file to *path* with *content*."""
+        self._commit([CreateFile(file=GeneratedFile(path=path, content=content, template_name=""))])
+
+    def delete(self, path: Path) -> None:
+        """Delete the file at *path*."""
+        self._commit([DeleteFile(path=path)])
 
     # ------------------------------------------------------------------
     # Private helpers
