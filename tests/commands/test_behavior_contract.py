@@ -165,9 +165,13 @@ def test_dm_module_not_found(project_root: Path) -> None:
 def test_gep_restapi_dry_run_shows_would_update(project_root: Path) -> None:
     result = runner.invoke(app, ["gep", "--type", "restapi", "--dry-run"])
     assert result.exit_code == 0
-    # C-3 fix (T060) will update this assertion to show [project.scripts] literally.
-    # Current output: Rich swallows [project.scripts], so the label is absent.
-    assert 'Would update : my_app = "my_app.server:start_server"' in strip_ansi(result.output)
+    assert 'Would update [project.scripts]: my_app = "my_app.server:start_server"' in strip_ansi(result.output)
+
+
+def test_gep_restapi_shows_updated(project_root: Path) -> None:
+    result = runner.invoke(app, ["gep", "--type", "restapi"])
+    assert result.exit_code == 0
+    assert 'Updated [project.scripts]: my_app = "my_app.server:start_server"' in strip_ansi(result.output)
 
 
 def test_gep_mcp_shows_replaced_message(mcp_project: Path) -> None:

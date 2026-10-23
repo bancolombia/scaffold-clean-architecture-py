@@ -5,6 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar
 
+from rich.markup import escape
+
 from scaffold_ca_python.core.project_detector import resolve_tests_root
 from scaffold_ca_python.factory.entry_points.base import (
     EntryPointConflict,
@@ -28,17 +30,17 @@ class EntryPointRestApi(EntryPointFactory):
         EntryPointConflict(label="agent", subdir="agent"),
     )
 
-    def result_notes(self, project_root: Path, pkg: str, type_key: str, *, dry_run: bool) -> list[str]:  # noqa: ARG002
+    def result_notes(self, project_root: Path, pkg: str, type_key: str, *, dry_run: bool) -> list[str]:
         notes: list[str] = []
         main_py = project_root / "src" / pkg / "main.py"
         if dry_run:
             if main_py.exists():
                 notes.append(f"[dim]Would delete: src/{pkg}/main.py[/dim]")
-            notes.append(f'[dim]Would update [project.scripts]: {pkg} = "{pkg}.server:start_server"[/dim]')
+            notes.append(f'[dim]Would update {escape("[project.scripts]")}: {pkg} = "{pkg}.server:start_server"[/dim]')
         else:
             if main_py.exists():
                 notes.append(f"[green]✓[/green] Deleted src/{pkg}/main.py")
-            notes.append(f'[green]✓[/green] Updated [project.scripts]: {pkg} = "{pkg}.server:start_server"')
+            notes.append(f'[green]✓[/green] Updated {escape("[project.scripts]")}: {pkg} = "{pkg}.server:start_server"')
         return notes
 
     def build(self, builder: ModuleBuilder) -> None:

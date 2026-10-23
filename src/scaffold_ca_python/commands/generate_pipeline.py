@@ -39,11 +39,11 @@ def _generate_pipeline_impl(
 
     if not provider:
         console.print(f"[red]Error:[/red] --provider is required. Choose from: {allowed}.")
-        raise typer.Exit(code=1) from None
+        raise typer.Exit(code=1)
 
     if provider not in PIPELINE_PROVIDERS:
         console.print(f"[red]Error:[/red] Unknown provider '{provider}'. Allowed: {allowed}.")
-        raise typer.Exit(code=1) from None
+        raise typer.Exit(code=1)
 
     pipeline = PIPELINE_PROVIDERS[provider]
     project_root = require_project_root()
@@ -53,10 +53,10 @@ def _generate_pipeline_impl(
     if out_path.exists():
         console.print(
             f"[red]Error:[/red] '{pipeline.display_name}' already exists at "
-            f"'{out_path.relative_to(project_root)}'. Use --force to overwrite.\n"
+            f"'{out_path.relative_to(project_root)}'.\n"
             "[dim]Hint:[/dim] Remove the existing file first or choose a different provider."
         )
-        raise typer.Exit(code=1) from None
+        raise typer.Exit(code=1)
 
     builder = ModuleBuilder(
         project_root=project_root,

@@ -29,7 +29,7 @@ def check_flags(
             else:
                 msg = f"{flag.label} {flag.verb} not valid with --type {type_key}."
             console.print(f"[red]Error:[/red] {msg}")
-            raise typer.Exit(code=1) from None
+            raise typer.Exit(code=1)
 
 
 def check_conflicts(
@@ -50,4 +50,4 @@ def check_conflicts(
                 "[dim]Hint:[/dim] A project may have only one entry-point type. "
                 f"Remove '{rel}' before adding {type_key}."
             )
-            raise typer.Exit(code=1) from None
+            raise typer.Exit(code=1)

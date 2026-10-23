@@ -145,6 +145,15 @@ def test_duplicate_github_error_message(project_root: Path) -> None:
     assert "already exists" in result.output
 
 
+def test_duplicate_github_no_force_flag(project_root: Path) -> None:
+    runner.invoke(app, ["gpipe", "--provider", "github"], catch_exceptions=False)
+    result = runner.invoke(app, ["gpipe", "--provider", "github"], catch_exceptions=False)
+    assert result.exit_code == 1
+    assert "ci.yml' already exists at '.github/workflows/ci.yml'" in result.output
+    assert "Hint: Remove the existing file first or choose a different provider." in result.output
+    assert "--force" not in result.output
+
+
 def test_no_project_root_exits_1(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.chdir(tmp_path)
     result = runner.invoke(app, ["gpipe", "--provider", "github"], catch_exceptions=False)

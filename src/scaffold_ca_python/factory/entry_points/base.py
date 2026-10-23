@@ -48,8 +48,8 @@ class EntryPointFactory(ABC):
 
     def result_notes(
         self,
-        project_root: Path,  # noqa: ARG002
-        pkg: str,  # noqa: ARG002
+        project_root: Path,
+        pkg: str,
         type_key: str,
         *,
         dry_run: bool,

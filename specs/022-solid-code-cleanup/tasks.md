@@ -439,12 +439,12 @@ The suite must stay green (baseline: 739 passed, 1 skipped, 96.50%).
 
 ### Tests for User Story 6 ⚠️ (write first, must fail)
 
-- [ ] T057 [P] [US6] Add a test to `tests/commands/test_generate_pipeline.py` that runs `gpipe --provider github` twice and asserts:
+- [X] T057 [P] [US6] Add a test to `tests/commands/test_generate_pipeline.py` that runs `gpipe --provider github` twice and asserts:
   - the output contains `'ci.yml' already exists at '.github/workflows/ci.yml'.`;
   - it contains `Hint: Remove the existing file first or choose a different provider.`;
   - it does **not** contain `--force`;
   - `exit_code == 1`.
-- [ ] T058 [P] [US6] Add the C-3/FR-021 test to `tests/commands/test_behavior_contract.py`. It must fail. It asserts that:
+- [X] T058 [P] [US6] Add the C-3/FR-021 test to `tests/commands/test_behavior_contract.py`. It must fail. It asserts that:
   - `gep --type restapi --dry-run` contains `Would update [project.scripts]: my_app = "my_app.server:start_server"`;
   - `gep --type restapi` contains `Updated [project.scripts]: my_app = "my_app.server:start_server"`.
 
@@ -452,9 +452,9 @@ The suite must stay green (baseline: 739 passed, 1 skipped, 96.50%).
 
 ### Implementation for User Story 6
 
-- [ ] T059 [US6] Remove `Use --force to overwrite.` from the duplicate message in `src/scaffold_ca_python/commands/generate_pipeline.py`, using `ensure_absent` or `fail(...)` with the current hint. Makes T057 pass. If the final text differs, also update C-2 in `specs/022-solid-code-cleanup/contracts/cli-behavior.md`.
-- [ ] T060 [US6] In `EntryPointRestApi.result_notes` (`src/scaffold_ca_python/factory/entry_points/ep_restapi.py`), pass `[project.scripts]` through `rich.markup.escape()` in both the dry-run and the real-mode line. Update the T010 assertion to the C-3 text. Makes T058 pass.
-- [ ] T061 [US6] Final FR-017 sweep over `src/`, with `grep`:
+- [X] T059 [US6] Remove `Use --force to overwrite.` from the duplicate message in `src/scaffold_ca_python/commands/generate_pipeline.py`, using `ensure_absent` or `fail(...)` with the current hint. Makes T057 pass. If the final text differs, also update C-2 in `specs/022-solid-code-cleanup/contracts/cli-behavior.md`.
+- [X] T060 [US6] In `EntryPointRestApi.result_notes` (`src/scaffold_ca_python/factory/entry_points/ep_restapi.py`), pass `[project.scripts]` through `rich.markup.escape()` in both the dry-run and the real-mode line. Update the T010 assertion to the C-3 text. Makes T058 pass.
+- [X] T061 [US6] Final FR-017 sweep over `src/`, with `grep`:
   - replace `raise typer.Exit(code=1) from None` outside an `except` with `fail(...)` or `raise typer.Exit(code=1)`;
   - no unjustified `# noqa` remains;
   - no control-flow `assert` remains;

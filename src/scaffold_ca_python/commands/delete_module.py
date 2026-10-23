@@ -44,7 +44,7 @@ def _delete_module_impl(name: str, confirm: bool, dry_run: bool) -> None:
             f"[red]Error:[/red] No module named '{snake}' found in project.\n"
             "[dim]Hint:[/dim] Check spelling with 'scaffold vs' to list modules."
         )
-        raise typer.Exit(code=1) from None
+        raise typer.Exit(code=1)
 
     # dry_run OR no --confirm → preview mode only
     if dry_run or not confirm:

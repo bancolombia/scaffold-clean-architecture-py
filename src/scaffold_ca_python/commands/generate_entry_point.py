@@ -23,7 +23,7 @@ from scaffold_ca_python.core.openapi_routes import parse_routes
 from scaffold_ca_python.core.project_detector import load_project_context
 from scaffold_ca_python.factory.entry_points import ENTRY_POINT_FACTORIES
 from scaffold_ca_python.factory.entry_points.base import EntryPointFactory, EntryPointFlag
-from scaffold_ca_python.models.context import ModuleContext
+from scaffold_ca_python.models.context import ModuleContext, ProjectContext
 from scaffold_ca_python.models.layer import Layer
 from scaffold_ca_python.models.options import EntryPointOptions
 
@@ -90,12 +90,9 @@ def _build(
     options: EntryPointOptions,
     factory_class: type[EntryPointFactory],
     project_root: Path,
-    project_ctx: object,
+    project_ctx: ProjectContext,
     routes: list[tuple[str, str]],
 ) -> _BuildResult:
-    from scaffold_ca_python.models.context import ProjectContext
-
-    assert isinstance(project_ctx, ProjectContext)
     subdir = factory_class.subdir
     module_ctx = ModuleContext(
         name=options.type_.replace("-", "_"),
