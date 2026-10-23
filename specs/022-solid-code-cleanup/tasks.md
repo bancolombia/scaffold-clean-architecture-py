@@ -347,7 +347,7 @@ The suite must stay green (baseline: 739 passed, 1 skipped, 96.50%).
   - **Kept**: the dry-run title `{python_pkg}/`, relative to `target_dir`, and the messages.
 
   Makes T036 and T037 pass.
-- [ ] T048 [US4] Split `_generate_entry_point_impl` in `src/scaffold_ca_python/commands/generate_entry_point.py`. `register()` builds `EntryPointOptions` and calls `_generate_entry_point(options)`, which only orchestrates these functions:
+- [X] T048 [US4] Split `_generate_entry_point_impl` in `src/scaffold_ca_python/commands/generate_entry_point.py`. `register()` builds `EntryPointOptions` and calls `_generate_entry_point(options)`, which only orchestrates these functions:
   - `_resolve_factory(options)`
   - `_check_flags(...)`
   - `_load_routes(options.swagger)`, which uses `parse_routes` and the error `Swagger file '…' not found.`
@@ -358,7 +358,7 @@ The suite must stay green (baseline: 739 passed, 1 skipped, 96.50%).
   - `_report(...)`
 
   No function exceeds 5 parameters (SC-006) or complexity 10.
-- [ ] T049 [US4] Extract the `--add-tool` flow to `src/scaffold_ca_python/commands/add_mcp_tool.py`, with the public function `add_mcp_tool(options: EntryPointOptions) -> None`. It orchestrates these steps:
+- [X] T049 [US4] Extract the `--add-tool` flow to `src/scaffold_ca_python/commands/add_mcp_tool.py`, with the public function `add_mcp_tool(options: EntryPointOptions) -> None`. It orchestrates these steps:
   - `_check_add_tool_flags(options)`: incompatibilities and `--type mcp`.
   - `_build_spec(options)`.
   - `_resolve_paths(project_root, ctx)`: returns `tools.py` and `test_tools.py`.

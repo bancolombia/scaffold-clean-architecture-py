@@ -1,32 +1,33 @@
-"""generate_entry_point: scaffold an entry-point adapter and test stub (T055)."""
+"""generate_entry_point: scaffold an entry-point adapter and test stub."""
 
 from __future__ import annotations
 
-import ast
-import json
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated
 
 import typer
-import yaml
-from rich.console import Console
-from rich.markup import escape
-from rich.syntax import Syntax
-from rich.tree import Tree
 
 from scaffold_ca_python.commands._entry_point_rules import check_conflicts, check_flags
-from scaffold_ca_python.core import mcp_tool_spec
+from scaffold_ca_python.commands._shared import (
+    console,
+    ensure_absent,
+    fail,
+    print_dry_run_tree,
+    print_pending_dependencies,
+    require_project_root,
+)
+from scaffold_ca_python.commands.add_mcp_tool import add_mcp_tool
 from scaffold_ca_python.core.module_builder import ModuleBuilder
-from scaffold_ca_python.core.name_utils import ScaffoldError
-from scaffold_ca_python.core.project_detector import find_project_root, load_project_context, resolve_tests_root
+from scaffold_ca_python.core.openapi_routes import parse_routes
+from scaffold_ca_python.core.project_detector import load_project_context
 from scaffold_ca_python.factory.entry_points import ENTRY_POINT_FACTORIES
-from scaffold_ca_python.factory.entry_points.base import EntryPointFlag
+from scaffold_ca_python.factory.entry_points.base import EntryPointFactory, EntryPointFlag
 from scaffold_ca_python.models.context import ModuleContext
 from scaffold_ca_python.models.layer import Layer
+from scaffold_ca_python.models.options import EntryPointOptions
 
-console = Console()
-
-_REGISTRY = ENTRY_POINT_FACTORIES
+_REGISTRY = ENTRY_POINT_FACTORIES  # backwards-compat alias for tests that patch it
 
 _TYPE_HELP = "Entry-point type: restapi, agent, mcp, generic."
 _SWAGGER_HELP = "Path to OpenAPI YAML/JSON (restapi only)."
@@ -49,380 +50,103 @@ _GEP_EPILOG = (
 )
 
 
-def _add_tool_impl(
-    type_: str,
-    swagger: str | None,
-    enable_kafka: bool,
-    enable_mcp_client: bool,
-    with_resources: bool,
-    with_prompts: bool,
-    name: str | None,
-    param: list[str] | None,
-    returns: str,
-    description: str | None,
-    dry_run: bool,
-) -> None:
-    """Add a tool to an existing MCP entry point (T018-T021, T027-T030a).
-
-    Implements User Story 1 and 2: appends a tool stub to tools.py and a registration
-    test to test_tools.py in an existing MCP project, with comprehensive guard rails.
-    """
-    # T028: Flag/type incompatibility guards (FR-011, FR-012) - before project access
-    # Check creation-only flags
-    creation_flags = []
-    if swagger is not None:
-        creation_flags.append("--swagger")
-    if enable_kafka:
-        creation_flags.append("--enable-kafka")
-    if enable_mcp_client:
-        creation_flags.append("--enable-mcp-client")
-    if with_resources:
-        creation_flags.append("--with-resources")
-    if with_prompts:
-        creation_flags.append("--with-prompts")
-
-    if creation_flags:
-        flag = creation_flags[0]
-        console.print(f"[red]Error:[/red] --add-tool is incompatible with {flag}.")
-        raise typer.Exit(code=1)
-
-    # Check type compatibility (FR-012) - handled by T016(a) for --type omitted
-    # Here we check non-mcp types
-    if type_ != "mcp":
-        console.print("[red]Error:[/red] --add-tool is only valid with --type mcp.")
-        raise typer.Exit(code=1)
-
-    # T018: Format-only validation (no filesystem access yet)
-    if name is None:
-        console.print("[red]Error:[/red] --name is required with --add-tool.")
-        raise typer.Exit(code=1)
-
-    try:
-        tool_spec = mcp_tool_spec.build_tool_spec(name, param, returns, description)
-    except (ValueError, ScaffoldError) as e:
-        console.print(f"[red]Error:[/red] {e}")
-        raise typer.Exit(code=1) from None
-
-    # T019: Resolve project root and check entry point exists
-    try:
-        project_root = find_project_root()
-    except ScaffoldError as e:
-        console.print(f"[red]Error:[/red] {e}")
-        raise typer.Exit(code=1) from None
-
-    project_ctx = load_project_context(project_root)
-
-    tools_py_path = (
-        project_root
-        / "src"
-        / project_ctx.python_package
-        / "infrastructure"
-        / "entry_points"
-        / "mcp_server"
-        / "tools.py"
-    )
-    test_tools_py_path = (
-        resolve_tests_root(project_root) / "infrastructure" / "entry_points" / "mcp_server" / "test_tools.py"
-    )
-
-    if not tools_py_path.exists():
-        console.print(
-            "[red]Error:[/red] No MCP entry point found at infrastructure/entry_points/mcp_server/.\n"
-            "[dim]Hint:[/dim] Run [cyan]scaffold gep --type mcp[/cyan] first to create one."
-        )
-        raise typer.Exit(code=1)
-
-    # T020: Read files and check structure
-    try:
-        original_tools_py = tools_py_path.read_text(encoding="utf-8")
-    except OSError as e:
-        console.print(f"[red]Error:[/red] Cannot read {tools_py_path}: {e}")
-        raise typer.Exit(code=1) from None
-
-    try:
-        original_test_tools_py = test_tools_py_path.read_text(encoding="utf-8")
-    except OSError:
-        console.print(
-            "[red]Error:[/red] tests/infrastructure/entry_points/mcp_server/test_tools.py is missing or "
-            "does not have\n"
-            "the structure --add-tool needs to append a registration test.\n"
-            "[dim]Hint:[/dim] Restore test_tools.py, or regenerate the entry point with "
-            "[cyan]scaffold gep --type mcp[/cyan]."
-        )
-        raise typer.Exit(code=1) from None
-
-    # Check bind_tools is last top-level statement
-    if not mcp_tool_spec.has_bind_tools_function(original_tools_py):
-        console.print(
-            "[red]Error:[/red] infrastructure/entry_points/mcp_server/tools.py was generated by an older "
-            "scaffold\n"
-            "version and does not support --add-tool.\n"
-            "[dim]Hint:[/dim] Make [cyan]async def bind_tools[/cyan] the last function in tools.py, or "
-            "regenerate the entry point\n"
-            "(back up any custom tools first) with [cyan]scaffold gep --type mcp[/cyan]."
-        )
-        raise typer.Exit(code=1)
-
-    # Check test file has required structure
-    if not mcp_tool_spec.has_test_registration_structure(original_test_tools_py):
-        console.print(
-            "[red]Error:[/red] tests/infrastructure/entry_points/mcp_server/test_tools.py is missing or "
-            "does not have\n"
-            "the structure --add-tool needs to append a registration test.\n"
-            "[dim]Hint:[/dim] Restore test_tools.py, or regenerate the entry point with "
-            "[cyan]scaffold gep --type mcp[/cyan]."
-        )
-        raise typer.Exit(code=1)
-
-    # Check for duplicate tool names
-    existing_names = mcp_tool_spec.find_existing_tool_names(original_tools_py)
-    if tool_spec.name in existing_names:
-        if tool_spec.name == "bind_tools":
-            console.print(
-                f"[red]Error:[/red] '{tool_spec.name}' is reserved by the tool-binding function and "
-                "cannot be used as a tool name."
-            )
-        else:
-            console.print(f"[red]Error:[/red] A tool named '{tool_spec.name}' already exists in tools.py.")
-        raise typer.Exit(code=1)
-
-    # T021: Render templates and append
-    builder = ModuleBuilder(
-        project_root=project_root,
-        project_ctx=project_ctx,
-        dry_run=dry_run,
-    )
-
-    # Render tool stub (4-space-indented nested function)
-    tool_stub_content = builder.render(
-        "entry_point/mcp/tool_stub.py.jinja2",
-        {
-            "name": tool_spec.name,
-            "params": [{"name": p.name, "type": p.type} for p in tool_spec.params],
-            "returns": tool_spec.returns,
-            "docstring": tool_spec.docstring,
-        },
-    )
-
-    # Render test stub
-    test_stub_content = builder.render(
-        "entry_point/mcp/test_tool_stub.py.jinja2",
-        {"name": tool_spec.name},
-    )
-
-    # Safety check: ensure appended content will parse
-    try:
-        ast.parse(original_tools_py + tool_stub_content)
-    except SyntaxError:
-        console.print(
-            "[red]Error:[/red] infrastructure/entry_points/mcp_server/tools.py cannot accept the new tool stub.\n"
-            "[dim]Hint:[/dim] Regenerate the entry point with [cyan]scaffold gep --type mcp[/cyan]."
-        )
-        raise typer.Exit(code=1) from None
-
-    # T030a: Check writability before any writes (FR-019)
-    import os
-
-    if not os.access(tools_py_path, os.W_OK):
-        console.print(
-            f"[red]Error:[/red] Cannot write to {tools_py_path.relative_to(project_root)}.\n"
-            "[dim]Hint:[/dim] Check the file's permissions and re-run the command."
-        )
-        raise typer.Exit(code=1)
-
-    if not os.access(test_tools_py_path, os.W_OK):
-        console.print(
-            f"[red]Error:[/red] Cannot write to {test_tools_py_path.relative_to(project_root)}.\n"
-            "[dim]Hint:[/dim] Check the file's permissions and re-run the command."
-        )
-        raise typer.Exit(code=1)
-
-    # Queue append operations
-    builder.append_to_file(tools_py_path, tool_stub_content)
-    builder.append_to_file(test_tools_py_path, test_stub_content)
-
-    # T030a: Persist changes with restore-on-failure (FR-019)
-    try:
-        modified_paths = builder.persist()
-    except OSError as e:
-        # Restore original content
-        try:
-            tools_py_path.write_text(original_tools_py, encoding="utf-8")
-            test_tools_py_path.write_text(original_test_tools_py, encoding="utf-8")
-        except OSError:
-            pass  # Best effort restore
-
-        # Determine which file failed
-        error_str = str(e).lower()
-        failed_file = "test_tools.py" if "test_tools" in error_str or str(test_tools_py_path) in str(e) else "tools.py"
-
-        console.print(
-            f"[red]Error:[/red] Failed to write {failed_file} ({e}). "
-            "tools.py was restored; no changes were made.\n"
-            "[dim]Hint:[/dim] Fix the underlying problem (permissions, disk space) and re-run the command."
-        )
-        raise typer.Exit(code=1) from None
-
-    if dry_run:
-        console.print("\n[yellow]Dry run:[/yellow] Would modify:\n")
-        for path in modified_paths:
-            console.print(f"  • {path.relative_to(project_root)}")
-        console.print("\n[yellow]Tool stub preview:[/yellow]")
-        console.print(Syntax(tool_stub_content, "python", theme="monokai", line_numbers=False))
-        console.print("\n[yellow]Test stub preview:[/yellow]")
-        console.print(Syntax(test_stub_content, "python", theme="monokai", line_numbers=False))
-    else:
-        console.print(f"[green]✓[/green] Added tool '{tool_spec.name}' to MCP entry point.")
+@dataclass(frozen=True, slots=True)
+class _BuildResult:
+    factory: EntryPointFactory
+    builder: ModuleBuilder
+    subdir: str
+    created: list[Path]
 
 
-def _generate_entry_point_impl(
-    type_: str,
-    swagger: str | None,
-    enable_kafka: bool,
-    enable_mcp_client: bool,
-    with_resources: bool,
-    with_prompts: bool,
-    add_tool: bool,
-    name: str | None,
-    param: list[str] | None,
-    returns: str,
-    description: str | None,
-    dry_run: bool,
-) -> None:
-    # T016(b): Dispatch to --add-tool implementation if flag is set
-    if add_tool:
-        _add_tool_impl(
-            type_,
-            swagger,
-            enable_kafka,
-            enable_mcp_client,
-            with_resources,
-            with_prompts,
-            name,
-            param,
-            returns,
-            description,
-            dry_run,
-        )
-        return
+def _resolve_factory(options: EntryPointOptions) -> type[EntryPointFactory]:
+    if options.type_ not in ENTRY_POINT_FACTORIES:
+        fail(f"Unknown type '{options.type_}'. Allowed: {', '.join(ENTRY_POINT_FACTORIES.keys())}.")
+    return ENTRY_POINT_FACTORIES[options.type_]
 
-    # --- Validate type ---
-    if type_ not in ENTRY_POINT_FACTORIES:
-        console.print(f"[red]Error:[/red] Unknown type '{type_}'. Allowed: {', '.join(ENTRY_POINT_FACTORIES.keys())}.")
-        raise typer.Exit(code=1) from None
 
-    factory_class = ENTRY_POINT_FACTORIES[type_]
-
-    # --- Flag compatibility checks ---
+def _check_flags_for(options: EntryPointOptions, factory_class: type[EntryPointFactory]) -> None:
     active_flags: list[EntryPointFlag] = []
-    if swagger is not None:
+    if options.swagger is not None:
         active_flags.append(EntryPointFlag.SWAGGER)
-    if enable_mcp_client:
+    if options.enable_mcp_client:
         active_flags.append(EntryPointFlag.ENABLE_MCP_CLIENT)
-    if with_resources or with_prompts:
+    if options.with_resources or options.with_prompts:
         active_flags.append(EntryPointFlag.MCP_PRIMITIVES)
-    if enable_kafka:
+    if options.enable_kafka:
         active_flags.append(EntryPointFlag.ENABLE_KAFKA)
-    check_flags(type_, factory_class, active_flags, ENTRY_POINT_FACTORIES)
+    check_flags(options.type_, factory_class, active_flags, ENTRY_POINT_FACTORIES)
 
-    # --- Validate swagger path ---
-    routes: list[tuple[str, str]] = []
-    if swagger:
-        swagger_path = Path(swagger)
-        if not swagger_path.exists():
-            console.print(f"[red]Error:[/red] Swagger file '{swagger}' not found.")
-            raise typer.Exit(code=1) from None
-        routes = _parse_swagger(swagger_path)
 
-    # --- Locate project root ---
-    try:
-        project_root = find_project_root()
-    except ScaffoldError:
-        console.print("[red]Error:[/red] No scaffold-ca-python project found. Run 'scaffold ca' first.")
-        raise typer.Exit(code=1) from None
+def _load_routes(swagger: str | None) -> list[tuple[str, str]]:
+    if swagger is None:
+        return []
+    path = Path(swagger)
+    if not path.exists():
+        fail(f"Swagger file '{swagger}' not found.")
+    return parse_routes(path)
 
-    project_ctx = load_project_context(project_root)
-    pkg = project_ctx.python_package
 
-    # --- Conflict check ---
-    check_conflicts(project_root, pkg, type_, factory_class)
+def _build(
+    options: EntryPointOptions,
+    factory_class: type[EntryPointFactory],
+    project_root: Path,
+    project_ctx: object,
+    routes: list[tuple[str, str]],
+) -> _BuildResult:
+    from scaffold_ca_python.models.context import ProjectContext
 
-    # --- Determine subdir and module context ---
+    assert isinstance(project_ctx, ProjectContext)
     subdir = factory_class.subdir
     module_ctx = ModuleContext(
-        name=type_.replace("-", "_"),
+        name=options.type_.replace("-", "_"),
         layer=Layer.ENTRY_POINTS,
         project=project_ctx,
-        subtype=type_,
+        subtype=options.type_,
     )
-
-    src_dir = project_root / "src" / pkg / "infrastructure" / "entry_points" / subdir
-
-    # --- Duplicate guard ---
-    if src_dir.exists():
-        console.print(
-            f"[red]Error:[/red] Directory '{src_dir.relative_to(project_root)}/' already exists.\n"
-            "[dim]Hint:[/dim] Choose a different type or remove the existing directory first."
-        )
-        raise typer.Exit(code=1) from None
-
-    # --- Create builder ---
+    src_dir = project_root / "src" / project_ctx.python_package / "infrastructure" / "entry_points" / subdir
+    ensure_absent(
+        src_dir,
+        project_root,
+        kind="Directory",
+        hint="Choose a different type or remove the existing directory first.",
+    )
     builder = ModuleBuilder(
-        project_root=project_root,
-        project_ctx=project_ctx,
-        module_ctx=module_ctx,
-        dry_run=dry_run,
+        project_root=project_root, project_ctx=project_ctx, module_ctx=module_ctx, dry_run=options.dry_run
     )
-
-    builder.add_param("routes", routes)
-    builder.add_param("enable_kafka", enable_kafka)
-    builder.add_param("enable_mcp_client", enable_mcp_client)
-    builder.add_param("with_resources", with_resources)
-    builder.add_param("with_prompts", with_prompts)
-
+    options.apply_to(builder, routes)
     factory = factory_class()
     factory.build(builder)
     created = builder.persist()
+    return _BuildResult(factory=factory, builder=builder, subdir=subdir, created=created)
 
-    # --- Display results ---
-    if dry_run:
-        tree = Tree(f"[bold]{subdir}[/bold] (dry run)")
-        for p in sorted(created):
-            tree.add(str(p.relative_to(project_root)))
-        console.print(tree)
 
-        if builder.pending_dependencies:
-            target = escape("[project.dependencies]")
-            console.print(f"[dim]Would add to {target}: {', '.join(builder.pending_dependencies)}[/dim]")
-
-        for note in factory.result_notes(project_root, pkg, type_, dry_run=True):
+def _report(result: _BuildResult, options: EntryPointOptions, project_root: Path, pkg: str) -> None:
+    if options.dry_run:
+        print_dry_run_tree(result.subdir, result.created, project_root)
+        print_pending_dependencies(result.builder)
+        for note in result.factory.result_notes(project_root, pkg, options.type_, dry_run=True):
             console.print(note)
         return
-
-    console.print(f"[green]✓[/green] Entry point [bold]{subdir}[/bold] created. Created {len(created)} file(s).")
-    for note in factory.result_notes(project_root, pkg, type_, dry_run=False):
+    console.print(
+        f"[green]✓[/green] Entry point [bold]{result.subdir}[/bold] created. Created {len(result.created)} file(s)."
+    )
+    for note in result.factory.result_notes(project_root, pkg, options.type_, dry_run=False):
         console.print(note)
 
 
-def _parse_swagger(path: Path) -> list[tuple[str, str]]:
-    """Parse an OpenAPI YAML/JSON file and return (path, method) pairs."""
-    text = path.read_text(encoding="utf-8")
-    if path.suffix.lower() in (".yaml", ".yml"):
-        raw: object = yaml.safe_load(text)
-    else:
-        raw = json.loads(text)
-    if not isinstance(raw, dict):
-        return []
-    paths_value = raw.get("paths", {})
-    if not isinstance(paths_value, dict):
-        return []
-    result: list[tuple[str, str]] = []
-    for route_path, methods in paths_value.items():
-        if isinstance(methods, dict):
-            for method in methods:
-                if method.lower() in ("get", "post", "put", "patch", "delete", "head", "options"):
-                    result.append((str(route_path), method.lower()))
-    return result
+def _generate_entry_point(options: EntryPointOptions) -> None:
+    if options.add_tool:
+        add_mcp_tool(options)
+        return
+    factory_class = _resolve_factory(options)
+    _check_flags_for(options, factory_class)
+    routes = _load_routes(options.swagger)
+    project_root = require_project_root()
+    project_ctx = load_project_context(project_root)
+    pkg = project_ctx.python_package
+    check_conflicts(project_root, pkg, options.type_, factory_class)
+    result = _build(options, factory_class, project_root, project_ctx, routes)
+    _report(result, options, project_root, pkg)
 
 
 def register(app: typer.Typer) -> None:
@@ -503,7 +227,6 @@ def register(app: typer.Typer) -> None:
         ] = False,
     ) -> None:
         """Scaffold an entry point inside infrastructure/entry_points/."""
-        # T016(a): Check --add-tool without --type before the help shortcut
         if add_tool and type_ is None:
             console.print("[red]Error:[/red] --add-tool is only valid with --type mcp.")
             raise typer.Exit(code=1)
@@ -511,17 +234,19 @@ def register(app: typer.Typer) -> None:
         if type_ is None:
             typer.echo(ctx.get_help())
             raise typer.Exit(0)
-        _generate_entry_point_impl(
-            type_,
-            swagger,
-            enable_kafka,
-            enable_mcp_client,
-            with_resources,
-            with_prompts,
-            add_tool,
-            name,
-            param,
-            returns,
-            description,
-            dry_run,
+
+        options = EntryPointOptions(
+            type_=type_,
+            swagger=swagger,
+            enable_kafka=enable_kafka,
+            enable_mcp_client=enable_mcp_client,
+            with_resources=with_resources,
+            with_prompts=with_prompts,
+            add_tool=add_tool,
+            name=name,
+            params=tuple(param or []),
+            returns=returns,
+            description=description,
+            dry_run=dry_run,
         )
+        _generate_entry_point(options)
