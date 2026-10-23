@@ -9,75 +9,24 @@ import typer
 from rich.console import Console
 
 from scaffold_ca_python.core.module_builder import ModuleBuilder
+from scaffold_ca_python.core.module_locator import find_module_targets
 from scaffold_ca_python.core.name_utils import ScaffoldError, to_snake_case, validate_module_name
-from scaffold_ca_python.core.project_detector import find_project_root, load_project_context, resolve_tests_root
-from scaffold_ca_python.factory import ModuleFactory
+from scaffold_ca_python.core.project_detector import find_project_root, load_project_context
 from scaffold_ca_python.factory.simple.delete_module_factory import DeleteModuleFactory
 from scaffold_ca_python.models.context import ModuleContext
 from scaffold_ca_python.models.layer import Layer
 
 console = Console()
 
-_REGISTRY: dict[str, type[ModuleFactory]] = {
-    "delete": DeleteModuleFactory,
-}
-
 _DM_HELP = "Delete a previously generated module and its test mirror. Alias 'dm'."
 _DM_EPILOG = "Examples:\n\n  * scaffold dm --name order\n\n  * scaffold delete-module --name my_adapter\n\n"
 
 
-# ---------------------------------------------------------------------------
-# Module discovery helpers
-# ---------------------------------------------------------------------------
-
-
-def _find_module_targets(pkg: str, project_root: Path, snake: str) -> list[tuple[Path, Path | None]]:
-    """Return a list of (target_path, test_path_or_None) for all matches of *snake*.
-
-    Searches across:
-      1. domain/model/<snake>.py
-      2. domain/usecase/<snake>.py
-      3. infrastructure/driven_adapters/<snake>/
-      4. infrastructure/entry_points/<snake>/
-      5. infrastructure/helpers/<snake>/
-    """
-    src_root = project_root / "src" / pkg
-    tests_root = resolve_tests_root(project_root)
-
-    candidates: list[tuple[Path, Path | None]] = []
-
-    # Single-file layers (domain/model, domain/usecase)
-    for src_rel, test_rel in [
-        (src_root / "domain" / "model" / f"{snake}.py", tests_root / "domain" / "model" / f"test_{snake}.py"),
-        (src_root / "domain" / "usecase" / f"{snake}.py", tests_root / "domain" / "usecase" / f"test_{snake}.py"),
-    ]:
-        if src_rel.exists():
-            candidates.append((src_rel, test_rel if test_rel.exists() else None))
-
-    # Directory-based layers (infrastructure sub-dirs)
-    for src_rel, test_rel in [
-        (
-            src_root / "infrastructure" / "driven_adapters" / snake,
-            tests_root / "infrastructure" / "driven_adapters" / snake,
-        ),
-        (
-            src_root / "infrastructure" / "entry_points" / snake,
-            tests_root / "infrastructure" / "entry_points" / snake,
-        ),
-        (
-            src_root / "infrastructure" / "helpers" / snake,
-            tests_root / "infrastructure" / "helpers" / snake,
-        ),
-    ]:
-        if src_rel.exists():
-            candidates.append((src_rel, test_rel if test_rel.exists() else None))
-
-    return candidates
-
-
-# ---------------------------------------------------------------------------
-# Implementation
-# ---------------------------------------------------------------------------
+def _display(path: Path, root: Path) -> Path:
+    try:
+        return path.relative_to(root)
+    except ValueError:
+        return path
 
 
 def _delete_module_impl(name: str, confirm: bool, dry_run: bool) -> None:
@@ -102,7 +51,7 @@ def _delete_module_impl(name: str, confirm: bool, dry_run: bool) -> None:
 
     # Find targets
     snake = to_snake_case(name)
-    targets = _find_module_targets(project_ctx.python_package, project_root, snake)
+    targets = find_module_targets(project_root, project_ctx.python_package, snake)
 
     if not targets:
         console.print(
@@ -115,17 +64,9 @@ def _delete_module_impl(name: str, confirm: bool, dry_run: bool) -> None:
     if dry_run or not confirm:
         console.print("The following files would be deleted:\n")
         for src_path, test_path in targets:
-            try:
-                display = src_path.relative_to(project_root)
-            except ValueError:
-                display = src_path
-            console.print(f"  {display}")
+            console.print(f"  {_display(src_path, project_root)}")
             if test_path:
-                try:
-                    display = test_path.relative_to(project_root)
-                except ValueError:
-                    display = test_path
-                console.print(f"  {display}")
+                console.print(f"  {_display(test_path, project_root)}")
         console.print("\nRun with --confirm to proceed.")
         return
 
@@ -137,9 +78,7 @@ def _delete_module_impl(name: str, confirm: bool, dry_run: bool) -> None:
         dry_run=False,
     )
 
-    factory_class = _REGISTRY["delete"]
-    factory = factory_class()
-    factory.build(builder)
+    DeleteModuleFactory().build(builder)
 
     # Persist deletion
     builder.persist()

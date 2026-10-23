@@ -48,7 +48,7 @@ def require_project_root(not_found_message: str | None = PROJECT_NOT_FOUND) -> P
         raise typer.Exit(code=1) from None
 
 
-def validate_name_or_exit(name: str, validator: Callable[[str], None]) -> None:
+def validate_name_or_exit(name: str, validator: Callable[[str], object]) -> None:
     """Run *validator* on *name*, calling ``fail()`` if it raises ``ScaffoldError``."""
     try:
         validator(name)

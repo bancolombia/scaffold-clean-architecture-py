@@ -1,84 +1,49 @@
-"""generate_model: scaffold a domain model class and test stub (T033)."""
+"""generate_model: scaffold a domain model class and test stub."""
 
 from __future__ import annotations
 
 from typing import Annotated
 
 import typer
-from rich.console import Console
-from rich.tree import Tree
 
+from scaffold_ca_python.commands._shared import (
+    build_and_persist,
+    console,
+    ensure_absent,
+    print_dry_run_tree,
+    require_project_root,
+    validate_name_or_exit,
+)
 from scaffold_ca_python.core.module_builder import ModuleBuilder
-from scaffold_ca_python.core.name_utils import ScaffoldError, validate_module_name
-from scaffold_ca_python.core.project_detector import find_project_root, load_project_context
-from scaffold_ca_python.factory import ModuleFactory
+from scaffold_ca_python.core.name_utils import validate_module_name
+from scaffold_ca_python.core.project_detector import load_project_context
 from scaffold_ca_python.factory.simple.model_factory import ModelFactory
 from scaffold_ca_python.models.context import ModuleContext
 from scaffold_ca_python.models.layer import Layer
 
-console = Console()
-
-_REGISTRY: dict[str, type[ModuleFactory]] = {
-    "model": ModelFactory,
-}
 _GM_HELP = "Scaffold a Pydantic v2 domain model and test stub. Alias 'gm'."
 _GM_EPILOG = "Example:\n\n  * scaffold gm --name order\n\n  * scaffold generate-model --name order\n\n"
 
 
 def _generate_model_impl(name: str, dry_run: bool) -> None:
-    # --- Validate name ---
-    try:
-        validate_module_name(name)
-    except ScaffoldError as exc:
-        console.print(f"[red]Error:[/red] {exc}")
-        raise typer.Exit(code=1) from None
-
-    # --- Locate project root ---
-    try:
-        project_root = find_project_root()
-    except ScaffoldError:
-        console.print("[red]Error:[/red] No scaffold-ca-python project found. Run 'scaffold ca' first.")
-        raise typer.Exit(code=1) from None
-
+    validate_name_or_exit(name, validate_module_name)
+    project_root = require_project_root()
     project_ctx = load_project_context(project_root)
     module_ctx = ModuleContext(name=name, layer=Layer.DOMAIN_MODEL, project=project_ctx)
 
-    pkg = project_ctx.python_package
-    src_dir = project_root / "src" / pkg / "domain" / "model"
-
-    # --- Duplicate guard ---
-    src_path = src_dir / f"{module_ctx.module_name}.py"
-    if src_path.exists():
-        console.print(
-            f"[red]Error:[/red] File '{src_path.relative_to(project_root)}' already exists.\n"
-            "[dim]Hint:[/dim] Choose a different name or remove the existing file first."
-        )
-        raise typer.Exit(code=1) from None
-
-    # --- Create builder and get factory from registry ---
-    builder = ModuleBuilder(
-        project_root=project_root,
-        project_ctx=project_ctx,
-        module_ctx=module_ctx,
-        dry_run=dry_run,
+    src_path = project_root / "src" / project_ctx.python_package / "domain" / "model" / f"{module_ctx.module_name}.py"
+    ensure_absent(
+        src_path,
+        project_root,
+        kind="File",
+        hint="Choose a different name or remove the existing file first.",
     )
 
-    # Get factory class and instantiate
-    factory_class = _REGISTRY["model"]
-    factory = factory_class()
+    builder = ModuleBuilder(project_root=project_root, project_ctx=project_ctx, module_ctx=module_ctx, dry_run=dry_run)
+    created = build_and_persist(ModelFactory(), builder)
 
-    # Invoke factory to build via ModuleBuilder
-    factory.build(builder)
-
-    # Persist all operations
-    created = builder.persist()
-
-    # --- Display results ---
     if dry_run:
-        tree = Tree(f"[bold]{module_ctx.module_name}[/bold] (dry run)")
-        for p in sorted(created):
-            tree.add(str(p.relative_to(project_root)))
-        console.print(tree)
+        print_dry_run_tree(module_ctx.module_name, created, project_root)
         return
 
     msg = f"[green]✓[/green] Model [bold]{module_ctx.class_name}[/bold] created. Created {len(created)} file(s)."
@@ -88,12 +53,7 @@ def _generate_model_impl(name: str, dry_run: bool) -> None:
 def register(app: typer.Typer) -> None:
     """Register gm / generate-model commands onto *app*."""
 
-    # Both names route to the same handler; add further aliases by stacking @app.command before the def.
-    @app.command(
-        "generate-model",
-        help=_GM_HELP,
-        epilog=_GM_EPILOG,
-    )
+    @app.command("generate-model", help=_GM_HELP, epilog=_GM_EPILOG)
     @app.command("gm", hidden=True, help=_GM_HELP, epilog=_GM_EPILOG)
     def generate_model(
         ctx: typer.Context,

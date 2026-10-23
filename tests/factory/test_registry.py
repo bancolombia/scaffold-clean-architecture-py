@@ -30,11 +30,11 @@ def test_driven_adapter_registry_keys() -> None:
     assert set(DRIVEN_ADAPTER_FACTORIES) == {"rest-consumer", "secrets", "generic"}
 
 
-def test_simple_command_registries_expose_single_key() -> None:
-    assert set(generate_model._REGISTRY) == {"model"}
-    assert set(generate_use_case._REGISTRY) == {"use_case"}
-    assert set(generate_helper._REGISTRY) == {"helper"}
-    assert set(delete_module._REGISTRY) == {"delete"}
+def test_simple_commands_have_no_registry() -> None:
+    assert not hasattr(generate_model, "_REGISTRY")
+    assert not hasattr(generate_use_case, "_REGISTRY")
+    assert not hasattr(generate_helper, "_REGISTRY")
+    assert not hasattr(delete_module, "_REGISTRY")
 
 
 def test_gep_unknown_type_lists_valid_keys() -> None:

@@ -322,14 +322,14 @@ The suite must stay green (baseline: 739 passed, 1 skipped, 96.50%).
   Implement `creation_flags()` and `apply_to(builder, routes)`. Makes T033 pass.
 - [X] T040 [P] [US4] Create `src/scaffold_ca_python/core/openapi_routes.py` with `parse_routes(path: Path) -> list[tuple[str, str]]`. Move `_parse_swagger` there from `generate_entry_point.py` and use a `_HTTP_METHODS` `frozenset`. Makes T034 pass.
 - [X] T041 [P] [US4] Create `src/scaffold_ca_python/core/module_locator.py` with `find_module_targets(...)`, using the code that lives in `commands/delete_module.py::_find_module_targets` today. Express the 5 candidates as a `(layer_subpath, is_file)` table to lower complexity. Makes T035 pass.
-- [ ] T042 [US4] Make `src/scaffold_ca_python/commands/delete_module.py` and `src/scaffold_ca_python/factory/simple/delete_module_factory.py` use `find_module_targets`:
+- [X] T042 [US4] Make `src/scaffold_ca_python/commands/delete_module.py` and `src/scaffold_ca_python/factory/simple/delete_module_factory.py` use `find_module_targets`:
   - remove the local copy and the single-entry `_REGISTRY`, and instantiate `DeleteModuleFactory()` directly;
   - the preview uses a `_display(path, root)` helper (`relative_to` with fallback) instead of the two try/except blocks;
   - `DeleteModuleFactory.build` must end up with complexity ≤ 10.
-- [ ] T043 [P] [US4] Migrate `src/scaffold_ca_python/commands/generate_model.py` to `_shared`:
+- [X] T043 [P] [US4] Migrate `src/scaffold_ca_python/commands/generate_model.py` to `_shared`:
   - use `validate_name_or_exit`, `require_project_root`, `ensure_absent(kind="File", hint="Choose a different name or remove the existing file first.")`, `build_and_persist(ModelFactory(), builder)`, `print_dry_run_tree` and `dry_run_option()`;
   - remove the single-entry `_REGISTRY`.
-- [ ] T044 [P] [US4] Migrate two more commands the same way as T043, removing the single-entry `_REGISTRY` in both:
+- [X] T044 [P] [US4] Migrate two more commands the same way as T043, removing the single-entry `_REGISTRY` in both:
   - `src/scaffold_ca_python/commands/generate_use_case.py`, with factory `UseCaseFactory`;
   - `src/scaffold_ca_python/commands/generate_helper.py`, with factory `HelperFactory` and `ensure_absent(kind="Directory", hint="Choose a different name or remove the existing directory first.")`.
 - [ ] T045 [P] [US4] Migrate `src/scaffold_ca_python/commands/validate_structure.py` and `src/scaffold_ca_python/commands/update_project.py` to `require_project_root` and `dry_run_option(help=...)`, keeping their current help texts. In `update_project.py`, extract `_run_uv(cmd: list[str], cwd: Path, failure_message: str) -> None`. It keeps the current texts and exit codes: 1 when `uv` is missing, 2 on `CalledProcessError`.
