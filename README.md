@@ -74,10 +74,21 @@ scaffold ca --name my-project --dry-run
 
 ### scaffold gm
 
-Scaffold a Pydantic v2 domain model and its test stub.
+Scaffold a Pydantic v2 domain model, its gateway (an empty abstract repository contract), and test stubs.
 
 ```bash
 scaffold gm --name order
+```
+
+Generated structure:
+
+```text
+domain/model/order/
+├── __init__.py
+├── order.py
+└── gateways/
+    ├── __init__.py
+    └── order_repository.py
 ```
 
 ```bash

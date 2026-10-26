@@ -140,7 +140,7 @@ def test_gm_duplicate(project_root: Path) -> None:
     result = runner.invoke(app, ["gm", "--name", "order"])
     assert result.exit_code == 1
     out = strip_ansi(result.output)
-    assert "order.py" in out
+    assert "domain/model/order/" in out
     assert "already exists" in out
 
 

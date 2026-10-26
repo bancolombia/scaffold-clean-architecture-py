@@ -6,6 +6,7 @@ SC-003: `scaffold vs` completes in under 5 s on a project with 200 Python files.
 
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
 import pytest
@@ -54,12 +55,11 @@ def bench_project(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 def test_gm_performance(benchmark: pytest.fixture, bench_project: Path) -> None:  # type: ignore[type-arg]
     def run() -> None:
-        runner.invoke(app, ["gm", "--name", "PerfModel"], catch_exceptions=False)
+        result = runner.invoke(app, ["gm", "--name", "perf_model"], catch_exceptions=False)
+        assert result.exit_code == 0
         # Cleanup so benchmark can repeat
-        src = bench_project / "src" / "bench_app" / "domain" / "model" / "perf_model.py"
-        test = bench_project / "src" / "tests" / "domain" / "model" / "test_perf_model.py"
-        src.unlink(missing_ok=True)
-        test.unlink(missing_ok=True)
+        shutil.rmtree(bench_project / "src" / "bench_app" / "domain" / "model" / "perf_model", ignore_errors=True)
+        shutil.rmtree(bench_project / "src" / "tests" / "domain" / "model" / "perf_model", ignore_errors=True)
 
     benchmark.pedantic(run, iterations=1, rounds=3)  # type: ignore[func-returns-value]
     if benchmark.stats is not None:

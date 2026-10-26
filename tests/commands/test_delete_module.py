@@ -49,7 +49,7 @@ def test_default_no_confirm_exits_0(project_root: Path) -> None:
 
 
 def test_default_no_confirm_writes_nothing(project_root: Path) -> None:
-    model_file = project_root / "src" / "my_app" / "domain" / "model" / "order.py"
+    model_file = project_root / "src" / "my_app" / "domain" / "model" / "order"
     assert model_file.exists()
     runner.invoke(app, ["dm", "--name", "order"], catch_exceptions=False)
     assert model_file.exists()
@@ -67,7 +67,7 @@ def test_default_no_confirm_prints_preview(project_root: Path) -> None:
 
 
 def test_dry_run_without_confirm_writes_nothing(project_root: Path) -> None:
-    model_file = project_root / "src" / "my_app" / "domain" / "model" / "order.py"
+    model_file = project_root / "src" / "my_app" / "domain" / "model" / "order"
     runner.invoke(app, ["dm", "--name", "order", "--dry-run"], catch_exceptions=False)
     assert model_file.exists()
 
@@ -80,12 +80,12 @@ def test_dry_run_without_confirm_writes_nothing(project_root: Path) -> None:
 def test_confirm_deletes_model_file(project_root: Path) -> None:
     result = runner.invoke(app, ["dm", "--name", "order", "--confirm"], catch_exceptions=False)
     assert result.exit_code == 0
-    assert not (project_root / "src" / "my_app" / "domain" / "model" / "order.py").exists()
+    assert not (project_root / "src" / "my_app" / "domain" / "model" / "order").exists()
 
 
 def test_confirm_deletes_test_file(project_root: Path) -> None:
     runner.invoke(app, ["dm", "--name", "order", "--confirm"], catch_exceptions=False)
-    assert not (project_root / "src" / "tests" / "domain" / "model" / "test_order.py").exists()
+    assert not (project_root / "src" / "tests" / "domain" / "model" / "order").exists()
 
 
 def test_confirm_prints_deleted(project_root: Path) -> None:
@@ -99,7 +99,7 @@ def test_confirm_prints_deleted(project_root: Path) -> None:
 
 
 def test_dry_run_with_confirm_takes_precedence(project_root: Path) -> None:
-    model_file = project_root / "src" / "my_app" / "domain" / "model" / "order.py"
+    model_file = project_root / "src" / "my_app" / "domain" / "model" / "order"
     result = runner.invoke(app, ["dm", "--name", "order", "--confirm", "--dry-run"], catch_exceptions=False)
     assert result.exit_code == 0
     assert model_file.exists()
@@ -195,3 +195,26 @@ def test_dm_no_args_exits_0() -> None:
 def test_dm_no_args_shows_name_option() -> None:
     result = runner.invoke(app, ["dm"])
     assert "--name" in strip_ansi(result.output)
+
+
+def test_confirm_deletes_gateway(project_root: Path) -> None:
+    runner.invoke(app, ["dm", "--name", "order", "--confirm"], catch_exceptions=False)
+    assert not (project_root / "src" / "my_app" / "domain" / "model" / "order" / "gateways").exists()
+
+
+def test_preview_lists_package_and_tests_dirs(project_root: Path) -> None:
+    result = runner.invoke(app, ["dm", "--name", "order"], catch_exceptions=False)
+    out = result.output.replace("\n", "")
+    assert "domain/model/order" in out
+    assert "src/tests/domain/model/order" in out
+
+
+def test_confirm_deletes_legacy_flat_model(project_root: Path) -> None:
+    model = project_root / "src" / "my_app" / "domain" / "model" / "legacy.py"
+    test = project_root / "src" / "tests" / "domain" / "model" / "test_legacy.py"
+    model.write_text("", encoding="utf-8")
+    test.write_text("", encoding="utf-8")
+    result = runner.invoke(app, ["dm", "--name", "legacy", "--confirm"], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert not model.exists()
+    assert not test.exists()

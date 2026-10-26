@@ -38,7 +38,9 @@ def test_workflow_ca_creates_project(workflow_root: Path) -> None:
 def test_workflow_gm_creates_model(workflow_root: Path) -> None:
     result = runner.invoke(app, ["gm", "--name", "order"], catch_exceptions=False)
     assert result.exit_code == 0
-    assert (workflow_root / "src" / "order_service" / "domain" / "model" / "order.py").exists()
+    model_dir = workflow_root / "src" / "order_service" / "domain" / "model" / "order"
+    assert (model_dir / "order.py").exists()
+    assert (model_dir / "gateways" / "order_repository.py").exists()
 
 
 def test_workflow_guc_creates_use_case(workflow_root: Path) -> None:
