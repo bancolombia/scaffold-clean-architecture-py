@@ -1,5 +1,6 @@
 """Template rendering tests for use_case/ group (T085)."""
 
+import ast
 import importlib.resources
 
 from scaffold_ca_python.core.template_renderer import TemplateRenderer
@@ -44,3 +45,13 @@ def test_test_use_case_imports_class() -> None:
 def test_test_use_case_has_async_test() -> None:
     out = renderer.render_string(_tmpl("use_case/test_use_case.py.jinja2"), _ctx().model_dump())
     assert "async def test_" in out
+
+
+def test_test_use_case_imports_from_usecase_suffixed_module() -> None:
+    out = renderer.render_string(_tmpl("use_case/test_use_case.py.jinja2"), _ctx().model_dump())
+    assert "from my_app.domain.usecase.create_order_usecase import CreateOrderUseCase" in out
+
+
+def test_rendered_templates_are_valid_python() -> None:
+    for name in ("use_case/use_case.py.jinja2", "use_case/test_use_case.py.jinja2"):
+        ast.parse(renderer.render_string(_tmpl(name), _ctx().model_dump()))

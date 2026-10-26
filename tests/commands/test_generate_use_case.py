@@ -34,37 +34,42 @@ def project_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 def test_creates_use_case_file(project_root: Path) -> None:
     result = runner.invoke(app, ["guc", "--name", "create_order"], catch_exceptions=False)
     assert result.exit_code == 0
-    assert (project_root / "src" / "my_app" / "domain" / "usecase" / "create_order.py").exists()
+    assert (project_root / "src" / "my_app" / "domain" / "usecase" / "create_order_usecase.py").exists()
 
 
 def test_creates_test_mirror(project_root: Path) -> None:
     result = runner.invoke(app, ["guc", "--name", "create_order"], catch_exceptions=False)
     assert result.exit_code == 0
-    assert (project_root / "src" / "tests" / "domain" / "usecase" / "test_create_order.py").exists()
+    assert (project_root / "src" / "tests" / "domain" / "usecase" / "test_create_order_usecase.py").exists()
 
 
 def test_use_case_file_contains_async_execute(project_root: Path) -> None:
     runner.invoke(app, ["guc", "--name", "place_order"], catch_exceptions=False)
-    content = (project_root / "src" / "my_app" / "domain" / "usecase" / "place_order.py").read_text()
+    content = (project_root / "src" / "my_app" / "domain" / "usecase" / "place_order_usecase.py").read_text()
     assert "async def execute" in content
 
 
 def test_use_case_file_contains_class(project_root: Path) -> None:
     runner.invoke(app, ["guc", "--name", "place_order"], catch_exceptions=False)
-    content = (project_root / "src" / "my_app" / "domain" / "usecase" / "place_order.py").read_text()
-    assert "PlaceOrder" in content
+    content = (project_root / "src" / "my_app" / "domain" / "usecase" / "place_order_usecase.py").read_text()
+    assert "class PlaceOrderUseCase:" in content
+
+
+def test_success_message_reports_class_name(project_root: Path) -> None:
+    result = runner.invoke(app, ["guc", "--name", "place_order"], catch_exceptions=False)
+    assert "PlaceOrderUseCase" in result.output
 
 
 def test_test_file_contains_pytest_stub(project_root: Path) -> None:
     runner.invoke(app, ["guc", "--name", "place_order"], catch_exceptions=False)
-    content = (project_root / "src" / "tests" / "domain" / "usecase" / "test_place_order.py").read_text()
+    content = (project_root / "src" / "tests" / "domain" / "usecase" / "test_place_order_usecase.py").read_text()
     assert "def test_" in content
 
 
 def test_generate_use_case_alias_works(project_root: Path) -> None:
     result = runner.invoke(app, ["generate-use-case", "--name", "cancel_order"], catch_exceptions=False)
     assert result.exit_code == 0
-    assert (project_root / "src" / "my_app" / "domain" / "usecase" / "cancel_order.py").exists()
+    assert (project_root / "src" / "my_app" / "domain" / "usecase" / "cancel_order_usecase.py").exists()
 
 
 # ---------------------------------------------------------------------------
@@ -75,7 +80,7 @@ def test_generate_use_case_alias_works(project_root: Path) -> None:
 def test_dry_run_writes_nothing(project_root: Path) -> None:
     result = runner.invoke(app, ["guc", "--name", "create_order", "--dry-run"], catch_exceptions=False)
     assert result.exit_code == 0
-    assert not (project_root / "src" / "my_app" / "domain" / "usecase" / "create_order.py").exists()
+    assert not (project_root / "src" / "my_app" / "domain" / "usecase" / "create_order_usecase.py").exists()
 
 
 def test_dry_run_prints_paths(project_root: Path) -> None:

@@ -28,7 +28,7 @@ Single-project CLI: source in `src/scaffold_ca_python/`, CLI tests in `tests/`. 
 
 **Purpose**: Confirm a clean baseline on the feature branch.
 
-- [ ] T001 Confirm the current branch is `feature/usecase-naming-standardization` and run `uv run pytest` from the repo root to record the baseline (all green). Do NOT commit without asking the user.
+- [x] T001 Confirm the current branch is `feature/usecase-naming-standardization` and run `uv run pytest` from the repo root to record the baseline (all green). Do NOT commit without asking the user.
 
 ---
 
@@ -38,8 +38,8 @@ Single-project CLI: source in `src/scaffold_ca_python/`, CLI tests in `tests/`. 
 
 **CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T002 Add parametrized tests for `strip_usecase_suffix` in `tests/core/test_name_utils.py` covering the research R2 table: `book`→`book`, `book_usecase`→`book`, `book_use_case`→`book`, `paper_usecase_usecase`→`paper`, `paper_use_case_usecase`→`paper`, `usecase_registry`→`usecase_registry`, `bookusecase`→`bookusecase`, `usecase`→`""`, `use_case`→`""`, `usecase_usecase`→`""`. Confirm they fail.
-- [ ] T003 Implement `strip_usecase_suffix(name: str) -> str` in `src/scaffold_ca_python/core/name_utils.py`: prefix `_`, remove the regex `(?:_(?:usecase|use_case))+$`, drop the leading `_`. Add a one-line docstring and full type hints. T002 must pass.
+- [x] T002 Add parametrized tests for `strip_usecase_suffix` in `tests/core/test_name_utils.py` covering the research R2 table: `book`→`book`, `book_usecase`→`book`, `book_use_case`→`book`, `paper_usecase_usecase`→`paper`, `paper_use_case_usecase`→`paper`, `usecase_registry`→`usecase_registry`, `bookusecase`→`bookusecase`, `usecase`→`""`, `use_case`→`""`, `usecase_usecase`→`""`. Confirm they fail.
+- [x] T003 Implement `strip_usecase_suffix(name: str) -> str` in `src/scaffold_ca_python/core/name_utils.py`: prefix `_`, remove the regex `(?:_(?:usecase|use_case))+$`, drop the leading `_`. Add a one-line docstring and full type hints. T002 must pass.
 
 **Checkpoint**: Helper ready. User story phases can begin.
 
@@ -53,15 +53,15 @@ Single-project CLI: source in `src/scaffold_ca_python/`, CLI tests in `tests/`. 
 
 ### Tests for User Story 1 (write first, confirm they fail)
 
-- [ ] T004 [P] [US1] In `tests/templates/test_use_case_templates.py`, change `test_test_use_case_imports_class` (or add a test) to assert the rendered test template contains `from my_app.domain.usecase.create_order_usecase import CreateOrderUseCase`. Also add a test asserting `ast.parse(out)` succeeds for both rendered templates (`use_case.py.jinja2` and `test_use_case.py.jinja2`).
-- [ ] T005 [P] [US1] In `tests/factory/simple/test_use_case_factory.py`, change `expected_files` in `test_use_case_files_queued_in_dry_run` to `src_dir / "create_order_usecase.py"` and `test_dir / "test_create_order_usecase.py"`, and update the comment.
-- [ ] T006 [P] [US1] In `tests/commands/test_generate_use_case.py`, update every success-path, alias, and dry-run path to `<base>_usecase.py` / `test_<base>_usecase.py` (`create_order`, `place_order`, `cancel_order`). Add assertions that `place_order_usecase.py` contains `class PlaceOrderUseCase:` and that the success output contains `PlaceOrderUseCase`. Keep the existing error tests (`2Bad`, PascalCase, kebab-case, no project root, no arguments) unchanged: they cover FR-012.
+- [x] T004 [P] [US1] In `tests/templates/test_use_case_templates.py`, change `test_test_use_case_imports_class` (or add a test) to assert the rendered test template contains `from my_app.domain.usecase.create_order_usecase import CreateOrderUseCase`. Also add a test asserting `ast.parse(out)` succeeds for both rendered templates (`use_case.py.jinja2` and `test_use_case.py.jinja2`).
+- [x] T005 [P] [US1] In `tests/factory/simple/test_use_case_factory.py`, change `expected_files` in `test_use_case_files_queued_in_dry_run` to `src_dir / "create_order_usecase.py"` and `test_dir / "test_create_order_usecase.py"`, and update the comment.
+- [x] T006 [P] [US1] In `tests/commands/test_generate_use_case.py`, update every success-path, alias, and dry-run path to `<base>_usecase.py` / `test_<base>_usecase.py` (`create_order`, `place_order`, `cancel_order`). Add assertions that `place_order_usecase.py` contains `class PlaceOrderUseCase:` and that the success output contains `PlaceOrderUseCase`. Keep the existing error tests (`2Bad`, PascalCase, kebab-case, no project root, no arguments) unchanged: they cover FR-012.
 
 ### Implementation for User Story 1
 
-- [ ] T007 [P] [US1] In `src/scaffold_ca_python/templates/use_case/test_use_case.py.jinja2`, change the import to `from {{ project.python_package }}.domain.usecase.{{ module_name }}_usecase import {{ class_name }}UseCase`. Leave `use_case.py.jinja2` unchanged. T004 must pass.
-- [ ] T008 [P] [US1] In `src/scaffold_ca_python/factory/simple/use_case_factory.py`, write `src_dir / f"{snake_name}_usecase.py"` and `test_dir / f"test_{snake_name}_usecase.py"`, and update the `build` docstring paths. T005 must pass.
-- [ ] T009 [US1] In `src/scaffold_ca_python/commands/generate_use_case.py`, compute `base = strip_usecase_suffix(to_snake_case(name))` after `validate_name_or_exit`. Build `ModuleContext(name=base, ...)`, and set `src_path` for `ensure_absent` to `.../domain/usecase/f"{base}_usecase.py"`. The success message keeps `{module_ctx.class_name}UseCase`. T006 must pass (depends on T003, T007, T008).
+- [x] T007 [P] [US1] In `src/scaffold_ca_python/templates/use_case/test_use_case.py.jinja2`, change the import to `from {{ project.python_package }}.domain.usecase.{{ module_name }}_usecase import {{ class_name }}UseCase`. Leave `use_case.py.jinja2` unchanged. T004 must pass.
+- [x] T008 [P] [US1] In `src/scaffold_ca_python/factory/simple/use_case_factory.py`, write `src_dir / f"{snake_name}_usecase.py"` and `test_dir / f"test_{snake_name}_usecase.py"`, and update the `build` docstring paths. T005 must pass.
+- [x] T009 [US1] In `src/scaffold_ca_python/commands/generate_use_case.py`, compute `base = strip_usecase_suffix(to_snake_case(name))` after `validate_name_or_exit`. Build `ModuleContext(name=base, ...)`, and set `src_path` for `ensure_absent` to `.../domain/usecase/f"{base}_usecase.py"`. The success message keeps `{module_ctx.class_name}UseCase`. T006 must pass (depends on T003, T007, T008).
 
 **Checkpoint**: US1 works on its own. `guc --name create_order` yields `create_order_usecase.py` / `CreateOrderUseCase`.
 

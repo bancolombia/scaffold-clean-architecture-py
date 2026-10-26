@@ -9,6 +9,9 @@ NAME_RE = re.compile(r"^[a-z][a-z0-9]*([_-][a-z0-9]+)*$")
 # Stricter pattern for module/class-generating commands: snake_case only (no hyphens).
 MODULE_NAME_RE = re.compile(r"^[a-z][a-z0-9]*(_[a-z0-9]+)*$")
 
+# Trailing use case suffixes (applied to "_" + name so a bare "usecase" also matches)
+_USECASE_SUFFIX_RE = re.compile(r"(?:_(?:usecase|use_case))+$")
+
 # Matches transitions: lowercase→uppercase and letter→digit boundary runs
 _CAMEL_BOUNDARY_RE = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
 
@@ -48,6 +51,11 @@ def to_snake_case(name: str) -> str:
     # Insert underscores at camelCase / PascalCase boundaries first
     s = _CAMEL_BOUNDARY_RE.sub("_", name)
     return s.lower()
+
+
+def strip_usecase_suffix(name: str) -> str:
+    """Remove every trailing ``_usecase`` / ``_use_case`` suffix from *name* (may return an empty string)."""
+    return _USECASE_SUFFIX_RE.sub("", f"_{name}").removeprefix("_")
 
 
 def to_kebab_case(name: str) -> str:

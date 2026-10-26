@@ -15,7 +15,7 @@ from scaffold_ca_python.commands._shared import (
     validate_name_or_exit,
 )
 from scaffold_ca_python.core.module_builder import ModuleBuilder
-from scaffold_ca_python.core.name_utils import to_snake_case, validate_module_name
+from scaffold_ca_python.core.name_utils import strip_usecase_suffix, to_snake_case, validate_module_name
 from scaffold_ca_python.core.project_detector import load_project_context
 from scaffold_ca_python.factory.simple.use_case_factory import UseCaseFactory
 from scaffold_ca_python.models.context import ModuleContext
@@ -31,10 +31,11 @@ def _generate_use_case_impl(name: str, dry_run: bool) -> None:
     validate_name_or_exit(name, validate_module_name)
     project_root = require_project_root()
     project_ctx = load_project_context(project_root)
-    module_ctx = ModuleContext(name=name, layer=Layer.DOMAIN_USECASE, project=project_ctx)
+    base = strip_usecase_suffix(to_snake_case(name))
+    module_ctx = ModuleContext(name=base, layer=Layer.DOMAIN_USECASE, project=project_ctx)
 
-    snake = to_snake_case(name)
-    src_path = project_root / "src" / project_ctx.python_package / "domain" / "usecase" / f"{snake}.py"
+    snake = base
+    src_path = project_root / "src" / project_ctx.python_package / "domain" / "usecase" / f"{snake}_usecase.py"
     ensure_absent(
         src_path,
         project_root,

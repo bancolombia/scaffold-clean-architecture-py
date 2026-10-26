@@ -19,8 +19,8 @@ class UseCaseFactory(ModuleFactory):
         """Build domain use case files.
 
         Queues files:
-        - src/domain/usecase/{snake_name}.py
-        - tests/domain/usecase/test_{snake_name}.py
+        - src/domain/usecase/{snake_name}_usecase.py
+        - tests/domain/usecase/test_{snake_name}_usecase.py
 
         No dependencies injected (async/await are built-in).
         """
@@ -45,14 +45,14 @@ class UseCaseFactory(ModuleFactory):
 
         # Add source file
         builder.add_file(
-            src_dir / f"{snake_name}.py",
+            src_dir / f"{snake_name}_usecase.py",
             builder.render(f"{base}/use_case.py.jinja2", ctx_dict),
             template_name=f"{base}/use_case.py.jinja2",
         )
 
         # Add test file
         builder.add_file(
-            test_dir / f"test_{snake_name}.py",
+            test_dir / f"test_{snake_name}_usecase.py",
             builder.render(f"{base}/test_use_case.py.jinja2", ctx_dict),
             template_name=f"{base}/test_use_case.py.jinja2",
             is_test=True,

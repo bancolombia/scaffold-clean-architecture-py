@@ -44,15 +44,15 @@ def test_use_case_files_queued_in_dry_run(tmp_path: Path) -> None:
     preview = builder.persist()
 
     # Verify all use case files are queued:
-    # - src: create_order.py (snake_case from "CreateOrder")
-    # - tests: test_create_order.py
+    # - src: create_order_usecase.py
+    # - tests: test_create_order_usecase.py
 
     src_dir = tmp_path / "src" / "ms_demo" / "domain" / "usecase"
     test_dir = tmp_path / "src" / "tests" / "domain" / "usecase"
 
     expected_files = [
-        src_dir / "create_order.py",
-        test_dir / "test_create_order.py",
+        src_dir / "create_order_usecase.py",
+        test_dir / "test_create_order_usecase.py",
     ]
 
     for expected in expected_files:
