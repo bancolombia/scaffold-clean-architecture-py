@@ -51,9 +51,14 @@ def test_model_files_queued_in_dry_run(tmp_path: Path) -> None:
     test_dir = tmp_path / "src" / "tests" / "domain" / "model"
 
     expected_files = [
-        src_dir / "order.py",
-        test_dir / "test_order.py",
+        src_dir / "order" / "__init__.py",
+        src_dir / "order" / "order.py",
+        src_dir / "order" / "gateways" / "__init__.py",
+        src_dir / "order" / "gateways" / "order_repository.py",
+        test_dir / "order" / "test_order.py",
+        test_dir / "order" / "gateways" / "test_order_repository.py",
     ]
+    assert len(preview) == 6
 
     for expected in expected_files:
         assert expected in preview, f"Expected {expected.relative_to(tmp_path)} in preview"

@@ -10,13 +10,19 @@ from scaffold_ca_python.core.project_detector import resolve_tests_root
 def find_module_targets(project_root: Path, pkg: str, snake: str) -> list[tuple[Path, Path | None]]:
     """Return ``(src_path, test_path | None)`` pairs for every match of *snake*.
 
-    Searches in order: domain/model, domain/usecase, driven_adapters,
+    Searches in order: domain/model/<snake>/ (package), domain/model/<snake>.py (legacy flat),
+    domain/usecase, driven_adapters,
     entry_points, helpers.
     """
     src_root = project_root / "src" / pkg
     tests_root = resolve_tests_root(project_root)
 
     candidates: list[tuple[Path, Path | None]] = []
+
+    model_pkg = src_root / "domain" / "model" / snake
+    if model_pkg.is_dir():
+        model_pkg_test = tests_root / "domain" / "model" / snake
+        candidates.append((model_pkg, model_pkg_test if model_pkg_test.exists() else None))
 
     for src_rel, test_rel in [
         (src_root / "domain" / "model" / f"{snake}.py", tests_root / "domain" / "model" / f"test_{snake}.py"),

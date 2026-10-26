@@ -1,0 +1,9 @@
+"""Tests for {{ class_name }}Repository gateway."""
+
+from abc import ABC
+
+from {{ project.python_package }}.domain.model.{{ module_name }}.gateways.{{ module_name }}_repository import {{ class_name }}Repository
+
+
+def test_{{ module_name }}_repository_is_abstract_contract() -> None:
+    assert issubclass({{ class_name }}Repository, ABC)

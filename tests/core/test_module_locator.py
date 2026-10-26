@@ -60,3 +60,31 @@ def test_search_order_model_first(tmp_path: Path) -> None:
     results = find_module_targets(root, "my_proj", "thing")
     assert len(results) >= 1
     assert results[0][0] == model_file
+
+
+def test_model_package_returns_dirs(tmp_path: Path) -> None:
+    root = _make_project(tmp_path)
+    pkg_dir = root / "src" / "my_proj" / "domain" / "model" / "order"
+    tests_dir = root / "tests" / "domain" / "model" / "order"
+    pkg_dir.mkdir()
+    tests_dir.mkdir(parents=True)
+
+    assert (pkg_dir, tests_dir) in find_module_targets(root, "my_proj", "order")
+
+
+def test_model_package_without_tests_returns_none(tmp_path: Path) -> None:
+    root = _make_project(tmp_path)
+    pkg_dir = root / "src" / "my_proj" / "domain" / "model" / "order"
+    pkg_dir.mkdir()
+
+    assert (pkg_dir, None) in find_module_targets(root, "my_proj", "order")
+
+
+def test_model_package_listed_before_legacy_flat(tmp_path: Path) -> None:
+    root = _make_project(tmp_path)
+    model_dir = root / "src" / "my_proj" / "domain" / "model"
+    (model_dir / "order").mkdir()
+    (model_dir / "order.py").touch()
+
+    results = find_module_targets(root, "my_proj", "order")
+    assert results[0][0] == model_dir / "order"
