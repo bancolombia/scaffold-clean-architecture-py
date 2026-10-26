@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/bancolombia/scaffold-clean-architecture-py/compare/v0.2.1...v0.3.0) (2026-10-26)
+
+
+### Features
+
+* **model:** generate domain gateways alongside models ([df23f44](https://github.com/bancolombia/scaffold-clean-architecture-py/commit/df23f4400ae53dbb8070379609d5eeba2399e016))
+
 ## [0.2.1](https://github.com/bancolombia/scaffold-clean-architecture-py/compare/v0.2.0...v0.2.1) (2026-10-23)
 
 
