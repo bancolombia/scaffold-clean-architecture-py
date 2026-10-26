@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/bancolombia/scaffold-clean-architecture-py/compare/v0.3.0...v0.4.0) (2026-10-26)
+
+
+### Features
+
+* **usecase:** standardize generated use-case module names ([74a19b2](https://github.com/bancolombia/scaffold-clean-architecture-py/commit/74a19b20a448aff780e6439b2814541480ba1111))
+
 ## [0.3.0](https://github.com/bancolombia/scaffold-clean-architecture-py/compare/v0.2.1...v0.3.0) (2026-10-26)
 
 
