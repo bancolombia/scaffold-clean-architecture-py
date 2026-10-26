@@ -4,6 +4,7 @@ import pytest
 
 from scaffold_ca_python.core.name_utils import (
     ScaffoldError,
+    strip_usecase_suffix,
     to_kebab_case,
     to_pascal_case,
     to_snake_case,
@@ -195,3 +196,27 @@ def test_validate_module_name_rejects_pascal_case() -> None:
 def test_validate_module_name_rejects_camel_case() -> None:
     with pytest.raises(ScaffoldError, match="snake_case"):
         validate_module_name("createOrder")
+
+
+# ---------------------------------------------------------------------------
+# strip_usecase_suffix
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("book", "book"),
+        ("book_usecase", "book"),
+        ("book_use_case", "book"),
+        ("paper_usecase_usecase", "paper"),
+        ("paper_use_case_usecase", "paper"),
+        ("usecase_registry", "usecase_registry"),
+        ("bookusecase", "bookusecase"),
+        ("usecase", ""),
+        ("use_case", ""),
+        ("usecase_usecase", ""),
+    ],
+)
+def test_strip_usecase_suffix(raw: str, expected: str) -> None:
+    assert strip_usecase_suffix(raw) == expected

@@ -88,3 +88,50 @@ def test_model_package_listed_before_legacy_flat(tmp_path: Path) -> None:
 
     results = find_module_targets(root, "my_proj", "order")
     assert results[0][0] == model_dir / "order"
+
+
+def _usecase_files(root: Path, name: str) -> tuple[Path, Path]:
+    src = root / "src" / "my_proj" / "domain" / "usecase" / f"{name}.py"
+    test = root / "tests" / "domain" / "usecase" / f"test_{name}.py"
+    src.parent.mkdir(parents=True, exist_ok=True)
+    test.parent.mkdir(parents=True, exist_ok=True)
+    src.touch()
+    test.touch()
+    return src, test
+
+
+def test_usecase_found_by_base_and_suffixed_name(tmp_path: Path) -> None:
+    root = _make_project(tmp_path)
+    pair = _usecase_files(root, "book_usecase")
+
+    assert pair in find_module_targets(root, "my_proj", "book")
+    assert pair in find_module_targets(root, "my_proj", "book_usecase")
+
+
+def test_usecase_listed_once_for_suffixed_name(tmp_path: Path) -> None:
+    root = _make_project(tmp_path)
+    src, _ = _usecase_files(root, "book_usecase")
+
+    results = find_module_targets(root, "my_proj", "book_usecase")
+    assert [s for s, _t in results].count(src) == 1
+
+
+def test_usecase_both_layouts_new_first(tmp_path: Path) -> None:
+    root = _make_project(tmp_path)
+    new = _usecase_files(root, "book_usecase")
+    legacy = _usecase_files(root, "book")
+
+    results = find_module_targets(root, "my_proj", "book")
+    assert results[:2] == [new, legacy]
+
+
+def test_legacy_usecase_still_found(tmp_path: Path) -> None:
+    root = _make_project(tmp_path)
+    legacy = _usecase_files(root, "book")
+
+    assert find_module_targets(root, "my_proj", "book") == [legacy]
+
+
+def test_suffix_only_name_returns_empty(tmp_path: Path) -> None:
+    root = _make_project(tmp_path)
+    assert find_module_targets(root, "my_proj", "usecase") == []

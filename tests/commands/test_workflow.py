@@ -46,7 +46,7 @@ def test_workflow_gm_creates_model(workflow_root: Path) -> None:
 def test_workflow_guc_creates_use_case(workflow_root: Path) -> None:
     result = runner.invoke(app, ["guc", "--name", "create_order"], catch_exceptions=False)
     assert result.exit_code == 0
-    assert (workflow_root / "src" / "order_service" / "domain" / "usecase" / "create_order.py").exists()
+    assert (workflow_root / "src" / "order_service" / "domain" / "usecase" / "create_order_usecase.py").exists()
 
 
 def test_workflow_gda_creates_adapter(workflow_root: Path) -> None:

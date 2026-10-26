@@ -68,9 +68,9 @@ def test_gm_performance(benchmark: pytest.fixture, bench_project: Path) -> None:
 
 def test_guc_performance(benchmark: pytest.fixture, bench_project: Path) -> None:  # type: ignore[type-arg]
     def run() -> None:
-        runner.invoke(app, ["guc", "--name", "PerfCase"], catch_exceptions=False)
-        src = bench_project / "src" / "bench_app" / "domain" / "usecase" / "perf_case.py"
-        test = bench_project / "src" / "tests" / "domain" / "usecase" / "test_perf_case.py"
+        runner.invoke(app, ["guc", "--name", "perf"], catch_exceptions=False)
+        src = bench_project / "src" / "bench_app" / "domain" / "usecase" / "perf_usecase.py"
+        test = bench_project / "src" / "tests" / "domain" / "usecase" / "test_perf_usecase.py"
         src.unlink(missing_ok=True)
         test.unlink(missing_ok=True)
 

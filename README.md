@@ -97,7 +97,7 @@ scaffold gm --name order --dry-run
 
 ### scaffold guc
 
-Scaffold a use case in `domain/usecase/`.
+Scaffold a use case in `domain/usecase/`. The module is always named `<name>_usecase.py` and the class `<Name>UseCase`. Writing `_usecase` in `--name` is optional and the suffix is never duplicated: `create_order`, `create_order_usecase` and `create_order_use_case` all create `create_order_usecase.py` with `CreateOrderUseCase`.
 
 ```bash
 scaffold guc --name create_order

@@ -10,43 +10,53 @@ from scaffold_ca_python.commands._shared import (
     build_and_persist,
     console,
     ensure_absent,
+    fail,
     print_dry_run_tree,
     require_project_root,
     validate_name_or_exit,
 )
 from scaffold_ca_python.core.module_builder import ModuleBuilder
-from scaffold_ca_python.core.name_utils import to_snake_case, validate_module_name
-from scaffold_ca_python.core.project_detector import load_project_context
+from scaffold_ca_python.core.name_utils import strip_usecase_suffix, to_snake_case, validate_module_name
+from scaffold_ca_python.core.project_detector import load_project_context, resolve_tests_root
 from scaffold_ca_python.factory.simple.use_case_factory import UseCaseFactory
 from scaffold_ca_python.models.context import ModuleContext
 from scaffold_ca_python.models.layer import Layer
 
 _GUC_HELP = "Scaffold a use case in domain/usecase/. Alias 'guc'."
 _GUC_EPILOG = (
-    "Example:\n\n  * scaffold guc --name create_order\n\n  * scaffold generate-use-case --name create_order\n\n"
+    "Example:\n\n  * scaffold guc --name create_order   (creates domain/usecase/create_order_usecase.py)\n\n"
+    "  * scaffold generate-use-case --name create_order\n\n"
 )
 
 
 def _generate_use_case_impl(name: str, dry_run: bool) -> None:
     validate_name_or_exit(name, validate_module_name)
+    base = strip_usecase_suffix(to_snake_case(name))
+    if not base:
+        fail(
+            f"Use case name '{name}' is only the 'usecase' suffix.",
+            hint="Use a descriptive name such as 'create_order'.",
+        )
     project_root = require_project_root()
     project_ctx = load_project_context(project_root)
-    module_ctx = ModuleContext(name=name, layer=Layer.DOMAIN_USECASE, project=project_ctx)
+    module_ctx = ModuleContext(name=base, layer=Layer.DOMAIN_USECASE, project=project_ctx)
 
-    snake = to_snake_case(name)
-    src_path = project_root / "src" / project_ctx.python_package / "domain" / "usecase" / f"{snake}.py"
-    ensure_absent(
-        src_path,
-        project_root,
-        kind="File",
-        hint="Choose a different name or remove the existing file first.",
-    )
+    module = f"{base}_usecase"
+    src_path = project_root / "src" / project_ctx.python_package / "domain" / "usecase" / f"{module}.py"
+    test_path = resolve_tests_root(project_root) / "domain" / "usecase" / f"test_{module}.py"
+    for path in (src_path, test_path):
+        ensure_absent(
+            path,
+            project_root,
+            kind="File",
+            hint="Choose a different name or remove the existing file first.",
+        )
 
     builder = ModuleBuilder(project_root=project_root, project_ctx=project_ctx, module_ctx=module_ctx, dry_run=dry_run)
     created = build_and_persist(UseCaseFactory(), builder)
 
     if dry_run:
-        print_dry_run_tree(snake, created, project_root)
+        print_dry_run_tree(module, created, project_root)
         return
 
     msg = (
