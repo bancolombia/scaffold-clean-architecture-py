@@ -218,3 +218,71 @@ def test_confirm_deletes_legacy_flat_model(project_root: Path) -> None:
     assert result.exit_code == 0
     assert not model.exists()
     assert not test.exists()
+
+
+# ---------------------------------------------------------------------------
+# Use cases generated with the _usecase convention (feature 026)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture()
+def project_root_with_use_case(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["ca", "--name", "my-app"], catch_exceptions=False)
+    project_dir = tmp_path / "my-app"
+    monkeypatch.chdir(project_dir)
+    runner.invoke(app, ["guc", "--name", "book"], catch_exceptions=False)
+    return project_dir
+
+
+def _uc_paths(root: Path) -> tuple[Path, Path]:
+    return (
+        root / "src" / "my_app" / "domain" / "usecase" / "book_usecase.py",
+        root / "src" / "tests" / "domain" / "usecase" / "test_book_usecase.py",
+    )
+
+
+@pytest.mark.parametrize("name", ["book", "book_usecase"])
+def test_confirm_deletes_use_case_by_either_name(project_root_with_use_case: Path, name: str) -> None:
+    src, test = _uc_paths(project_root_with_use_case)
+    result = runner.invoke(app, ["dm", "--name", name, "--confirm"], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert not src.exists()
+    assert not test.exists()
+
+
+def test_use_case_preview_lists_both_and_keeps_files(project_root_with_use_case: Path) -> None:
+    src, test = _uc_paths(project_root_with_use_case)
+    result = runner.invoke(app, ["dm", "--name", "book"], catch_exceptions=False)
+    out = strip_ansi(result.output)
+    assert "book_usecase.py" in out
+    assert "test_book_usecase.py" in out
+    assert src.exists()
+    assert test.exists()
+
+
+def test_both_layouts_are_listed_and_removed(project_root_with_use_case: Path) -> None:
+    root = project_root_with_use_case
+    legacy_src = root / "src" / "my_app" / "domain" / "usecase" / "book.py"
+    legacy_test = root / "src" / "tests" / "domain" / "usecase" / "test_book.py"
+    legacy_src.write_text("")
+    legacy_test.write_text("")
+    preview = strip_ansi(runner.invoke(app, ["dm", "--name", "book"], catch_exceptions=False).output)
+    for name in ("book_usecase.py", "test_book_usecase.py", "test_book.py"):
+        assert name in preview
+    assert "usecase/book.py" in preview
+
+    runner.invoke(app, ["dm", "--name", "book", "--confirm"], catch_exceptions=False)
+    src, test = _uc_paths(root)
+    assert not any(p.exists() for p in (src, test, legacy_src, legacy_test))
+
+
+def test_preview_lists_model_and_use_case_sharing_a_name(project_root_with_use_case: Path) -> None:
+    root = project_root_with_use_case
+    runner.invoke(app, ["gm", "--name", "book"], catch_exceptions=False)
+    result = runner.invoke(app, ["dm", "--name", "book"], catch_exceptions=False)
+    out = strip_ansi(result.output)
+    assert "domain/model/book" in out
+    assert "book_usecase.py" in out
+    assert (root / "src" / "my_app" / "domain" / "model" / "book").exists()
+    assert _uc_paths(root)[0].exists()

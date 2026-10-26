@@ -22,7 +22,7 @@ class DeleteModuleFactory(ModuleFactory):
 
         Finds and deletes modules across:
         - domain/model/<snake>/ (package) or domain/model/<snake>.py (legacy)
-        - domain/usecase/<snake>.py
+        - domain/usecase/<base>_usecase.py or domain/usecase/<snake>.py (legacy)
         - infrastructure/driven_adapters/<snake>/
         - infrastructure/entry_points/<snake>/
         - infrastructure/helpers/<snake>/

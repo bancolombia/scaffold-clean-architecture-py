@@ -135,3 +135,111 @@ def test_guc_no_args_exits_0() -> None:
 def test_guc_no_args_shows_name_option() -> None:
     result = runner.invoke(app, ["guc"])
     assert "--name" in strip_ansi(result.output)
+
+
+# ---------------------------------------------------------------------------
+# US2: suffix is never duplicated (T010)
+# ---------------------------------------------------------------------------
+
+
+def test_all_spellings_produce_identical_output(project_root: Path) -> None:
+    src = project_root / "src" / "my_app" / "domain" / "usecase" / "book_usecase.py"
+    test = project_root / "src" / "tests" / "domain" / "usecase" / "test_book_usecase.py"
+    collected: list[tuple[str, str]] = []
+    for spelling in ("book", "book_usecase", "book_use_case", "book_usecase_usecase", "book_use_case_usecase"):
+        result = runner.invoke(app, ["guc", "--name", spelling], catch_exceptions=False)
+        assert result.exit_code == 0
+        content = src.read_text()
+        assert "class BookUseCase:" in content
+        assert "BookUsecaseUseCase" not in content
+        collected.append((content, test.read_text()))
+        src.unlink()
+        test.unlink()
+    assert all(pair == collected[0] for pair in collected)
+
+
+def test_suffixed_name_creates_single_suffix_module(project_root: Path) -> None:
+    result = runner.invoke(app, ["guc", "--name", "create_order_usecase"], catch_exceptions=False)
+    assert result.exit_code == 0
+    path = project_root / "src" / "my_app" / "domain" / "usecase" / "create_order_usecase.py"
+    assert "class CreateOrderUseCase:" in path.read_text()
+
+
+def test_suffix_word_elsewhere_is_preserved(project_root: Path) -> None:
+    result = runner.invoke(app, ["guc", "--name", "usecase_registry"], catch_exceptions=False)
+    assert result.exit_code == 0
+    path = project_root / "src" / "my_app" / "domain" / "usecase" / "usecase_registry_usecase.py"
+    assert "class UsecaseRegistryUseCase:" in path.read_text()
+
+
+@pytest.mark.parametrize("name", ["usecase", "use_case", "usecase_usecase"])
+def test_suffix_only_name_exits_1(project_root: Path, name: str) -> None:
+    result = runner.invoke(app, ["guc", "--name", name])
+    out = strip_ansi(result.output)
+    assert result.exit_code == 1
+    assert "is only the 'usecase' suffix" in out
+    assert "create_order" in out
+    assert not list((project_root / "src" / "my_app" / "domain" / "usecase").glob("*_usecase.py"))
+
+
+# ---------------------------------------------------------------------------
+# US3: dry-run and conflict detection use the normalized name (T012)
+# ---------------------------------------------------------------------------
+
+
+def _usecase_dir(root: Path) -> Path:
+    return root / "src" / "my_app" / "domain" / "usecase"
+
+
+def test_dry_run_with_suffixed_name_lists_normalized_paths(project_root: Path) -> None:
+    result = runner.invoke(app, ["guc", "--name", "create_order_usecase", "--dry-run"], catch_exceptions=False)
+    out = strip_ansi(result.output)
+    assert result.exit_code == 0
+    assert "create_order_usecase (dry run)" in out
+    assert "create_order_usecase.py" in out
+    assert "test_create_order_usecase.py" in out
+    assert "create_order_usecase_usecase" not in out
+    assert not (_usecase_dir(project_root) / "create_order_usecase.py").exists()
+
+
+def test_dry_run_paths_match_real_run(project_root: Path) -> None:
+    dry = strip_ansi(runner.invoke(app, ["guc", "--name", "create_order", "--dry-run"]).output)
+    runner.invoke(app, ["guc", "--name", "create_order"], catch_exceptions=False)
+    created = [
+        _usecase_dir(project_root) / "create_order_usecase.py",
+        project_root / "src" / "tests" / "domain" / "usecase" / "test_create_order_usecase.py",
+    ]
+    assert all(p.exists() for p in created)
+    assert all(p.name in dry for p in created)
+
+
+@pytest.mark.parametrize("again", ["create_order", "create_order_usecase", "create_order_use_case"])
+def test_existing_use_case_blocks_every_spelling(project_root: Path, again: str) -> None:
+    runner.invoke(app, ["guc", "--name", "create_order"], catch_exceptions=False)
+    path = _usecase_dir(project_root) / "create_order_usecase.py"
+    path.write_text("# edited\n")
+    result = runner.invoke(app, ["guc", "--name", again])
+    assert result.exit_code == 1
+    assert "already exists" in " ".join(strip_ansi(result.output).split())
+    assert path.read_text() == "# edited\n"
+
+
+def test_existing_test_file_blocks_generation(project_root: Path) -> None:
+    test_file = project_root / "src" / "tests" / "domain" / "usecase" / "test_create_order_usecase.py"
+    test_file.parent.mkdir(parents=True, exist_ok=True)
+    test_file.write_text("# mine\n")
+    result = runner.invoke(app, ["guc", "--name", "create_order"])
+    assert result.exit_code == 1
+    assert "already exists" in " ".join(strip_ansi(result.output).split())
+    assert not (_usecase_dir(project_root) / "create_order_usecase.py").exists()
+    assert test_file.read_text() == "# mine\n"
+
+
+def test_legacy_file_is_ignored(project_root: Path) -> None:
+    legacy = _usecase_dir(project_root) / "create_order.py"
+    legacy.write_text("# legacy\n")
+    result = runner.invoke(app, ["guc", "--name", "create_order"], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert "legacy" not in strip_ansi(result.output).lower().replace("# legacy", "")
+    assert (_usecase_dir(project_root) / "create_order_usecase.py").exists()
+    assert legacy.read_text() == "# legacy\n"

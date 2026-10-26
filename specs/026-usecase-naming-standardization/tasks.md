@@ -75,7 +75,7 @@ Single-project CLI: source in `src/scaffold_ca_python/`, CLI tests in `tests/`. 
 
 ### Tests for User Story 2 (write first, confirm they fail)
 
-- [ ] T010 [US2] Add tests to `tests/commands/test_generate_use_case.py`:
+- [x] T010 [US2] Add tests to `tests/commands/test_generate_use_case.py`:
   - one test `test_all_spellings_produce_identical_output`: for each of `book`, `book_usecase`, `book_use_case`, `book_usecase_usecase`, `book_use_case_usecase` in turn, run `guc`, read `book_usecase.py` and `test_book_usecase.py`, assert `class BookUseCase:` is present and `BookUsecaseUseCase` is absent, then delete both files. After the loop, assert every collected pair of contents is identical (FR-006, SC-002).
   - `create_order_usecase` produces `create_order_usecase.py` / `CreateOrderUseCase`.
   - `usecase_registry` produces `usecase_registry_usecase.py` / `UsecaseRegistryUseCase`.
@@ -83,7 +83,7 @@ Single-project CLI: source in `src/scaffold_ca_python/`, CLI tests in `tests/`. 
 
 ### Implementation for User Story 2
 
-- [ ] T011 [US2] In `src/scaffold_ca_python/commands/generate_use_case.py`, right after computing `base` and before `require_project_root()`, call `fail(f"Use case name '{name}' is only the 'usecase' suffix.", hint="Use a descriptive name such as 'create_order'.")` when `base` is empty. Import `fail` from `scaffold_ca_python.commands._shared`. T010 must pass.
+- [x] T011 [US2] In `src/scaffold_ca_python/commands/generate_use_case.py`, right after computing `base` and before `require_project_root()`, call `fail(f"Use case name '{name}' is only the 'usecase' suffix.", hint="Use a descriptive name such as 'create_order'.")` when `base` is empty. Import `fail` from `scaffold_ca_python.commands._shared`. T010 must pass.
 
 **Checkpoint**: US1 and US2 both pass. No input produces a doubled suffix.
 
@@ -97,7 +97,7 @@ Single-project CLI: source in `src/scaffold_ca_python/`, CLI tests in `tests/`. 
 
 ### Tests for User Story 3 (write first, confirm they fail)
 
-- [ ] T012 [US3] Add tests to `tests/commands/test_generate_use_case.py`:
+- [x] T012 [US3] Add tests to `tests/commands/test_generate_use_case.py`:
   - `guc --name create_order_usecase --dry-run` exits 0, the output contains the tree title `create_order_usecase (dry run)`, `create_order_usecase.py`, and `test_create_order_usecase.py`, and not `create_order_usecase_usecase`, and nothing is written.
   - the dry-run path list equals the set of files a real run then creates (FR-010, SC-005).
   - after `guc --name create_order`, each of `create_order`, `create_order_usecase`, `create_order_use_case` exits 1 with `already exists` in the output, and the existing file content is unchanged (FR-009, SC-006).
@@ -106,7 +106,7 @@ Single-project CLI: source in `src/scaffold_ca_python/`, CLI tests in `tests/`. 
 
 ### Implementation for User Story 3
 
-- [ ] T013 [US3] In `src/scaffold_ca_python/commands/generate_use_case.py`, change the dry-run call to `print_dry_run_tree(f"{base}_usecase", created, project_root)`. Confirm the conflict check from T009 already uses `<base>_usecase.py`. Add a second `ensure_absent` call for `resolve_tests_root(project_root) / "domain" / "usecase" / f"test_{base}_usecase.py"` with the same hint (import `resolve_tests_root` from `scaffold_ca_python.core.project_detector`). T012 must pass.
+- [x] T013 [US3] In `src/scaffold_ca_python/commands/generate_use_case.py`, change the dry-run call to `print_dry_run_tree(f"{base}_usecase", created, project_root)`. Confirm the conflict check from T009 already uses `<base>_usecase.py`. Add a second `ensure_absent` call for `resolve_tests_root(project_root) / "domain" / "usecase" / f"test_{base}_usecase.py"` with the same hint (import `resolve_tests_root` from `scaffold_ca_python.core.project_detector`). T012 must pass.
 
 **Checkpoint**: US1 to US3 pass. Preview and conflict checks agree with the generated names.
 
@@ -120,13 +120,13 @@ Single-project CLI: source in `src/scaffold_ca_python/`, CLI tests in `tests/`. 
 
 ### Tests for User Story 4 (write first, confirm they fail)
 
-- [ ] T014 [P] [US4] Add tests to `tests/core/test_module_locator.py` (use `_make_project`, which has no `domain/usecase` folder, so create it):
+- [x] T014 [P] [US4] Add tests to `tests/core/test_module_locator.py` (use `_make_project`, which has no `domain/usecase` folder, so create it):
   - `<base>_usecase.py` plus `tests/domain/usecase/test_<base>_usecase.py` are found for `snake="book"` and for `snake="book_usecase"`.
   - for `snake="book_usecase"`, the result contains `book_usecase.py` exactly once (dedupe).
   - with both `book.py` and `book_usecase.py` present, `snake="book"` returns both, with `book_usecase.py` first.
   - a legacy `book.py` alone is still found for `snake="book"`.
   - `snake="usecase"` with no files returns `[]` (empty base skipped).
-- [ ] T015 [P] [US4] Add tests to `tests/commands/test_delete_module.py` with a new fixture `project_root_with_use_case` that runs `ca --name my-app` and `guc --name book`:
+- [x] T015 [P] [US4] Add tests to `tests/commands/test_delete_module.py` with a new fixture `project_root_with_use_case` that runs `ca --name my-app` and `guc --name book`:
   - `dm --name book --confirm` and `dm --name book_usecase --confirm` each remove `src/my_app/domain/usecase/book_usecase.py` and `src/tests/domain/usecase/test_book_usecase.py`.
   - `dm --name book` without `--confirm` lists both paths and removes nothing.
   - with an extra legacy `book.py` and `test_book.py` written by the test, `dm --name book` lists all 4 files, and `--confirm` removes all 4 (FR-014a).
@@ -134,8 +134,8 @@ Single-project CLI: source in `src/scaffold_ca_python/`, CLI tests in `tests/`. 
 
 ### Implementation for User Story 4
 
-- [ ] T016 [US4] In `src/scaffold_ca_python/core/module_locator.py`, compute `base = strip_usecase_suffix(snake)`. When `base` is non-empty, add the candidate `(domain/usecase/f"{base}_usecase.py", tests/domain/usecase/f"test_{base}_usecase.py")` before the existing `domain/usecase/f"{snake}.py"` candidate, and skip the legacy candidate when its path equals the new one. Update the module docstring. T014 and T015 must pass.
-- [ ] T017 [P] [US4] In `src/scaffold_ca_python/factory/simple/delete_module_factory.py`, update the `build` docstring line to `domain/usecase/<base>_usecase.py or domain/usecase/<snake>.py (legacy)`. No logic change.
+- [x] T016 [US4] In `src/scaffold_ca_python/core/module_locator.py`, compute `base = strip_usecase_suffix(snake)`. When `base` is non-empty, add the candidate `(domain/usecase/f"{base}_usecase.py", tests/domain/usecase/f"test_{base}_usecase.py")` before the existing `domain/usecase/f"{snake}.py"` candidate, and skip the legacy candidate when its path equals the new one. Update the module docstring. T014 and T015 must pass.
+- [x] T017 [P] [US4] In `src/scaffold_ca_python/factory/simple/delete_module_factory.py`, update the `build` docstring line to `domain/usecase/<base>_usecase.py or domain/usecase/<snake>.py (legacy)`. No logic change.
 
 **Checkpoint**: All four user stories pass independently.
 
@@ -143,12 +143,12 @@ Single-project CLI: source in `src/scaffold_ca_python/`, CLI tests in `tests/`. 
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T018 [P] In `tests/commands/test_workflow.py` (`test_workflow_guc_creates_use_case`), change the asserted path to `.../domain/usecase/create_order_usecase.py`.
-- [ ] T019 [P] In `tests/commands/test_performance.py` (`test_guc_performance`), change `--name PerfCase` to `--name perf` and the cleanup paths to `domain/usecase/perf_usecase.py` and `src/tests/domain/usecase/test_perf_usecase.py` (research R7).
-- [ ] T020 In `src/scaffold_ca_python/commands/generate_use_case.py`, update `_GUC_EPILOG` to the example in `contracts/guc.md` (shows `create_order_usecase.py`).
-- [ ] T021 [P] In `README.md` (`### scaffold guc` section), state that the command creates `domain/usecase/<name>_usecase.py` with class `<Name>UseCase`, and that `_usecase` in `--name` is optional and never duplicated.
-- [ ] T022 Run every scenario in `specs/026-usecase-naming-standardization/quickstart.md` in a temp directory and confirm the expected outputs. Step 4 (generated project lint, format, type-check, and tests) is the verification for SC-004.
-- [ ] T023 Run `uv run ruff check`, `uv run ruff format --check`, `uv run mypy`, and `uv run pytest` (coverage at or above 80%) from the repo root. All must pass. Ask the user before committing.
+- [x] T018 [P] In `tests/commands/test_workflow.py` (`test_workflow_guc_creates_use_case`), change the asserted path to `.../domain/usecase/create_order_usecase.py`.
+- [x] T019 [P] In `tests/commands/test_performance.py` (`test_guc_performance`), change `--name PerfCase` to `--name perf` and the cleanup paths to `domain/usecase/perf_usecase.py` and `src/tests/domain/usecase/test_perf_usecase.py` (research R7).
+- [x] T020 In `src/scaffold_ca_python/commands/generate_use_case.py`, update `_GUC_EPILOG` to the example in `contracts/guc.md` (shows `create_order_usecase.py`).
+- [x] T021 [P] In `README.md` (`### scaffold guc` section), state that the command creates `domain/usecase/<name>_usecase.py` with class `<Name>UseCase`, and that `_usecase` in `--name` is optional and never duplicated.
+- [x] T022 Run every scenario in `specs/026-usecase-naming-standardization/quickstart.md` in a temp directory and confirm the expected outputs. Step 4 (generated project lint, format, type-check, and tests) is the verification for SC-004.
+- [x] T023 Run `uv run ruff check`, `uv run ruff format --check`, `uv run mypy`, and `uv run pytest` (coverage at or above 80%) from the repo root. All must pass. Ask the user before committing.
 
 ---
 
