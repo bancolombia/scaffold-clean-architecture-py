@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/bancolombia/scaffold-clean-architecture-py/compare/v0.4.0...v0.5.0) (2026-10-27)
+
+
+### Features
+
+* **mcp:** generate health check route for MCP entry points ([70a2645](https://github.com/bancolombia/scaffold-clean-architecture-py/commit/70a2645e63957d211761e7535edc675685031d57))
+
 ## [0.4.0](https://github.com/bancolombia/scaffold-clean-architecture-py/compare/v0.3.0...v0.4.0) (2026-10-26)
 
 
