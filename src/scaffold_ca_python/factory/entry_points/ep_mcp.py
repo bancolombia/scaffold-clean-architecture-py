@@ -29,7 +29,9 @@ class EntryPointMcp(EntryPointFactory):
         Always queues:
         - src/infrastructure/entry_points/mcp_server/__init__.py
         - src/infrastructure/entry_points/mcp_server/tools.py
+        - src/infrastructure/entry_points/mcp_server/routes.py
         - tests/infrastructure/entry_points/mcp_server/test_tools.py
+        - tests/infrastructure/entry_points/mcp_server/test_routes.py
 
         Conditionally queues (when builder params are True):
         - resources.py + test_resources.py  (with_resources=True)
@@ -67,9 +69,20 @@ class EntryPointMcp(EntryPointFactory):
             template_name=f"{base}/tools.py.jinja2",
         )
         builder.add_file(
+            src_dir / "routes.py",
+            builder.render(f"{base}/routes.py.jinja2", ctx_dict),
+            template_name=f"{base}/routes.py.jinja2",
+        )
+        builder.add_file(
             test_dir / "test_tools.py",
             builder.render(f"{base}/test_tools.py.jinja2", ctx_dict),
             template_name=f"{base}/test_tools.py.jinja2",
+            is_test=True,
+        )
+        builder.add_file(
+            test_dir / "test_routes.py",
+            builder.render(f"{base}/test_routes.py.jinja2", ctx_dict),
+            template_name=f"{base}/test_routes.py.jinja2",
             is_test=True,
         )
 

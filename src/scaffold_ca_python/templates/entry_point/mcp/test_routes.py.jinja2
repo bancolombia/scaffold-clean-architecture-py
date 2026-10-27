@@ -1,0 +1,25 @@
+"""Tests for {{ project.python_package }}.infrastructure.entry_points.mcp_server.routes."""
+
+from __future__ import annotations
+
+from mcp.server.fastmcp import FastMCP
+from starlette.testclient import TestClient
+
+from {{ project.python_package }}.infrastructure.entry_points.mcp_server.routes import bind_routes
+
+
+def _client() -> TestClient:
+    mcp = FastMCP("test")
+    bind_routes(mcp)
+    return TestClient(mcp.streamable_http_app())
+
+
+def test_health_check_returns_ok() -> None:
+    response = _client().get("/api/v1/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+
+
+def test_health_check_rejects_post() -> None:
+    response = _client().post("/api/v1/health")
+    assert response.status_code == 405
