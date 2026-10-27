@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from mcp.server.fastmcp import FastMCP
 from starlette.applications import Starlette
+from starlette.testclient import TestClient
 
 from {{ project.python_package }}.application import app as app_module
 
@@ -28,3 +29,19 @@ def test_start_server_has_routes() -> None:
 def test_lifespan_is_callable() -> None:
     """lifespan must be a callable (async context manager factory)."""
     assert callable(app_module.lifespan)
+
+
+def test_health_route_registered_once() -> None:
+    """Repeated start_server() calls must not duplicate the health route."""
+    app_module.start_server()
+    server = app_module.start_server()
+    health = [r for r in server.routes[0].routes if getattr(r, "path", None) == "/api/v1/health"]
+    assert len(health) == 1
+
+
+def test_health_route_reachable_through_start_server() -> None:
+    """The health route is not shadowed by the Mount('/')."""
+    client = TestClient(app_module.start_server())
+    response = client.get("/api/v1/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}

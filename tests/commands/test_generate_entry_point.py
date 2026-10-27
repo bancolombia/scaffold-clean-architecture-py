@@ -1652,3 +1652,38 @@ def test_add_tool_dry_run_fails_on_missing_entry_point(project_root: Path) -> No
     assert "No MCP entry point found" in output
     assert "Dry run:" not in output
     assert "Would modify:" not in output
+
+
+def test_gep_mcp_generated_health_route_tests_pass(mcp_project: Path) -> None:
+    """027: generated routes tests pass and generated files are ruff-clean."""
+    import subprocess
+
+    mcp_dir = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server"
+    tests_dir = mcp_project / "src" / "tests"
+    routes_py = mcp_dir / "routes.py"
+    test_routes = tests_dir / "infrastructure" / "entry_points" / "mcp_server" / "test_routes.py"
+    test_app = tests_dir / "infrastructure" / "entry_points" / "mcp_server" / "test_app.py"
+    assert routes_py.exists()
+    assert test_routes.exists()
+
+    sync = subprocess.run(["uv", "sync", "--no-progress"], cwd=mcp_project, capture_output=True, text=True, timeout=120)
+    if sync.returncode != 0:
+        pytest.skip(f"Cannot run generated tests: uv sync failed: {sync.stderr}")
+
+    result = subprocess.run(
+        ["uv", "run", "pytest", str(test_routes), str(test_app), "-v", "--no-cov"],
+        cwd=mcp_project,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert result.returncode == 0, f"Generated tests failed: {result.stdout}\n{result.stderr}"
+
+    lint = subprocess.run(
+        ["uv", "run", "ruff", "check", str(routes_py), str(test_routes)],
+        cwd=mcp_project,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert lint.returncode == 0, f"ruff failed: {lint.stdout}\n{lint.stderr}"

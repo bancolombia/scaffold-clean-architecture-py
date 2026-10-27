@@ -238,3 +238,33 @@ def test_mcp_app_py_not_overwritten(tmp_path: Path) -> None:
     EntryPointMcp().build(builder)
     with pytest.raises(FileExistsError):
         builder.persist()
+
+
+@pytest.mark.parametrize("with_resources", [True, False])
+@pytest.mark.parametrize("with_prompts", [True, False])
+def test_mcp_queues_routes_py(tmp_path: Path, with_resources: bool, with_prompts: bool) -> None:
+    """027: routes.py is always queued, independent of optional flags."""
+    builder = _make_builder(tmp_path)
+    builder.add_param("with_resources", with_resources)
+    builder.add_param("with_prompts", with_prompts)
+
+    from scaffold_ca_python.factory.entry_points.ep_mcp import EntryPointMcp
+
+    EntryPointMcp().build(builder)
+    preview = builder.persist()
+
+    src_dir = tmp_path / "src" / "ms_demo" / "infrastructure" / "entry_points" / "mcp_server"
+    assert src_dir / "routes.py" in preview
+
+
+def test_mcp_queues_test_routes_py(tmp_path: Path) -> None:
+    """027: test_routes.py is queued."""
+    builder = _make_builder(tmp_path)
+
+    from scaffold_ca_python.factory.entry_points.ep_mcp import EntryPointMcp
+
+    EntryPointMcp().build(builder)
+    preview = builder.persist()
+
+    test_dir = tmp_path / "src" / "tests" / "infrastructure" / "entry_points" / "mcp_server"
+    assert test_dir / "test_routes.py" in preview

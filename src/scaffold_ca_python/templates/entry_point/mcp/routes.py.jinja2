@@ -1,0 +1,25 @@
+"""MCP custom routes binding — register non-MCP HTTP routes such as the health check."""
+
+from __future__ import annotations
+
+from mcp.server.fastmcp import FastMCP
+from starlette.requests import Request
+from starlette.responses import JSONResponse, Response
+
+
+def bind_routes(mcp: FastMCP) -> None:
+    """
+    Bind routes to the FastMCP instance.
+    """
+
+    @mcp.custom_route(name="health_check", path="/api/v1/health", methods=["GET"])
+    async def health_check(_request: Request) -> Response:
+        """
+        Health check endpoint to verify the server is running.
+
+        Returns:
+            JSON response indicating the server is healthy.
+        """
+
+        response_data = {"status": "ok"}
+        return JSONResponse(response_data)

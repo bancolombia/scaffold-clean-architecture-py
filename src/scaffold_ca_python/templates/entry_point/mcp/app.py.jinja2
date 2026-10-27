@@ -9,7 +9,7 @@ from starlette.applications import Starlette
 from starlette.routing import Mount
 
 from {{ project.python_package }}.application.config.container import Container
-from {{ project.python_package }}.infrastructure.entry_points.mcp_server import tools
+from {{ project.python_package }}.infrastructure.entry_points.mcp_server import routes, tools
 {%- if with_resources %}
 from {{ project.python_package }}.infrastructure.entry_points.mcp_server import resources
 {%- endif %}
@@ -18,6 +18,7 @@ from {{ project.python_package }}.infrastructure.entry_points.mcp_server import 
 {%- endif %}
 
 mcp: FastMCP = FastMCP("{{ project.name }}", stateless_http=True)
+routes.bind_routes(mcp)
 
 
 @asynccontextmanager

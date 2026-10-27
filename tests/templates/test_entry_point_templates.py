@@ -3,6 +3,8 @@
 import ast
 import importlib.resources
 
+import pytest
+
 from scaffold_ca_python.core.template_renderer import TemplateRenderer
 from scaffold_ca_python.models.context import ModuleContext, ProjectContext
 from scaffold_ca_python.models.layer import Layer
@@ -291,6 +293,35 @@ def test_mcp_server_imports_app() -> None:
 # ---------------------------------------------------------------------------
 
 
+def _routes_out() -> str:
+    return renderer.render_string(_tmpl("entry_point/mcp/routes.py.jinja2"), _ctx().model_dump())
+
+
+@pytest.mark.parametrize(
+    "fragment",
+    [
+        "from __future__ import annotations",
+        "from mcp.server.fastmcp import FastMCP",
+        "from starlette.requests import Request",
+        "from starlette.responses import JSONResponse, Response",
+        "def bind_routes(mcp: FastMCP) -> None:",
+        '@mcp.custom_route(name="health_check", path="/api/v1/health", methods=["GET"])',
+        "async def health_check(_request: Request) -> Response:",
+        '{"status": "ok"}',
+        "return JSONResponse(response_data)",
+    ],
+)
+def test_mcp_routes_contains_fragment(fragment: str) -> None:
+    assert fragment in _routes_out()
+
+
+def test_mcp_routes_bind_routes_is_sync_and_not_injected() -> None:
+    out = _routes_out()
+    assert "async def bind_routes" not in out
+    assert "@inject" not in out
+    assert "Provide" not in out
+
+
 def _app_ctx(*, with_resources: bool = False, with_prompts: bool = False) -> dict[str, object]:
     return {**_ctx().model_dump(), "with_resources": with_resources, "with_prompts": with_prompts}
 
@@ -526,3 +557,51 @@ def test_test_tool_stub_template_does_not_call_tool() -> None:
     # Should only check registration, not invoke the tool
     assert "registered[" not in out or 'await registered["do_action"]' not in out
     assert "do_action(" not in out or "await do_action(" not in out
+
+
+# ---------------------------------------------------------------------------
+# mcp — health route wiring and tests (027)
+# ---------------------------------------------------------------------------
+
+_APP_COMBOS = [(r, p) for r in (False, True) for p in (False, True)]
+
+
+@pytest.mark.parametrize(("with_resources", "with_prompts"), _APP_COMBOS)
+def test_mcp_app_binds_routes_once_after_mcp_creation(with_resources: bool, with_prompts: bool) -> None:
+    out = renderer.render_string(
+        _tmpl("entry_point/mcp/app.py.jinja2"), _app_ctx(with_resources=with_resources, with_prompts=with_prompts)
+    )
+    assert "mcp_server import routes, tools" in out
+    assert out.count("routes.bind_routes(mcp)") == 1
+    call = out.index("routes.bind_routes(mcp)")
+    assert out.index("mcp: FastMCP = FastMCP(") < call < out.index("async def lifespan")
+    assert call < out.index("def start_server")
+    wire_block = out[out.index("container.wire(") : out.index("await tools.bind_tools")]
+    assert "routes" not in wire_block
+    assert ("bind_resources" in out) is with_resources
+    assert ("bind_prompts" in out) is with_prompts
+
+
+def test_mcp_test_routes_template() -> None:
+    out = renderer.render_string(_tmpl("entry_point/mcp/test_routes.py.jinja2"), _ctx().model_dump())
+    assert "from my_app.infrastructure.entry_points.mcp_server.routes import bind_routes" in out
+    assert "from starlette.testclient import TestClient" in out
+    assert "FastMCP(" in out
+    assert "bind_routes(" in out
+    assert '.get("/api/v1/health")' in out
+    assert "== 200" in out
+    assert '{"status": "ok"}' in out
+    assert '.post("/api/v1/health")' in out
+    assert "== 405" in out
+    assert "with TestClient" not in out
+    assert "application.app" not in out
+
+
+def test_mcp_test_app_health_tests() -> None:
+    out = renderer.render_string(_tmpl("entry_point/mcp/test_app.py.jinja2"), _app_ctx())
+    assert "def test_health_route_registered_once" in out
+    assert out.count("start_server()") >= 3
+    assert "== 1" in out
+    assert "def test_health_route_reachable_through_start_server" in out
+    assert "TestClient(app_module.start_server())" in out
+    assert "with TestClient" not in out

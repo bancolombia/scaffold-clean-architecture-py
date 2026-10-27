@@ -31,10 +31,12 @@
     "src/my_app/application/app.py",
     "src/my_app/application/config/config.py",
     "src/my_app/infrastructure/entry_points/mcp_server/__init__.py",
+    "src/my_app/infrastructure/entry_points/mcp_server/routes.py",
     "src/my_app/infrastructure/entry_points/mcp_server/tools.py",
     "src/my_app/main.py",
     "src/my_app/server.py",
     "src/tests/infrastructure/entry_points/mcp_server/test_app.py",
+    "src/tests/infrastructure/entry_points/mcp_server/test_routes.py",
     "src/tests/infrastructure/entry_points/mcp_server/test_tools.py"
   ],
   "gep:restapi": [
