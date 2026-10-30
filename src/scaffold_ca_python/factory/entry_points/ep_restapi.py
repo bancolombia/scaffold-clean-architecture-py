@@ -43,7 +43,7 @@ class EntryPointRestApi(EntryPointFactory):
             notes.append(f'[green]✓[/green] Updated {escape("[project.scripts]")}: {pkg} = "{pkg}.server:start_server"')
         return notes
 
-    def build(self, builder: ModuleBuilder) -> None:
+    def build(self, builder: ModuleBuilder) -> None:  # noqa: PLR0914
         """Build REST API entry-point files and dependencies.
 
         Queues files:
@@ -63,7 +63,7 @@ class EntryPointRestApi(EntryPointFactory):
         Injects:
         - fastapi[standard]~=0.141.1
         - uvicorn[standard]~=0.53.0
-        - dependency-injector~=4.49.1
+        - wireup~=2.13.0
         - pydantic-settings~=2.15.0
         """
         project_root = builder.project_root
@@ -152,7 +152,7 @@ class EntryPointRestApi(EntryPointFactory):
         deps = [
             "fastapi[standard]~=0.141.1",
             "uvicorn[standard]~=0.53.0",
-            "dependency-injector~=4.49.1",
+            "wireup~=2.13.0",
             "pydantic-settings~=2.15.0",
         ]
         for dep in deps:

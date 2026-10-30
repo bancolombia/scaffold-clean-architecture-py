@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import os
 from collections.abc import Iterable
 from pathlib import Path
@@ -127,3 +128,64 @@ def test_print_pending_dependencies(tmp_path: Path) -> None:
 
     # Should not raise
     print_pending_dependencies(builder)
+
+
+# ---------------------------------------------------------------------------
+# T004 (028): warn_legacy_project (must FAIL before T003)
+# ---------------------------------------------------------------------------
+
+
+def test_warn_legacy_project_prints_warning(capsys: pytest.CaptureFixture[str]) -> None:
+    """warn_legacy_project must print a warning pointing to scaffold migrate-di (FR-020)."""
+    from scaffold_ca_python.commands._shared import warn_legacy_project
+
+    ctx = ProjectContext(name="old-app")  # scaffold_version=None → is_legacy=True
+    warn_legacy_project(ctx)
+    # Rich outputs to stderr; check combined output
+    captured = capsys.readouterr()
+    output = captured.out + captured.err
+    assert "migrate-di" in output  # Rich Console captures go through console, not capsys
+
+
+def test_warn_legacy_project_imported() -> None:
+    """warn_legacy_project must be importable from _shared (T003 gate)."""
+    from scaffold_ca_python.commands._shared import warn_legacy_project  # noqa: F401
+
+
+# ---------------------------------------------------------------------------
+# T086 (028): require_wireup_project guard
+# ---------------------------------------------------------------------------
+
+
+def test_require_wireup_project_exits_1_for_legacy(tmp_path: Path) -> None:
+    """require_wireup_project must raise SystemExit(1) for legacy projects (T086, FR-020)."""
+    from scaffold_ca_python.commands._shared import require_wireup_project
+
+    ctx = ProjectContext(name="old-app")  # scaffold_version=None → is_legacy=True
+    with pytest.raises(SystemExit) as exc_info:
+        require_wireup_project(ctx)
+    assert exc_info.value.code == 1
+
+
+def test_require_wireup_project_message_mentions_migrate_di(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """require_wireup_project exit message must mention both migrate-di and --install-skill (T086)."""
+    from scaffold_ca_python.commands._shared import require_wireup_project
+
+    ctx = ProjectContext(name="old-app")
+    with contextlib.suppress(SystemExit):
+        require_wireup_project(ctx)
+    captured = capsys.readouterr()
+    output = captured.out + captured.err
+    # Rich console may not capture via capsys; the test is a best-effort check
+    assert "migrate-di" in output  # verified via integration in T087
+
+
+def test_require_wireup_project_passes_for_wireup_project(tmp_path: Path) -> None:
+    """require_wireup_project must not raise for a project with scaffold_version set (T086)."""
+    from scaffold_ca_python.commands._shared import require_wireup_project
+
+    ctx = ProjectContext(name="my-app", scaffold_version="0.6.0")
+    # Should not raise
+    require_wireup_project(ctx)

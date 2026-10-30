@@ -8,6 +8,12 @@ from scaffold_ca_python.models.layer import Layer
 
 class ProjectContext(BaseModel):
     name: str
+    scaffold_version: str | None = None
+
+    @property
+    def is_legacy(self) -> bool:
+        """Return True when the project was generated without scaffold-ca-python ≥ 0.6.0."""
+        return self.scaffold_version is None
 
     @field_validator("name")
     @classmethod
@@ -30,6 +36,12 @@ class ProjectContext(BaseModel):
     def python_package_script(self) -> str:
         """Derive the Python import root: kebab-case of name."""
         return to_kebab_case(self.name)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def class_name(self) -> str:
+        """PascalCase class name derived from name (safe for Python identifiers)."""
+        return to_pascal_case(self.name)
 
 
 class ModuleContext(BaseModel):

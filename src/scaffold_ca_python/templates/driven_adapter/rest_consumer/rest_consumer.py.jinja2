@@ -3,25 +3,41 @@
 from __future__ import annotations
 
 import httpx
+import wireup
+{% if gateway %}
+from {{ project.python_package }}.domain.model.{{ gateway.model_module }}.gateways.{{ gateway.name }} import {{ gateway.class_name }}
+{% endif %}
+from {{ project.python_package }}.infrastructure.driven_adapters.rest_consumer.rest_consumer_settings import (
+    RestConsumerSettings,
+)
 
+{% if gateway %}
+@wireup.injectable(as_type={{ gateway.class_name }})
+class RestConsumerAdapter({{ gateway.class_name }}):
+    """Async REST consumer adapter implementing {{ gateway.class_name }}.
 
+    Wraps a shared :class:`httpx.AsyncClient` (provided via DI) for a thin, testable HTTP boundary.
+    Replace the placeholder methods with your actual API calls.
+    """
+{% else %}
+@wireup.injectable
 class RestConsumerAdapter:
     """Async REST consumer adapter.
 
-    Wraps :class:`httpx.AsyncClient` to provide a thin, testable HTTP boundary.
+    Wraps a shared :class:`httpx.AsyncClient` (provided via DI) for a thin, testable HTTP boundary.
     Replace the placeholder methods with your actual API calls.
+    Use @wireup.injectable(as_type=<GatewayABC>) when this adapter implements a domain gateway.
     """
-
-    def __init__(self, base_url: str = "", timeout: float = 10.0) -> None:
-        self._base_url = base_url
-        self._timeout = timeout
+{% endif %}
+    def __init__(self, settings: RestConsumerSettings) -> None:
+        self._settings = settings
 
     async def get(self, path: str, **kwargs: object) -> httpx.Response:
         """Perform an async GET request."""
-        async with httpx.AsyncClient(base_url=self._base_url, timeout=self._timeout) as client:
+        async with httpx.AsyncClient(base_url=self._settings.base_url) as client:
             return await client.get(path, **kwargs)
 
     async def post(self, path: str, **kwargs: object) -> httpx.Response:
         """Perform an async POST request."""
-        async with httpx.AsyncClient(base_url=self._base_url, timeout=self._timeout) as client:
+        async with httpx.AsyncClient(base_url=self._settings.base_url) as client:
             return await client.post(path, **kwargs)

@@ -81,14 +81,6 @@ def test_layer_init_renders() -> None:
     assert isinstance(out, str)
 
 
-def test_project_resource_container_has_declarative_container() -> None:
-    out = renderer.render_string(
-        _tmpl("project/application/config/resource_container.py.jinja2"),
-        _ctx().model_dump(),
-    )
-    assert "DeclarativeContainer" in out
-
-
 def test_pyproject_template_has_test_group_with_pytest() -> None:
     """[dependency-groups.test] must list pytest*, no respx."""
     out = renderer.render_string(_tmpl("project/pyproject_toml.jinja2"), _ctx().model_dump())

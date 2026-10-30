@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from mcp.server.fastmcp import FastMCP
 from starlette.applications import Starlette
 from starlette.routing import Mount
+from wireup import inject_from_container
 
-from {{ project.python_package }}.application.config.container import Container
+from {{ project.python_package }}.application.config.wiring import create_container
 from {{ project.python_package }}.infrastructure.entry_points.mcp_server import routes, tools
 {%- if with_resources %}
 from {{ project.python_package }}.infrastructure.entry_points.mcp_server import resources
@@ -17,34 +19,27 @@ from {{ project.python_package }}.infrastructure.entry_points.mcp_server import 
 from {{ project.python_package }}.infrastructure.entry_points.mcp_server import prompts
 {%- endif %}
 
+# Module-level FastMCP instance; infrastructure routes (health check, etc.) are bound here.
 mcp: FastMCP = FastMCP("{{ project.name }}", stateless_http=True)
 routes.bind_routes(mcp)
 
 
 @asynccontextmanager
-async def lifespan(_app: Starlette) -> None:
-    """Wire the DI container, register all MCP primitives, then run the server."""
-    container = Container()
-    container.wire(
-        modules=[
-            tools,
-            {% if with_resources %}resources,{% endif %}
-            {% if with_prompts %}prompts,{% endif %}
-        ]
-    )
-
-    await tools.bind_tools(mcp)
-    {% if with_resources %}await resources.bind_resources(mcp)
-    {% endif %}{% if with_prompts %}await prompts.bind_prompts(mcp){% endif %}
-
-    # Uncomment the following lines if you have async resources to initialize on startup and shutdown
-    #await container.resource_container.init_resources()
-
-    async with mcp.session_manager.run():
-        yield
-
-    # Uncomment the following lines if you have async resources to initialize on startup and shutdown
-    #await container.resource_container.shutdown_resources()
+async def lifespan(_app: Starlette) -> AsyncIterator[None]:
+    """Warm up the wireup container, inject use cases into tools, then serve."""
+    container = create_container()
+    try:
+        await inject_from_container(container)(tools.bind_tools)(mcp)
+        {%- if with_resources %}
+        await inject_from_container(container)(resources.bind_resources)(mcp)
+        {%- endif %}
+        {%- if with_prompts %}
+        await inject_from_container(container)(prompts.bind_prompts)(mcp)
+        {%- endif %}
+        async with mcp.session_manager.run():
+            yield
+    finally:
+        await container.close()
 
 
 def start_server() -> Starlette:

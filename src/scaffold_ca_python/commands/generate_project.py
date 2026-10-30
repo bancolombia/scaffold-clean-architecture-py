@@ -12,6 +12,7 @@ from scaffold_ca_python.commands._shared import console, fail, print_dry_run_tre
 from scaffold_ca_python.core.file_writer import FileWriter
 from scaffold_ca_python.core.name_utils import ScaffoldError, to_snake_case, validate_name
 from scaffold_ca_python.core.template_renderer import TemplateRenderer
+from scaffold_ca_python.core.version import get_scaffold_version
 from scaffold_ca_python.models.context import ProjectContext
 
 _ROOT_FILES: tuple[tuple[str, str], ...] = (
@@ -24,13 +25,10 @@ _ROOT_FILES: tuple[tuple[str, str], ...] = (
     (".python-version", "project/python_version.jinja2"),
 )
 
-_DI_CONFIG_FILES: tuple[str, ...] = (
+_DI_CONFIG_FILES_WIREUP: tuple[str, ...] = (
     "__init__.py",
     "config.py",
-    "resource_container.py",
-    "driven_adapters_container.py",
-    "usecases_container.py",
-    "container.py",
+    "wiring.py",
 )
 
 # Layers: (subpath-under-src/<pkg>, label for layer_init.jinja2)
@@ -54,7 +52,8 @@ def _collect_files(
     renderer: TemplateRenderer,
 ) -> list[tuple[Path, str]]:
     """Return all (path, content) pairs for a new project scaffold."""
-    ctx_dict = ProjectContext(name=name).model_dump()
+    scaffold_version = get_scaffold_version()
+    ctx_dict = ProjectContext(name=name, scaffold_version=scaffold_version).model_dump()
     ctx_dict["created_at"] = datetime.now(tz=UTC).isoformat()
 
     files: list[tuple[Path, str]] = []
@@ -63,8 +62,15 @@ def _collect_files(
         files.append((target_dir / filename, renderer.render(template, ctx_dict)))
 
     di_cfg = target_dir / "src" / python_pkg / "application" / "config"
-    for fname in _DI_CONFIG_FILES:
+    for fname in _DI_CONFIG_FILES_WIREUP:
         files.append((di_cfg / fname, renderer.render(f"project/application/config/{fname}.jinja2", ctx_dict)))
+    # usecases/ package scanned by wireup
+    files.append(
+        (
+            di_cfg / "usecases" / "__init__.py",
+            renderer.render("project/application/config/usecases/__init__.py.jinja2", ctx_dict),
+        )
+    )
 
     src_pkg = target_dir / "src" / python_pkg
     files.append((src_pkg / "main.py", renderer.render("project/main.py.jinja2", ctx_dict)))
@@ -74,7 +80,16 @@ def _collect_files(
         layer_ctx = {**ctx_dict, "layer": layer_label}
         files.append((src_pkg / layer_path / "__init__.py", renderer.render("project/layer_init.jinja2", layer_ctx)))
 
-    files.append((target_dir / "src" / "tests" / "__init__.py", renderer.render("project/empty.jinja2", {})))
+    tests_root = target_dir / "src" / "tests"
+    files.append((tests_root / "__init__.py", renderer.render("project/empty.jinja2", {})))
+    files.append((tests_root / "test_main.py", renderer.render("project/test_main.py.jinja2", ctx_dict)))
+
+    tests_app_cfg = tests_root / "application" / "config"
+    files.append((tests_root / "application" / "__init__.py", renderer.render("project/empty.jinja2", {})))
+    files.append((tests_app_cfg / "__init__.py", renderer.render("project/empty.jinja2", {})))
+    files.append((tests_app_cfg / "test_config.py", renderer.render("project/test_config.py.jinja2", ctx_dict)))
+    files.append((tests_app_cfg / "test_wiring.py", renderer.render("project/test_wiring.py.jinja2", ctx_dict)))
+    files.append((tests_app_cfg / "usecases" / "__init__.py", renderer.render("project/empty.jinja2", {})))
     return files
 
 

@@ -16,6 +16,7 @@ from scaffold_ca_python.commands._shared import (
     print_dry_run_tree,
     print_pending_dependencies,
     require_project_root,
+    require_wireup_project,
 )
 from scaffold_ca_python.commands.add_mcp_tool import add_mcp_tool
 from scaffold_ca_python.core.module_builder import ModuleBuilder
@@ -140,6 +141,7 @@ def _generate_entry_point(options: EntryPointOptions) -> None:
     routes = _load_routes(options.swagger)
     project_root = require_project_root()
     project_ctx = load_project_context(project_root)
+    require_wireup_project(project_ctx)
     pkg = project_ctx.python_package
     check_conflicts(project_root, pkg, options.type_, factory_class)
     result = _build(options, factory_class, project_root, project_ctx, routes)

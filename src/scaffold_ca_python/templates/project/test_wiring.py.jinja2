@@ -1,0 +1,11 @@
+"""Tests for the wireup DI container."""
+
+from __future__ import annotations
+
+from {{ python_package }}.application.config.wiring import create_container
+
+
+async def test_container_creates_successfully() -> None:
+    """create_container() must succeed with no registered use cases yet."""
+    container = create_container()
+    await container.close()

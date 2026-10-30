@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Annotated
 
 import typer
@@ -11,25 +12,66 @@ from scaffold_ca_python.commands._shared import (
     console,
     ensure_absent,
     fail,
+    find_gateway,
     print_dry_run_tree,
     require_project_root,
+    require_wireup_project,
     validate_name_or_exit,
 )
 from scaffold_ca_python.core.module_builder import ModuleBuilder
 from scaffold_ca_python.core.name_utils import strip_usecase_suffix, to_snake_case, validate_module_name
 from scaffold_ca_python.core.project_detector import load_project_context, resolve_tests_root
-from scaffold_ca_python.factory.simple.use_case_factory import UseCaseFactory
+from scaffold_ca_python.factory.simple.use_case_factory import UseCaseFactory, _gateway_context
 from scaffold_ca_python.models.context import ModuleContext
 from scaffold_ca_python.models.layer import Layer
 
 _GUC_HELP = "Scaffold a use case in domain/usecase/. Alias 'guc'."
 _GUC_EPILOG = (
-    "Example:\n\n  * scaffold guc --name create_order   (creates domain/usecase/create_order_usecase.py)\n\n"
+    "Example:\n\n"
+    "  * scaffold guc --name create_order   (creates domain/usecase/create_order_usecase.py)\n\n"
+    "  * scaffold guc --name create_order --uses order_repository   (also creates DI factory)\n\n"
     "  * scaffold generate-use-case --name create_order\n\n"
 )
 
 
-def _generate_use_case_impl(name: str, dry_run: bool) -> None:
+def _is_helper_or_adapter(project_root: Path, pkg: str, name: str) -> bool:
+    """Return True if name matches a helper or driven-adapter directory/file."""
+    infra = project_root / "src" / pkg / "infrastructure"
+    for subdir in ("helpers", "driven_adapters"):
+        candidate = infra / subdir / name
+        if candidate.is_dir() or (infra / subdir / f"{name}.py").exists():
+            return True
+    return False
+
+
+def _validate_gateways(project_root: Path, pkg: str, uses: str) -> list[dict[str, str]]:
+    """Parse and validate the --uses value; return list of gateway context dicts."""
+    gateway_names = [g.strip() for g in uses.split(",") if g.strip()]
+    result = []
+    for gw_name in gateway_names:
+        if _is_helper_or_adapter(project_root, pkg, gw_name):
+            fail(
+                f"'{gw_name}' is an infrastructure module (helper or adapter), not a gateway.",
+                hint=(
+                    "Helpers and adapters are infrastructure-only (D7). "
+                    "Use cases may only depend on domain gateways. "
+                    "Define an ABC gateway in domain/model/<model>/gateways/ instead."
+                ),
+            )
+        model_module = find_gateway(project_root, pkg, gw_name)
+        if model_module is None:
+            fail(
+                f"Gateway '{gw_name}' not found in domain/model/*/gateways/.",
+                hint=(
+                    f"Run 'scaffold gm --name <model>' to create a model with a gateway, "
+                    f"then retry with --uses {gw_name}."
+                ),
+            )
+        result.append(_gateway_context(gw_name, model_module))
+    return result
+
+
+def _generate_use_case_impl(name: str, dry_run: bool, uses: str | None) -> None:
     validate_name_or_exit(name, validate_module_name)
     base = strip_usecase_suffix(to_snake_case(name))
     if not base:
@@ -39,6 +81,7 @@ def _generate_use_case_impl(name: str, dry_run: bool) -> None:
         )
     project_root = require_project_root()
     project_ctx = load_project_context(project_root)
+    require_wireup_project(project_ctx)
     module_ctx = ModuleContext(name=base, layer=Layer.DOMAIN_USECASE, project=project_ctx)
 
     module = f"{base}_usecase"
@@ -52,7 +95,12 @@ def _generate_use_case_impl(name: str, dry_run: bool) -> None:
             hint="Choose a different name or remove the existing file first.",
         )
 
+    gateways = _validate_gateways(project_root, project_ctx.python_package, uses) if uses else []
+
     builder = ModuleBuilder(project_root=project_root, project_ctx=project_ctx, module_ctx=module_ctx, dry_run=dry_run)
+    if gateways:
+        builder.add_param("gateways", gateways)
+
     created = build_and_persist(UseCaseFactory(), builder)
 
     if dry_run:
@@ -65,6 +113,26 @@ def _generate_use_case_impl(name: str, dry_run: bool) -> None:
     )
     console.print(msg)
 
+    # Hint when no adapter implements the gateway yet
+    if gateways:
+        _warn_missing_adapters(project_root, project_ctx.python_package, gateways)
+
+
+def _warn_missing_adapters(project_root: Path, pkg: str, gateways: list[dict[str, str]]) -> None:
+    """Print a hint for each gateway that has no wireup adapter yet."""
+    adapters_dir = project_root / "src" / pkg / "infrastructure" / "driven_adapters"
+    if not adapters_dir.is_dir():
+        return
+    all_adapter_src = "\n".join(f.read_text() for f in adapters_dir.rglob("*.py") if f.is_file())
+    for gw in gateways:
+        gw_class = gw["class_name"]
+        if f"as_type={gw_class}" not in all_adapter_src:
+            console.print(
+                f"[yellow]⚠[/yellow]  No adapter implements [bold]{gw_class}[/bold] yet.\n"
+                f"   Run: [dim]scaffold gda --type generic "
+                f"--name {gw['name']}_adapter --gateway {gw['name']}[/dim]"
+            )
+
 
 def register(app: typer.Typer) -> None:
     """Register guc / generate-use-case commands onto *app*."""
@@ -75,6 +143,14 @@ def register(app: typer.Typer) -> None:
         ctx: typer.Context,
         name: Annotated[
             str | None, typer.Option("--name", help="Use case name (snake_case).", rich_help_panel="Required")
+        ] = None,
+        uses: Annotated[
+            str | None,
+            typer.Option(
+                "--uses",
+                help="Comma-separated domain gateway names to inject (e.g. order_repository). D7: gateways only.",
+                rich_help_panel="Options",
+            ),
         ] = None,
         dry_run: Annotated[
             bool,
@@ -90,4 +166,4 @@ def register(app: typer.Typer) -> None:
         if name is None:
             typer.echo(ctx.get_help())
             raise typer.Exit(0)
-        _generate_use_case_impl(name, dry_run)
+        _generate_use_case_impl(name, dry_run, uses)

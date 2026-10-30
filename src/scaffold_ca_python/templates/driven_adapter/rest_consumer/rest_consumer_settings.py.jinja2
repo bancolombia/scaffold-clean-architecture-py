@@ -1,0 +1,20 @@
+"""Settings for {{ class_name }} REST consumer adapter — loaded from environment."""
+
+from __future__ import annotations
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class RestConsumerSettings(BaseSettings):
+    """Environment-sourced settings for {{ class_name }} REST consumer.
+
+    All fields are required (no defaults) so a missing env var fails at startup (D5/SC-003).
+    """
+
+    base_url: str
+
+    model_config = SettingsConfigDict(
+        env_prefix="{{ module_name | upper }}_",
+        env_file=".env",
+        env_file_encoding="utf-8",
+    )

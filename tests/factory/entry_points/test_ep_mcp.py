@@ -145,7 +145,7 @@ def test_mcp_dependencies_injected(tmp_path: Path) -> None:
         "mcp~=1.30.0",
         "uvicorn[standard]~=0.53.0",
         "starlette~=1.6.0",
-        "dependency-injector~=4.49.1",
+        "wireup~=2.13.0",
         "pydantic-settings~=2.15.0",
     ]
     for dep in expected_deps:

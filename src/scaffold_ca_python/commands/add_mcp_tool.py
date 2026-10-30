@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 import typer
 from rich.syntax import Syntax
 
-from scaffold_ca_python.commands._shared import console, require_project_root
+from scaffold_ca_python.commands._shared import console, require_project_root, require_wireup_project
 from scaffold_ca_python.core import mcp_tool_spec
 from scaffold_ca_python.core.module_builder import ModuleBuilder
 from scaffold_ca_python.core.name_utils import ScaffoldError
@@ -165,6 +165,7 @@ def add_mcp_tool(options: EntryPointOptions) -> None:
     spec = _build_spec(options)
     project_root = require_project_root(not_found_message=None)
     project_ctx = load_project_context(project_root)
+    require_wireup_project(project_ctx)
     paths = _resolve_paths(project_root, project_ctx)
     sources = _read_sources(paths)
     _check_structure(sources, spec)

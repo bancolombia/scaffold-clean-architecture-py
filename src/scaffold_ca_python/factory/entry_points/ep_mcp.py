@@ -38,7 +38,7 @@ class EntryPointMcp(EntryPointFactory):
         - prompts.py   + test_prompts.py    (with_prompts=True)
 
         Injects: mcp~=1.30.0, uvicorn[standard]~=0.53.0, starlette~=1.6.0,
-                 dependency-injector~=4.49.1, pydantic-settings~=2.15.0
+                 wireup~=2.13.0, pydantic-settings~=2.15.0
 
         Sets builder params: scripts_entry_fn="main"
         """
@@ -152,7 +152,7 @@ class EntryPointMcp(EntryPointFactory):
         builder.add_dependency("mcp~=1.30.0")  # ~=1.30.0 caps below 2.0; templates target the 1.x FastMCP API
         builder.add_dependency("uvicorn[standard]~=0.53.0")
         builder.add_dependency("starlette~=1.6.0")
-        builder.add_dependency("dependency-injector~=4.49.1")
+        builder.add_dependency("wireup~=2.13.0")
         builder.add_dependency("pydantic-settings~=2.15.0")
 
         builder.set_project_script("main")

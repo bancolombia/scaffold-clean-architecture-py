@@ -42,11 +42,19 @@ class DrivenAdapterRestConsumer(DrivenAdapterFactory):
         if builder.module_ctx:
             ctx_dict.update(builder.module_ctx.model_dump())
 
+        # Optional gateway for @wireup.injectable(as_type=...)
+        ctx_dict["gateway"] = builder.get_param("gateway", default=None)
+
         # Add source files
         builder.add_file(
             src_dir / "__init__.py",
             builder.render(f"{base}/__init__.py.jinja2", ctx_dict),
             template_name=f"{base}/__init__.py.jinja2",
+        )
+        builder.add_file(
+            src_dir / "rest_consumer_settings.py",
+            builder.render(f"{base}/rest_consumer_settings.py.jinja2", ctx_dict),
+            template_name=f"{base}/rest_consumer_settings.py.jinja2",
         )
         builder.add_file(
             src_dir / "rest_consumer.py",
@@ -62,6 +70,7 @@ class DrivenAdapterRestConsumer(DrivenAdapterFactory):
             is_test=True,
         )
 
-        # Add dependencies: httpx at runtime, respx only in test group
+        # Add dependencies: httpx and pydantic-settings at runtime, respx only in test group
         builder.add_dependency("httpx~=0.28.1")
+        builder.add_dependency("pydantic-settings~=2.15.0")
         builder.add_dependency("respx~=0.23.1", group="test")

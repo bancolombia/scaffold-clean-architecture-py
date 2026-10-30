@@ -74,16 +74,15 @@ def test_creates_di_config_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     cfg = tmp_path / "my-project" / "src" / "my_project" / "application" / "config"
     assert (cfg / "__init__.py").exists()
     assert (cfg / "config.py").exists()
-    assert (cfg / "driven_adapters_container.py").exists()
-    assert (cfg / "usecases_container.py").exists()
-    assert (cfg / "container.py").exists()
+    assert (cfg / "wiring.py").exists()
+    assert (cfg / "usecases" / "__init__.py").exists()
 
 
 def test_pyproject_has_di_dependencies(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["ca", "--name", "my-project"], catch_exceptions=False)
     content = (tmp_path / "my-project" / "pyproject.toml").read_text()
-    assert "dependency-injector" in content
+    assert "wireup==2.13.0" in content
     assert "pydantic-settings" in content
 
 
@@ -260,6 +259,85 @@ def test_kebab_name_generates_snake_case_files(tmp_path: Path, monkeypatch: pyte
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# T011 (028): wireup project layout (must FAIL before T005-T010)
+# ---------------------------------------------------------------------------
+
+
+def test_ca_generates_wiring_py(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """FR-001: ca must generate wiring.py instead of *_container.py files."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["ca", "--name", "my-project"], catch_exceptions=False)
+    cfg = tmp_path / "my-project" / "src" / "my_project" / "application" / "config"
+    assert (cfg / "wiring.py").exists(), "wiring.py not found"
+
+
+def test_ca_generates_usecases_package(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """FR-004: ca must generate application/config/usecases/__init__.py."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["ca", "--name", "my-project"], catch_exceptions=False)
+    usecases_init = (
+        tmp_path / "my-project" / "src" / "my_project" / "application" / "config" / "usecases" / "__init__.py"
+    )
+    assert usecases_init.exists(), "usecases/__init__.py not found"
+
+
+def test_ca_does_not_generate_container_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """FR-001: ca must NOT generate *_container.py files for wireup projects."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["ca", "--name", "my-project"], catch_exceptions=False)
+    cfg = tmp_path / "my-project" / "src" / "my_project" / "application" / "config"
+    for forbidden in ("container.py", "resource_container.py", "driven_adapters_container.py", "usecases_container.py"):
+        assert not (cfg / forbidden).exists(), f"Found unexpected legacy file: {forbidden}"
+
+
+def test_ca_pyproject_has_wireup_dependency(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """FR-002: generated pyproject.toml must declare wireup==2.13.0, not dependency-injector."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["ca", "--name", "my-project"], catch_exceptions=False)
+    content = (tmp_path / "my-project" / "pyproject.toml").read_text()
+    assert "wireup==2.13.0" in content, "wireup dependency not found"
+    assert "dependency-injector" not in content, "legacy dependency still present"
+
+
+def test_ca_pyproject_has_scaffold_version_key(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """FR-002/T091: generated pyproject.toml must contain scaffold_version in [tool.scaffold-ca-python]."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["ca", "--name", "my-project"], catch_exceptions=False)
+    content = (tmp_path / "my-project" / "pyproject.toml").read_text()
+    assert "scaffold_version = " in content, "scaffold_version key not found in pyproject"
+    assert 'di = "wireup"' not in content, "legacy di key must not be present"
+
+
+def test_ca_pyproject_has_ruff_async_rule(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """FR-003: generated pyproject.toml must enable ruff ASYNC rule."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["ca", "--name", "my-project"], catch_exceptions=False)
+    content = (tmp_path / "my-project" / "pyproject.toml").read_text()
+    assert "ASYNC" in content, "ruff ASYNC rule not found"
+
+
+def test_ca_pyproject_has_asyncio_mode_auto(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """FR-003: generated pyproject.toml must set asyncio_mode = 'auto' in pytest config."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["ca", "--name", "my-project"], catch_exceptions=False)
+    content = (tmp_path / "my-project" / "pyproject.toml").read_text()
+    assert 'asyncio_mode = "auto"' in content, "asyncio_mode = 'auto' not found"
+
+
+def test_ca_pyproject_disables_tc_rule(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """FR-003: generated pyproject.toml must disable ruff TC rule to keep Injected/Inject at runtime."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["ca", "--name", "my-project"], catch_exceptions=False)
+    content = (tmp_path / "my-project" / "pyproject.toml").read_text()
+    assert "TC" in content, "TC rule ignore not found"
+
+
+# ---------------------------------------------------------------------------
+# T036: injection test — renderer and writer are used when injected
+# ---------------------------------------------------------------------------
+
+
 def test_generate_project_uses_injected_renderer_and_writer(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """_generate_project_impl must pass renderer/writer to ModuleBuilder (FR-014)."""
     monkeypatch.chdir(tmp_path)
@@ -285,3 +363,19 @@ def test_generate_project_uses_injected_renderer_and_writer(tmp_path: Path, monk
 
     assert FakeRenderer.called, "Expected the injected renderer to be called"
     assert FakeWriter.called, "Expected the injected writer to be called"
+
+
+# ---------------------------------------------------------------------------
+# T076: wiring.py uses injectables= (not deprecated service_modules=)
+# ---------------------------------------------------------------------------
+
+
+def test_wiring_uses_injectables_param(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """T076: generated wiring.py must use create_async_container(injectables=...) not service_modules=."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["ca", "--name", "my-project"], catch_exceptions=False)
+    wiring_path = tmp_path / "my-project" / "src" / "my_project" / "application" / "config" / "wiring.py"
+    assert wiring_path.exists(), "wiring.py must exist after ca"
+    content = wiring_path.read_text()
+    assert "injectables=" in content, "wiring.py must use injectables= param (not deprecated service_modules=)"
+    assert "service_modules=" not in content, "wiring.py must not use deprecated service_modules= param"

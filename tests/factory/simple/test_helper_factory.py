@@ -77,3 +77,30 @@ def test_helper_no_dependencies_injected(tmp_path: Path) -> None:
     # Verify no dependencies added
     assert "boto3" not in pyproject, "Unexpected boto3 in pyproject.toml"
     assert "httpx" not in pyproject, "Unexpected httpx in pyproject.toml"
+
+
+# ---------------------------------------------------------------------------
+# T026 (US1): Helper @injectable — must FAIL until T022 implements it
+# ---------------------------------------------------------------------------
+
+
+def test_helper_template_has_injectable(tmp_path: Path) -> None:
+    """T022: helper template must have @wireup.injectable and infra-only docstring."""
+    from scaffold_ca_python.core.module_builder import ModuleBuilder
+    from scaffold_ca_python.models.context import ModuleContext, ProjectContext
+    from scaffold_ca_python.models.layer import Layer
+
+    _write_minimal_pyproject(tmp_path)
+    project = ProjectContext(name="ms-demo")
+    module_ctx = ModuleContext(name="log_helper", layer=Layer.HELPERS, project=project)
+    builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, module_ctx=module_ctx, dry_run=False)
+
+    from scaffold_ca_python.factory.simple.helper_factory import HelperFactory
+
+    HelperFactory().build(builder)
+    builder.persist()
+
+    helper_file = tmp_path / "src" / "ms_demo" / "infrastructure" / "helpers" / "log_helper" / "log_helper.py"
+    content = helper_file.read_text()
+    assert "wireup" in content or "@injectable" in content, "Helper must have @injectable"
+    assert "infrastructure" in content.lower(), "Helper must mention infrastructure-only restriction"

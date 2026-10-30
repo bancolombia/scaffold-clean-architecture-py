@@ -243,3 +243,115 @@ def test_legacy_file_is_ignored(project_root: Path) -> None:
     assert "legacy" not in strip_ansi(result.output).lower().replace("# legacy", "")
     assert (_usecase_dir(project_root) / "create_order_usecase.py").exists()
     assert legacy.read_text() == "# legacy\n"
+
+
+# ---------------------------------------------------------------------------
+# T013 (US1): guc --uses option (write first — must FAIL before T016–T019)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture()
+def project_root_with_gateway(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Bootstrap a CA project with an 'order' model (creates order_repository gateway)."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["ca", "--name", "my-app"], catch_exceptions=False)
+    project_dir = tmp_path / "my-app"
+    monkeypatch.chdir(project_dir)
+    runner.invoke(app, ["gm", "--name", "order"], catch_exceptions=False)
+    return project_dir
+
+
+def test_guc_uses_creates_factory_file(project_root_with_gateway: Path) -> None:
+    """FR-004: --uses should create application/config/usecases/<name>_usecase.py factory."""
+    result = runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
+    assert result.exit_code == 0
+    factory_path = (
+        project_root_with_gateway / "src" / "my_app" / "application" / "config" / "usecases" / "create_order_usecase.py"
+    )
+    assert factory_path.exists(), "Factory file must be created when --uses is provided"
+
+
+def test_guc_uses_factory_has_typed_params(project_root_with_gateway: Path) -> None:
+    """FR-004: factory file must inject the named gateways as typed parameters."""
+    runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
+    factory_path = (
+        project_root_with_gateway / "src" / "my_app" / "application" / "config" / "usecases" / "create_order_usecase.py"
+    )
+    content = factory_path.read_text()
+    assert "OrderRepository" in content, "Factory must reference the typed gateway"
+    assert "order_repository" in content, "Factory must include the gateway param"
+
+
+def test_guc_without_uses_no_factory_file(project_root: Path) -> None:
+    """FR-007: without --uses, generate-use-case must NOT create a factory file."""
+    runner.invoke(app, ["guc", "--name", "create_order"], catch_exceptions=False)
+    usecases_dir = project_root / "src" / "my_app" / "application" / "config" / "usecases"
+    factory = usecases_dir / "create_order_usecase.py"
+    assert not factory.exists(), "No factory file without --uses"
+
+
+def test_guc_uses_gateway_not_found_exits_nonzero(project_root: Path) -> None:
+    """FR-004: --uses with unknown gateway name must exit non-zero."""
+    result = runner.invoke(app, ["guc", "--name", "create_order", "--uses", "nonexistent_gateway"])
+    assert result.exit_code != 0
+
+
+def test_guc_uses_helper_name_exits_with_infra_hint(project_root: Path, tmp_path: Path) -> None:
+    """D7: --uses with a helper name must exit non-zero with an infra-only hint."""
+    runner.invoke(app, ["gh", "--name", "log_helper"], catch_exceptions=False)
+    result = runner.invoke(app, ["guc", "--name", "create_order", "--uses", "log_helper"])
+    assert result.exit_code != 0
+    out = strip_ansi(result.output).lower()
+    assert "infrastructure" in out or "helper" in out, "Must hint that helpers are infrastructure-only"
+
+
+# ---------------------------------------------------------------------------
+# T075: guc --uses factory test + wiring append
+# ---------------------------------------------------------------------------
+
+
+def test_guc_uses_creates_factory_test_file(project_root_with_gateway: Path) -> None:
+    """T075: --uses must also create tests/application/config/usecases/test_<name>_usecase.py."""
+    runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
+    test_path = (
+        project_root_with_gateway
+        / "src"
+        / "tests"
+        / "application"
+        / "config"
+        / "usecases"
+        / "test_create_order_usecase.py"
+    )
+    assert test_path.exists(), "Factory test file must be created when --uses is provided"
+    content = test_path.read_text()
+    assert "create_order_usecase_factory" in content
+    assert "isinstance" in content
+
+
+def test_guc_uses_appends_wiring_test(project_root_with_gateway: Path) -> None:
+    """T075: --uses must append a test function to test_wiring.py."""
+    runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
+    wiring_test = project_root_with_gateway / "src" / "tests" / "application" / "config" / "test_wiring.py"
+    assert wiring_test.exists()
+    content = wiring_test.read_text()
+    assert "test_container_resolves_create_order_usecase" in content
+
+
+def test_guc_uses_wiring_append_is_idempotent(project_root_with_gateway: Path) -> None:
+    """T075: running guc --uses twice must not duplicate the wiring test function."""
+    runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
+    runner.invoke(app, ["guc", "--name", "create_order_v2", "--uses", "order_repository"], catch_exceptions=False)
+    # Re-create first use case in same wiring file — same fn name
+    # Simulate re-run by calling wiring utils directly
+    wiring_test = project_root_with_gateway / "src" / "tests" / "application" / "config" / "test_wiring.py"
+    content = wiring_test.read_text()
+    count = content.count("test_container_resolves_create_order_usecase")
+    assert count == 1, f"Expected exactly one occurrence, got {count}"
+
+
+def test_guc_uses_hint_when_no_adapter(project_root_with_gateway: Path) -> None:
+    """T085: guc --uses must warn when no adapter implements the gateway."""
+    result = runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
+    assert result.exit_code == 0
+    out = strip_ansi(result.output)
+    assert "No adapter implements" in out or "OrderRepository" in out

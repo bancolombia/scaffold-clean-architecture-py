@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from {{ project.python_package }}.infrastructure.entry_points.agent.agent import {{ project.name }}Agent
+from {{ project.python_package }}.infrastructure.entry_points.agent.agent import {{ project.class_name }}Agent
 from {{ project.python_package }}.infrastructure.entry_points.agent.card import AgentCard
 
 
@@ -15,6 +15,6 @@ def test_agent_card_has_name() -> None:
 
 @pytest.mark.asyncio
 async def test_agent_run_raises_not_implemented() -> None:
-    agent = {{ project.name }}Agent()
+    agent = {{ project.class_name }}Agent()
     with pytest.raises(NotImplementedError):
         await agent.run({})

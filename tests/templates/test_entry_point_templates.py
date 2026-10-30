@@ -79,10 +79,13 @@ def test_entry_point_restapi_app_has_lifespan() -> None:
     assert "asynccontextmanager" in out
 
 
-def test_entry_point_restapi_app_has_container_wiring() -> None:
+def test_entry_point_restapi_app_has_wireup_setup() -> None:
+    """T029: restapi app.py must use wireup.integration.fastapi.setup (not dependency-injector Container)."""
     out = renderer.render_string(_tmpl("entry_point/restapi/app.py.jinja2"), _ctx().model_dump())
-    assert "Container" in out
-    assert "wire(" in out
+    assert "wireup.integration.fastapi" in out
+    assert "create_container" in out
+    assert "Container" not in out
+    assert "container.wire(" not in out
 
 
 def test_entry_point_restapi_app_factory_path_uses_application_app() -> None:
@@ -167,9 +170,11 @@ def test_mcp_tools_has_bind_tools() -> None:
     assert "bind_tools" in out
 
 
-def test_mcp_tools_has_inject_decorator() -> None:
+def test_mcp_tools_has_wireup_injected_import() -> None:
+    """Wireup: tools.py must import Injected from wireup instead of @inject (FR-016)."""
     out = renderer.render_string(_tmpl("entry_point/mcp/tools.py.jinja2"), _ctx().model_dump())
-    assert "@inject" in out
+    assert "wireup" in out
+    assert "@inject" not in out
 
 
 def test_mcp_tools_has_fastmcp_import() -> None:
@@ -227,9 +232,11 @@ def test_mcp_resources_has_bind_resources() -> None:
     assert "bind_resources" in out
 
 
-def test_mcp_resources_has_inject_decorator() -> None:
+def test_mcp_resources_has_wireup_injected_import() -> None:
+    """Wireup: resources.py must import Injected from wireup instead of @inject (FR-016)."""
     out = renderer.render_string(_tmpl("entry_point/mcp/resources.py.jinja2"), _ctx().model_dump())
-    assert "@inject" in out
+    assert "wireup" in out
+    assert "@inject" not in out
 
 
 def test_mcp_resources_has_fastmcp_import() -> None:
@@ -252,9 +259,11 @@ def test_mcp_prompts_has_bind_prompts() -> None:
     assert "bind_prompts" in out
 
 
-def test_mcp_prompts_has_inject_decorator() -> None:
+def test_mcp_prompts_has_wireup_injected_import() -> None:
+    """Wireup: prompts.py must import Injected from wireup instead of @inject (FR-016)."""
     out = renderer.render_string(_tmpl("entry_point/mcp/prompts.py.jinja2"), _ctx().model_dump())
-    assert "@inject" in out
+    assert "wireup" in out
+    assert "@inject" not in out
 
 
 def test_mcp_prompts_has_fastmcp_import() -> None:
@@ -576,8 +585,9 @@ def test_mcp_app_binds_routes_once_after_mcp_creation(with_resources: bool, with
     call = out.index("routes.bind_routes(mcp)")
     assert out.index("mcp: FastMCP = FastMCP(") < call < out.index("async def lifespan")
     assert call < out.index("def start_server")
-    wire_block = out[out.index("container.wire(") : out.index("await tools.bind_tools")]
-    assert "routes" not in wire_block
+    # Wireup: inject_from_container replaces container.wire; routes are bound before lifespan
+    assert "inject_from_container" in out
+    assert "container.wire(" not in out
     assert ("bind_resources" in out) is with_resources
     assert ("bind_prompts" in out) is with_prompts
 

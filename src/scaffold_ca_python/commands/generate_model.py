@@ -12,6 +12,7 @@ from scaffold_ca_python.commands._shared import (
     ensure_absent,
     print_dry_run_tree,
     require_project_root,
+    require_wireup_project,
     validate_name_or_exit,
 )
 from scaffold_ca_python.core.module_builder import ModuleBuilder
@@ -29,6 +30,7 @@ def _generate_model_impl(name: str, dry_run: bool) -> None:
     validate_name_or_exit(name, validate_module_name)
     project_root = require_project_root()
     project_ctx = load_project_context(project_root)
+    require_wireup_project(project_ctx)
     module_ctx = ModuleContext(name=name, layer=Layer.DOMAIN_MODEL, project=project_ctx)
 
     model_root = project_root / "src" / project_ctx.python_package / "domain" / "model"

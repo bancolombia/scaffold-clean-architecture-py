@@ -113,13 +113,7 @@ def test_generic_creates_impl(project_root: Path) -> None:
     result = runner.invoke(app, ["gda", "--type", "generic", "--name", "cache_store"], catch_exceptions=False)
     assert result.exit_code == 0
     assert (
-        project_root
-        / "src"
-        / "my_app"
-        / "infrastructure"
-        / "driven_adapters"
-        / "cache_store"
-        / "cache_store_adapter.py"
+        project_root / "src" / "my_app" / "infrastructure" / "driven_adapters" / "cache_store" / "adapter.py"
     ).exists()
 
 
@@ -140,13 +134,7 @@ def test_generic_creates_test(project_root: Path) -> None:
 def test_generic_impl_contains_class_name(project_root: Path) -> None:
     runner.invoke(app, ["gda", "--type", "generic", "--name", "cache_store"], catch_exceptions=False)
     content = (
-        project_root
-        / "src"
-        / "my_app"
-        / "infrastructure"
-        / "driven_adapters"
-        / "cache_store"
-        / "cache_store_adapter.py"
+        project_root / "src" / "my_app" / "infrastructure" / "driven_adapters" / "cache_store" / "adapter.py"
     ).read_text()
     assert "CacheStore" in content
 
@@ -187,13 +175,7 @@ def test_dry_run_generic_writes_nothing(project_root: Path) -> None:
     )
     assert result.exit_code == 0
     assert not (
-        project_root
-        / "src"
-        / "my_app"
-        / "infrastructure"
-        / "driven_adapters"
-        / "cache_store"
-        / "cache_store_adapter.py"
+        project_root / "src" / "my_app" / "infrastructure" / "driven_adapters" / "cache_store" / "adapter.py"
     ).exists()
 
 

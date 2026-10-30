@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Clean Architecture Python project"
 requires-python = ">=3.13"
 dependencies = [
-    "dependency-injector==4.49.1",
+    "wireup==2.13.0",
     "pydantic-settings==2.15.0",
 ]
 
@@ -15,6 +15,7 @@ test = [
     "pytest-asyncio==1.4.0",
 ]
 dev = [
+    "mypy==1.16.1",
     "ruff==0.16.8",
     { include-group = "test" },
 ]
@@ -30,13 +31,15 @@ build-backend = "hatchling.build"
 name = "{{ name }}"
 python_package = "{{ python_package }}"
 created_at = "{{ created_at }}"
+scaffold_version = "{{ scaffold_version }}"
 
 [tool.ruff]
 line-length = 120
 target-version = "py313"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "ANN"]
+select = ["E", "F", "I", "UP", "ANN", "ASYNC"]
+ignore = ["TC"]
 
 [tool.ruff.lint.per-file-ignores]
 "src/tests/**/*.py" = ["ANN"]
@@ -66,6 +69,7 @@ exclude_also = [
 [tool.pytest.ini_options]
 addopts = "--cov={{ python_package }} --cov-fail-under=75 --import-mode=importlib"
 testpaths = ["src/tests"]
+asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 filterwarnings = [
     "ignore:.*httpx.*:DeprecationWarning",

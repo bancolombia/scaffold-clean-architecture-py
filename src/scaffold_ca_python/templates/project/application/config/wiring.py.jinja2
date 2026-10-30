@@ -1,0 +1,16 @@
+"""Dependency wiring: register injectables and build the async container."""
+
+from __future__ import annotations
+
+import wireup
+from wireup.ioc.container.async_container import AsyncContainer
+
+from {{ python_package }}.application.config import usecases
+from {{ python_package }}.infrastructure import driven_adapters, helpers
+
+INJECTABLES = [driven_adapters, helpers, usecases]
+
+
+def create_container() -> AsyncContainer:
+    """Create the single async container; adapters are discovered by package scan."""
+    return wireup.create_async_container(injectables=INJECTABLES)

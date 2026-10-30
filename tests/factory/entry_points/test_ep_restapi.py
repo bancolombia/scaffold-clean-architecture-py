@@ -89,7 +89,7 @@ def test_restapi_dependencies_injected(tmp_path: Path) -> None:
     expected_deps = [
         "fastapi[standard]~=0.141.1",
         "uvicorn[standard]~=0.53.0",
-        "dependency-injector~=4.49.1",
+        "wireup~=2.13.0",
         "pydantic-settings~=2.15.0",
     ]
     for dep in expected_deps:

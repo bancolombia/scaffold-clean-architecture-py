@@ -11,13 +11,15 @@ from scaffold_ca_python.commands._shared import (
     console,
     ensure_absent,
     fail,
+    find_gateway,
     print_dry_run_tree,
     print_pending_dependencies,
     require_project_root,
+    require_wireup_project,
     validate_name_or_exit,
 )
 from scaffold_ca_python.core.module_builder import ModuleBuilder
-from scaffold_ca_python.core.name_utils import to_snake_case, validate_module_name
+from scaffold_ca_python.core.name_utils import to_pascal_case, to_snake_case, validate_module_name
 from scaffold_ca_python.core.project_detector import load_project_context
 from scaffold_ca_python.factory.driven_adapters import DRIVEN_ADAPTER_FACTORIES
 from scaffold_ca_python.models.context import ModuleContext
@@ -36,7 +38,12 @@ _GDA_EPILOG = (
 )
 
 
-def _generate_driven_adapter_impl(type_: str, name: str | None, dry_run: bool) -> None:
+def _generate_driven_adapter_impl(
+    type_: str,
+    name: str | None,
+    dry_run: bool,
+    gateway: str | None = None,
+) -> None:
     if type_ not in DRIVEN_ADAPTER_FACTORIES:
         allowed = ", ".join(DRIVEN_ADAPTER_FACTORIES.keys())
         fail(f"Unknown type '{type_}'. Allowed: {allowed}.")
@@ -53,6 +60,7 @@ def _generate_driven_adapter_impl(type_: str, name: str | None, dry_run: bool) -
 
     project_root = require_project_root()
     project_ctx = load_project_context(project_root)
+    require_wireup_project(project_ctx)
     subdir = to_snake_case(mod_name)
     module_ctx = ModuleContext(name=mod_name, layer=Layer.DRIVEN_ADAPTERS, project=project_ctx)
 
@@ -70,6 +78,23 @@ def _generate_driven_adapter_impl(type_: str, name: str | None, dry_run: bool) -
         module_ctx=module_ctx,
         dry_run=dry_run,
     )
+
+    if gateway:
+        model_module = find_gateway(project_root, project_ctx.python_package, gateway)
+        if model_module is None:
+            fail(
+                f"Gateway '{gateway}' not found in domain/model/*/gateways/.",
+                hint="Run 'scaffold gm --name <model>' to create a model with a gateway first.",
+            )
+        builder.add_param(
+            "gateway",
+            {
+                "name": gateway,
+                "class_name": to_pascal_case(gateway),
+                "model_module": model_module,
+            },
+        )
+
     created = build_and_persist(factory, builder)
 
     if dry_run:
@@ -116,9 +141,17 @@ def register(app: typer.Typer) -> None:
                 show_default=True,
             ),
         ] = False,
+        gateway: Annotated[
+            str | None,
+            typer.Option(
+                "--gateway",
+                help="Domain gateway ABC this adapter implements (e.g. book_repository).",
+                rich_help_panel="Options",
+            ),
+        ] = None,
     ) -> None:
         """Scaffold a driven adapter inside infrastructure/driven_adapters/."""
         if type_ is None:
             typer.echo(ctx.get_help())
             raise typer.Exit(0)
-        _generate_driven_adapter_impl(type_, name, dry_run)
+        _generate_driven_adapter_impl(type_, name, dry_run, gateway)

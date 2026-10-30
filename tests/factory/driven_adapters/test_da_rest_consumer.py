@@ -101,3 +101,55 @@ def test_rest_consumer_dependencies_injected(tmp_path: Path) -> None:
     assert any(e.get("include-group") == "test" for e in include_entries), (
         "include-group entry was lost from [dependency-groups.dev]"
     )
+
+
+# ---------------------------------------------------------------------------
+# T026 (US1): RestConsumer wireup changes — must FAIL until T023-T024
+# ---------------------------------------------------------------------------
+
+
+def test_rest_consumer_template_has_injectable(tmp_path: Path) -> None:
+    """T023-T024: rest_consumer adapter must have @injectable from wireup."""
+    from scaffold_ca_python.core.module_builder import ModuleBuilder
+    from scaffold_ca_python.models.context import ModuleContext, ProjectContext
+    from scaffold_ca_python.models.layer import Layer
+
+    _write_minimal_pyproject(tmp_path)
+    project = ProjectContext(name="ms-demo")
+    module_ctx = ModuleContext(name="rest_consumer", layer=Layer.DRIVEN_ADAPTERS, project=project)
+    builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, module_ctx=module_ctx, dry_run=False)
+
+    from scaffold_ca_python.factory.driven_adapters.da_rest_consumer import DrivenAdapterRestConsumer
+
+    DrivenAdapterRestConsumer().build(builder)
+    builder.persist()
+
+    adapter_file = (
+        tmp_path / "src" / "ms_demo" / "infrastructure" / "driven_adapters" / "rest_consumer" / "rest_consumer.py"
+    )
+    content = adapter_file.read_text()
+    assert "wireup" in content or "@injectable" in content, "RestConsumer adapter must have @injectable"
+
+
+def test_rest_consumer_settings_file_generated(tmp_path: Path) -> None:
+    """T023-T024: rest_consumer must generate a RestConsumerSettings file."""
+    from scaffold_ca_python.core.module_builder import ModuleBuilder
+    from scaffold_ca_python.models.context import ModuleContext, ProjectContext
+    from scaffold_ca_python.models.layer import Layer
+
+    _write_minimal_pyproject(tmp_path)
+    project = ProjectContext(name="ms-demo")
+    module_ctx = ModuleContext(name="rest_consumer", layer=Layer.DRIVEN_ADAPTERS, project=project)
+    builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, module_ctx=module_ctx, dry_run=False)
+
+    from scaffold_ca_python.factory.driven_adapters.da_rest_consumer import DrivenAdapterRestConsumer
+
+    DrivenAdapterRestConsumer().build(builder)
+    builder.persist()
+
+    src_dir = tmp_path / "src" / "ms_demo" / "infrastructure" / "driven_adapters" / "rest_consumer"
+    settings_candidates = list(src_dir.glob("*settings*.py")) + list(src_dir.glob("*config*.py"))
+    assert settings_candidates, "RestConsumer must generate a settings or config file"
+    combined = " ".join(f.read_text() for f in settings_candidates)
+    assert "BaseSettings" in combined, "Settings file must use pydantic-settings BaseSettings"
+    assert "base_url" in combined.lower(), "Settings must have a base_url field"

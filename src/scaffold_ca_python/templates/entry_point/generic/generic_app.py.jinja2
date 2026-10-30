@@ -1,0 +1,19 @@
+"""Generic entry-point composition root for {{ project.name }}."""
+from __future__ import annotations
+
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
+from {{ project.python_package }}.application.config.wiring import create_container
+from {{ project.python_package }}.infrastructure.entry_points.generic.handler import EntryPoint
+
+
+@asynccontextmanager
+async def create_entry_point() -> AsyncIterator[EntryPoint]:
+    """Build the wireup container, create the entry point, then serve."""
+    container = create_container()
+    handler = EntryPoint()
+    try:
+        yield handler
+    finally:
+        await container.close()

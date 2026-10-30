@@ -6,7 +6,12 @@ from typing import TYPE_CHECKING, Annotated
 
 import typer
 
-from scaffold_ca_python.commands._shared import console, print_dry_run_tree, require_project_root
+from scaffold_ca_python.commands._shared import (
+    console,
+    print_dry_run_tree,
+    require_project_root,
+    require_wireup_project,
+)
 from scaffold_ca_python.core.module_builder import ModuleBuilder
 from scaffold_ca_python.core.project_detector import load_project_context
 from scaffold_ca_python.factory.pipelines import PIPELINE_PROVIDERS
@@ -48,6 +53,7 @@ def _generate_pipeline_impl(
     pipeline = PIPELINE_PROVIDERS[provider]
     project_root = require_project_root()
     project_ctx = load_project_context(project_root)
+    require_wireup_project(project_ctx)
     out_path = project_root / pipeline.output_path
 
     if out_path.exists():

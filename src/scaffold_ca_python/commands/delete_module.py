@@ -7,7 +7,12 @@ from typing import Annotated
 
 import typer
 
-from scaffold_ca_python.commands._shared import console, require_project_root, validate_name_or_exit
+from scaffold_ca_python.commands._shared import (
+    console,
+    require_project_root,
+    require_wireup_project,
+    validate_name_or_exit,
+)
 from scaffold_ca_python.core.module_builder import ModuleBuilder
 from scaffold_ca_python.core.module_locator import find_module_targets
 from scaffold_ca_python.core.name_utils import to_snake_case, validate_module_name
@@ -31,6 +36,7 @@ def _delete_module_impl(name: str, confirm: bool, dry_run: bool) -> None:
     validate_name_or_exit(name, validate_module_name)
     project_root = require_project_root()
     project_ctx = load_project_context(project_root)
+    require_wireup_project(project_ctx)
 
     # Create a placeholder ModuleContext for the factory (layer doesn't matter for delete)
     module_ctx = ModuleContext(name=name, layer=Layer.HELPERS, project=project_ctx)

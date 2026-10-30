@@ -1,0 +1,23 @@
+"""Factory for {{ class_name }}UseCase — discovered by wireup when scanning the usecases package."""
+from __future__ import annotations
+
+import wireup
+
+{% for gw in gateways -%}
+from {{ project.python_package }}.domain.model.{{ gw.model_module }}.gateways.{{ gw.name }} import {{ gw.class_name }}
+{% endfor -%}
+from {{ project.python_package }}.domain.usecase.{{ module_name }}_usecase import {{ class_name }}UseCase
+
+
+@wireup.injectable
+def {{ module_name }}_usecase_factory(
+    {%- for gw in gateways %}
+    {{ gw.name }}: {{ gw.class_name }},
+    {%- endfor %}
+) -> {{ class_name }}UseCase:
+    """Construct {{ class_name }}UseCase with its gateway dependencies."""
+    return {{ class_name }}UseCase(
+        {%- for gw in gateways %}
+        {{ gw.name }}={{ gw.name }},
+        {%- endfor %}
+    )

@@ -1,0 +1,12 @@
+
+async def test_container_resolves_{{ module_name }}() -> None:
+    """Container must resolve {{ class_name }} through the wireup DI graph."""
+    from {{ project.python_package }}.application.config.wiring import create_container
+
+    container = create_container()
+    try:
+        from {{ project.python_package }}.infrastructure.driven_adapters.{{ module_name }}.adapter import {{ class_name }}
+
+        container.get({{ class_name }})
+    finally:
+        await container.close()

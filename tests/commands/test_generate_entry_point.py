@@ -1687,3 +1687,221 @@ def test_gep_mcp_generated_health_route_tests_pass(mcp_project: Path) -> None:
         timeout=60,
     )
     assert lint.returncode == 0, f"ruff failed: {lint.stdout}\n{lint.stderr}"
+
+
+# ---------------------------------------------------------------------------
+# T027 (US2): entry-point wireup — must FAIL until T029-T039 implement fixes
+# ---------------------------------------------------------------------------
+
+
+def test_agent_class_name_has_no_hyphens(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """T034: agent class name must be PascalCase even for hyphenated project names."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["ca", "--name", "my-app"], catch_exceptions=False)
+    project_dir = tmp_path / "my-app"
+    monkeypatch.chdir(project_dir)
+    runner.invoke(app, ["gep", "--type", "agent"], catch_exceptions=False)
+    agent_file = project_dir / "src" / "my_app" / "infrastructure" / "entry_points" / "agent" / "agent.py"
+    content = agent_file.read_text()
+    assert "my-app" not in content, "Class name must not contain hyphens"
+    assert "MyApp" in content or "MyAppAgent" in content, "Class name must be PascalCase"
+
+
+def test_agent_main_does_not_import_run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """T034: main.py must not import a bare module-level run() that does not exist."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["ca", "--name", "my-app"], catch_exceptions=False)
+    project_dir = tmp_path / "my-app"
+    monkeypatch.chdir(project_dir)
+    runner.invoke(app, ["gep", "--type", "agent"], catch_exceptions=False)
+    main_file = project_dir / "src" / "my_app" / "main.py"
+    content = main_file.read_text()
+    # main must NOT import a bare `run` from agent module — agent.agent has no module-level run()
+    assert "entry_points.agent.agent import run" not in content
+
+
+def test_generic_main_does_not_import_run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """T036: generic main.py must not import a bare run() that does not exist."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["ca", "--name", "my-app"], catch_exceptions=False)
+    project_dir = tmp_path / "my-app"
+    monkeypatch.chdir(project_dir)
+    runner.invoke(app, ["gep", "--type", "generic"], catch_exceptions=False)
+    main_file = project_dir / "src" / "my_app" / "main.py"
+    content = main_file.read_text()
+    # main must NOT import a bare `run` from entry_point module — handler.py has no module-level run()
+    assert "entry_points.generic.entry_point import run" not in content
+
+
+def test_mcp_app_uses_inject_from_container(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """T032: mcp app.py must use inject_from_container, not container.wire."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["ca", "--name", "my-app"], catch_exceptions=False)
+    project_dir = tmp_path / "my-app"
+    monkeypatch.chdir(project_dir)
+    runner.invoke(app, ["gep", "--type", "mcp"], catch_exceptions=False)
+    app_file = project_dir / "src" / "my_app" / "application" / "app.py"
+    content = app_file.read_text()
+    assert "inject_from_container" in content, "mcp app.py must use inject_from_container"
+    assert "container.wire(" not in content
+
+
+# ---------------------------------------------------------------------------
+# T040 (US2): End-to-end validation — full quality checks pass
+# ---------------------------------------------------------------------------
+
+
+def test_gep_restapi_full_quality_checks(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """T040: restapi entry point passes uv sync + ruff + pytest + vs."""
+    import subprocess
+
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["ca", "--name", "quality-test"], catch_exceptions=False)
+    project_dir = tmp_path / "quality-test"
+    monkeypatch.chdir(project_dir)
+    runner.invoke(app, ["gep", "--type", "restapi"], catch_exceptions=False)
+
+    # uv sync
+    sync = subprocess.run(["uv", "sync", "--no-progress"], cwd=project_dir, capture_output=True, text=True, timeout=120)
+    if sync.returncode != 0:
+        pytest.skip(f"uv sync failed: {sync.stderr}")
+
+    # ruff
+    ruff = subprocess.run(
+        ["uv", "run", "ruff", "check", "."], cwd=project_dir, capture_output=True, text=True, timeout=60
+    )
+    assert ruff.returncode == 0, f"ruff failed: {ruff.stdout}\n{ruff.stderr}"
+
+    # pytest
+    pytest_result = subprocess.run(
+        ["uv", "run", "pytest", "--no-cov", "-q"],
+        cwd=project_dir,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert pytest_result.returncode == 0, f"pytest failed: {pytest_result.stdout}\n{pytest_result.stderr}"
+
+    # scaffold vs
+    vs = subprocess.run(
+        ["uv", "run", "scaffold", "vs"],
+        cwd=project_dir,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert vs.returncode == 0, f"validate-structure failed: {vs.stdout}\n{vs.stderr}"
+
+
+def test_gep_mcp_full_quality_checks(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """T040: mcp entry point passes uv sync + ruff + pytest + vs."""
+    import subprocess
+
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["ca", "--name", "quality-test"], catch_exceptions=False)
+    project_dir = tmp_path / "quality-test"
+    monkeypatch.chdir(project_dir)
+    runner.invoke(app, ["gep", "--type", "mcp"], catch_exceptions=False)
+
+    sync = subprocess.run(["uv", "sync", "--no-progress"], cwd=project_dir, capture_output=True, text=True, timeout=120)
+    if sync.returncode != 0:
+        pytest.skip(f"uv sync failed: {sync.stderr}")
+
+    ruff = subprocess.run(
+        ["uv", "run", "ruff", "check", "."], cwd=project_dir, capture_output=True, text=True, timeout=60
+    )
+    assert ruff.returncode == 0, f"ruff failed: {ruff.stdout}\n{ruff.stderr}"
+
+    pytest_result = subprocess.run(
+        ["uv", "run", "pytest", "--no-cov", "-q"],
+        cwd=project_dir,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert pytest_result.returncode == 0, f"pytest failed: {pytest_result.stdout}\n{pytest_result.stderr}"
+
+    vs = subprocess.run(
+        ["uv", "run", "scaffold", "vs"],
+        cwd=project_dir,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert vs.returncode == 0, f"validate-structure failed: {vs.stdout}\n{vs.stderr}"
+
+
+def test_gep_agent_full_quality_checks(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """T040: agent entry point passes uv sync + ruff + pytest + vs."""
+    import subprocess
+
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["ca", "--name", "quality-test"], catch_exceptions=False)
+    project_dir = tmp_path / "quality-test"
+    monkeypatch.chdir(project_dir)
+    runner.invoke(app, ["gep", "--type", "agent"], catch_exceptions=False)
+
+    sync = subprocess.run(["uv", "sync", "--no-progress"], cwd=project_dir, capture_output=True, text=True, timeout=120)
+    if sync.returncode != 0:
+        pytest.skip(f"uv sync failed: {sync.stderr}")
+
+    ruff = subprocess.run(
+        ["uv", "run", "ruff", "check", "."], cwd=project_dir, capture_output=True, text=True, timeout=60
+    )
+    assert ruff.returncode == 0, f"ruff failed: {ruff.stdout}\n{ruff.stderr}"
+
+    pytest_result = subprocess.run(
+        ["uv", "run", "pytest", "--no-cov", "-q"],
+        cwd=project_dir,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert pytest_result.returncode == 0, f"pytest failed: {pytest_result.stdout}\n{pytest_result.stderr}"
+
+    vs = subprocess.run(
+        ["uv", "run", "scaffold", "vs"],
+        cwd=project_dir,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert vs.returncode == 0, f"validate-structure failed: {vs.stdout}\n{vs.stderr}"
+
+
+def test_gep_generic_full_quality_checks(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """T040: generic entry point passes uv sync + ruff + pytest + vs."""
+    import subprocess
+
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["ca", "--name", "quality-test"], catch_exceptions=False)
+    project_dir = tmp_path / "quality-test"
+    monkeypatch.chdir(project_dir)
+    runner.invoke(app, ["gep", "--type", "generic"], catch_exceptions=False)
+
+    sync = subprocess.run(["uv", "sync", "--no-progress"], cwd=project_dir, capture_output=True, text=True, timeout=120)
+    if sync.returncode != 0:
+        pytest.skip(f"uv sync failed: {sync.stderr}")
+
+    ruff = subprocess.run(
+        ["uv", "run", "ruff", "check", "."], cwd=project_dir, capture_output=True, text=True, timeout=60
+    )
+    assert ruff.returncode == 0, f"ruff failed: {ruff.stdout}\n{ruff.stderr}"
+
+    pytest_result = subprocess.run(
+        ["uv", "run", "pytest", "--no-cov", "-q"],
+        cwd=project_dir,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert pytest_result.returncode == 0, f"pytest failed: {pytest_result.stdout}\n{pytest_result.stderr}"
+
+    vs = subprocess.run(
+        ["uv", "run", "scaffold", "vs"],
+        cwd=project_dir,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert vs.returncode == 0, f"validate-structure failed: {vs.stdout}\n{vs.stderr}"

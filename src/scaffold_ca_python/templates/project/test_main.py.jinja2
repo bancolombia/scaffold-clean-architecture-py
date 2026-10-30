@@ -1,0 +1,14 @@
+"""Tests for {{ python_package }} entry point."""
+
+from __future__ import annotations
+
+import importlib.util
+
+
+def test_entry_module_exists() -> None:
+    """At least one entry-point module (main or server) must exist in the package."""
+    main_spec = importlib.util.find_spec("{{ python_package }}.main")
+    server_spec = importlib.util.find_spec("{{ python_package }}.server")
+    assert main_spec is not None or server_spec is not None, (
+        "Neither main.py nor server.py found in the project package."
+    )

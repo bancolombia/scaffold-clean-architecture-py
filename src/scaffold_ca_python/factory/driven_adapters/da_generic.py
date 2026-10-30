@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from scaffold_ca_python.core.name_utils import to_snake_case
+from scaffold_ca_python.core.name_utils import to_pascal_case, to_snake_case
 from scaffold_ca_python.core.project_detector import resolve_tests_root
 from scaffold_ca_python.factory.driven_adapters.base import DrivenAdapterFactory
 
@@ -31,8 +31,10 @@ class DrivenAdapterGeneric(DrivenAdapterFactory):
         # Get adapter name from module context
         adapter_name = builder.module_ctx.name if builder.module_ctx else "CustomAdapter"
         snake_name = to_snake_case(adapter_name)
+        # Strip _adapter suffix to avoid double-suffix when user passes e.g. book_repository_adapter
+        base_name = snake_name.removesuffix("_adapter")
 
-        # Setup directory paths
+        # Setup directory paths (directory keeps full snake_name)
         src_dir = project_root / "src" / pkg / "infrastructure" / "driven_adapters" / snake_name
         test_dir = resolve_tests_root(project_root) / "infrastructure" / "driven_adapters" / snake_name
 
@@ -43,6 +45,12 @@ class DrivenAdapterGeneric(DrivenAdapterFactory):
         ctx_dict = {}
         if builder.module_ctx:
             ctx_dict.update(builder.module_ctx.model_dump())
+        # Override class_name with base_name (no _adapter suffix) so the template produces
+        # class BookRepositoryAdapter, not BookRepositoryAdapterAdapter
+        ctx_dict["class_name"] = to_pascal_case(base_name)
+
+        # Optional gateway for @wireup.injectable(as_type=...)
+        ctx_dict["gateway"] = builder.get_param("gateway", default=None)
 
         # Add source files
         builder.add_file(
@@ -51,14 +59,14 @@ class DrivenAdapterGeneric(DrivenAdapterFactory):
             template_name=f"{base}/__init__.py.jinja2",
         )
         builder.add_file(
-            src_dir / f"{snake_name}_adapter.py",
+            src_dir / "adapter.py",
             builder.render(f"{base}/adapter.py.jinja2", ctx_dict),
             template_name=f"{base}/adapter.py.jinja2",
         )
 
         # Add test files
         builder.add_file(
-            test_dir / f"test_{snake_name}_adapter.py",
+            test_dir / f"test_{base_name}_adapter.py",
             builder.render(f"{base}/test_adapter.py.jinja2", ctx_dict),
             template_name=f"{base}/test_adapter.py.jinja2",
             is_test=True,

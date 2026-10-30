@@ -17,6 +17,7 @@ from scaffold_ca_python.core.project_detector import find_project_root
 if TYPE_CHECKING:
     from scaffold_ca_python.core.module_builder import ModuleBuilder
     from scaffold_ca_python.factory import ModuleFactory
+    from scaffold_ca_python.models.context import ProjectContext
 
 console = Console()
 
@@ -96,6 +97,42 @@ def build_and_persist(factory: ModuleFactory, builder: ModuleBuilder) -> list[Pa
     """Build and persist module operations, returning the affected paths."""
     factory.build(builder)
     return builder.persist()
+
+
+def warn_legacy_project(ctx: ProjectContext) -> None:
+    """Print a Rich-formatted warning for legacy projects (scaffold_version absent)."""
+    console.print(
+        f"[yellow]⚠ Warning:[/yellow] Project [bold]{ctx.name}[/bold] uses the legacy "
+        "[bold]dependency-injector[/bold] DI framework.\n"
+        "[dim]Run [bold]scaffold migrate-di[/bold] to migrate to wireup and remove this warning.[/dim]"
+    )
+
+
+def require_wireup_project(ctx: ProjectContext) -> None:
+    """Exit with code 1 when *ctx* is a legacy project (scaffold_version absent)."""
+    if ctx.is_legacy:
+        console.print(
+            f"[red]✗ Error:[/red] Project [bold]{ctx.name}[/bold] was generated with "
+            "scaffold-ca-python ≤ 0.5.0 (dependency-injector).\n"
+            "[dim]Migrate it first:\n"
+            "  [bold]scaffold migrate-di[/bold]          – automated codemod\n"
+            "  [bold]scaffold migrate-di --install-skill[/bold]  – AI-guided migration[/dim]"
+        )
+        raise SystemExit(1)
+
+
+def find_gateway(project_root: Path, pkg: str, gateway_name: str) -> str | None:
+    """Walk domain/model/*/gateways/ and return the model directory name if the gateway file is found."""
+    gateways_base = project_root / "src" / pkg / "domain" / "model"
+    if not gateways_base.is_dir():
+        return None
+    for model_dir in gateways_base.iterdir():
+        if not model_dir.is_dir():
+            continue
+        gateway_file = model_dir / "gateways" / f"{gateway_name}.py"
+        if gateway_file.exists():
+            return model_dir.name
+    return None
 
 
 def dry_run_option(help: str = "Preview without writing.") -> typer.models.OptionInfo:

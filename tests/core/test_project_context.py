@@ -96,3 +96,54 @@ def test_gep_mcp_add_tool_uses_scaffold_name(project_root: Path) -> None:
     assert result.exit_code == 0
     mcp_tools = project_root / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
     assert mcp_tools.exists()
+
+
+# ---------------------------------------------------------------------------
+# T091 (028): scaffold_version / is_legacy on ProjectContext
+# ---------------------------------------------------------------------------
+
+
+def test_project_context_scaffold_version_defaults_to_none() -> None:
+    """ProjectContext.scaffold_version must default to None for new (unsaved) contexts (T091)."""
+    from scaffold_ca_python.models.context import ProjectContext
+
+    ctx = ProjectContext(name="my-app")
+    assert ctx.scaffold_version is None
+
+
+def test_project_context_is_legacy_true_when_no_version() -> None:
+    """ProjectContext.is_legacy is True when scaffold_version is None (T091)."""
+    from scaffold_ca_python.models.context import ProjectContext
+
+    ctx = ProjectContext(name="my-app")
+    assert ctx.is_legacy is True
+
+
+def test_project_context_is_legacy_false_when_version_set() -> None:
+    """ProjectContext.is_legacy is False when scaffold_version is present (T091)."""
+    from scaffold_ca_python.models.context import ProjectContext
+
+    ctx = ProjectContext(name="my-app", scaffold_version="0.6.0")
+    assert ctx.is_legacy is False
+
+
+def test_load_project_context_reads_scaffold_version(tmp_path: Path) -> None:
+    """load_project_context reads scaffold_version from [tool.scaffold-ca-python] (T091, FR-002)."""
+    _write_pyproject(
+        tmp_path / "pyproject.toml",
+        '[tool.scaffold-ca-python]\nname = "my-app"\nscaffold_version = "0.6.0"\n',
+    )
+    ctx = load_project_context(tmp_path)
+    assert ctx.scaffold_version == "0.6.0"
+    assert ctx.is_legacy is False
+
+
+def test_load_project_context_missing_scaffold_version_is_legacy(tmp_path: Path) -> None:
+    """load_project_context returns is_legacy=True when scaffold_version key is absent (T091, D8)."""
+    _write_pyproject(
+        tmp_path / "pyproject.toml",
+        '[tool.scaffold-ca-python]\nname = "my-app"\n',
+    )
+    ctx = load_project_context(tmp_path)
+    assert ctx.scaffold_version is None
+    assert ctx.is_legacy is True

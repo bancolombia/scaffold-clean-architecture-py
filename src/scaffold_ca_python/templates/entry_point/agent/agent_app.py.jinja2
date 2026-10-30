@@ -1,0 +1,19 @@
+"""Agent composition root for {{ project.name }}."""
+from __future__ import annotations
+
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
+from {{ project.python_package }}.application.config.wiring import create_container
+from {{ project.python_package }}.infrastructure.entry_points.agent.agent import {{ project.class_name }}Agent
+
+
+@asynccontextmanager
+async def create_agent() -> AsyncIterator[{{ project.class_name }}Agent]:
+    """Build the wireup container, create the agent, then serve."""
+    container = create_container()
+    agent = {{ project.class_name }}Agent()
+    try:
+        yield agent
+    finally:
+        await container.close()

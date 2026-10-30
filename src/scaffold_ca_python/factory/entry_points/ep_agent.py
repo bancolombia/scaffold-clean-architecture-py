@@ -27,6 +27,7 @@ class EntryPointAgent(EntryPointFactory):
         """Build Agent entry-point files and dependencies.
 
         Queues files:
+        - src/application/agent_app.py (composition root)
         - src/infrastructure/entry_points/agent/__init__.py
         - src/infrastructure/entry_points/agent/agent.py
         - src/infrastructure/entry_points/agent/card.py
@@ -45,6 +46,7 @@ class EntryPointAgent(EntryPointFactory):
         src_dir = project_root / "src" / pkg / "infrastructure" / "entry_points" / "agent"
         test_dir = resolve_tests_root(project_root) / "infrastructure" / "entry_points" / "agent"
         main_py = project_root / "src" / pkg / "main.py"
+        agent_app_py = project_root / "src" / pkg / "application" / "agent_app.py"
 
         # Template base path for entry_point/agent
         base = "entry_point/agent"
@@ -64,6 +66,11 @@ class EntryPointAgent(EntryPointFactory):
         def tpl(f: str) -> str:
             return f"{base}/{f}"
 
+        builder.add_file(
+            agent_app_py,
+            builder.render(f"{base}/agent_app.py.jinja2", ctx_dict),
+            template_name=tpl("agent_app.py.jinja2"),
+        )
         builder.add_file(
             src_dir / "__init__.py",
             builder.render(f"{base}/__init__.py.jinja2", ctx_dict),

@@ -1,12 +1,26 @@
 """Tests for {{ class_name }}UseCase."""
 
+from __future__ import annotations
+
 import pytest
-
+{% for gw in gateways %}
+from {{ project.python_package }}.domain.model.{{ gw.model_module }}.gateways.{{ gw.name }} import {{ gw.class_name }}
+{%- endfor %}
 from {{ project.python_package }}.domain.usecase.{{ module_name }}_usecase import {{ class_name }}UseCase
+{% for gw in gateways %}
 
+class _Fake{{ gw.class_name }}({{ gw.class_name }}):  # type: ignore[abstract]
+    """Minimal stub of {{ gw.class_name }} for unit tests."""
+{% endfor %}
 
-@pytest.mark.asyncio
 async def test_{{ module_name }}_raises_not_implemented() -> None:
+{% if gateways %}
+    use_case = {{ class_name }}UseCase(
+        {%- for gw in gateways %}
+        {{ gw.name }}=_Fake{{ gw.class_name }}(),
+        {%- endfor %}
+    )
+{% else %}
     use_case = {{ class_name }}UseCase()
-    with pytest.raises(NotImplementedError):
+{% endif %}    with pytest.raises(NotImplementedError):
         await use_case.execute()

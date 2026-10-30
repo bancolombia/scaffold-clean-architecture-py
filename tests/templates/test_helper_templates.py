@@ -26,9 +26,11 @@ def test_helper_class_name_present() -> None:
     assert "DateUtils" in out
 
 
-def test_helper_has_pass_body() -> None:
+def test_helper_has_wireup_injectable() -> None:
+    """Wireup (T022): helper template must use @wireup.injectable instead of bare pass body."""
     out = renderer.render_string(_tmpl("helper/helper.py.jinja2"), _ctx().model_dump())
-    assert "pass" in out
+    assert "wireup" in out
+    assert "injectable" in out
 
 
 def test_helper_init_contains_docstring() -> None:

@@ -43,6 +43,7 @@ class EntryPointGeneric(EntryPointFactory):
         src_dir = project_root / "src" / pkg / "infrastructure" / "entry_points" / "generic"
         test_dir = resolve_tests_root(project_root) / "infrastructure" / "entry_points" / "generic"
         main_py = project_root / "src" / pkg / "main.py"
+        generic_app_py = project_root / "src" / pkg / "application" / "generic_app.py"
 
         # Template base path for entry_point/generic
         base = "entry_point/generic"
@@ -56,6 +57,11 @@ class EntryPointGeneric(EntryPointFactory):
         def tpl(f: str) -> str:
             return f"{base}/{f}"
 
+        builder.add_file(
+            generic_app_py,
+            builder.render(f"{base}/generic_app.py.jinja2", ctx_dict),
+            template_name=tpl("generic_app.py.jinja2"),
+        )
         builder.add_file(
             src_dir / "__init__.py",
             builder.render(f"{base}/__init__.py.jinja2", ctx_dict),

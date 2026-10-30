@@ -1,0 +1,22 @@
+"""Tests for {{ module_name }}_usecase_factory."""
+
+from __future__ import annotations
+
+from {{ project.python_package }}.application.config.usecases.{{ module_name }}_usecase import {{ module_name }}_usecase_factory
+{% for gw in gateways -%}
+from {{ project.python_package }}.domain.model.{{ gw.model_module }}.gateways.{{ gw.name }} import {{ gw.class_name }}
+{% endfor -%}
+from {{ project.python_package }}.domain.usecase.{{ module_name }}_usecase import {{ class_name }}UseCase
+{% for gw in gateways %}
+
+class _Fake{{ gw.class_name }}({{ gw.class_name }}):  # type: ignore[abstract]
+    """Minimal stub of {{ gw.class_name }} for unit tests."""
+{% endfor %}
+
+def test_{{ module_name }}_usecase_factory_creates_use_case() -> None:
+    use_case = {{ module_name }}_usecase_factory(
+        {%- for gw in gateways %}
+        {{ gw.name }}=_Fake{{ gw.class_name }}(),
+        {%- endfor %}
+    )
+    assert isinstance(use_case, {{ class_name }}UseCase)

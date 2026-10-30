@@ -41,11 +41,19 @@ class DrivenAdapterSecrets(DrivenAdapterFactory):
         if builder.module_ctx:
             ctx_dict.update(builder.module_ctx.model_dump())
 
+        # Optional gateway for @wireup.injectable(as_type=...)
+        ctx_dict["gateway"] = builder.get_param("gateway", default=None)
+
         # Add source files
         builder.add_file(
             src_dir / "__init__.py",
             builder.render(f"{base}/__init__.py.jinja2", ctx_dict),
             template_name=f"{base}/__init__.py.jinja2",
+        )
+        builder.add_file(
+            src_dir / "secrets_settings.py",
+            builder.render(f"{base}/secrets_settings.py.jinja2", ctx_dict),
+            template_name=f"{base}/secrets_settings.py.jinja2",
         )
         builder.add_file(
             src_dir / "secrets_adapter.py",
@@ -63,3 +71,4 @@ class DrivenAdapterSecrets(DrivenAdapterFactory):
 
         # Add dependency
         builder.add_dependency("boto3~=1.43.98")
+        builder.add_dependency("pydantic-settings~=2.15.0")

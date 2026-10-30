@@ -1,20 +1,23 @@
 {
   "gda:generic": [
     "src/my_app/infrastructure/driven_adapters/my_adapter/__init__.py",
-    "src/my_app/infrastructure/driven_adapters/my_adapter/my_adapter_adapter.py",
-    "src/tests/infrastructure/driven_adapters/my_adapter/test_my_adapter_adapter.py"
+    "src/my_app/infrastructure/driven_adapters/my_adapter/adapter.py",
+    "src/tests/infrastructure/driven_adapters/my_adapter/test_my_adapter.py"
   ],
   "gda:rest-consumer": [
     "src/my_app/infrastructure/driven_adapters/rest_consumer/__init__.py",
     "src/my_app/infrastructure/driven_adapters/rest_consumer/rest_consumer.py",
+    "src/my_app/infrastructure/driven_adapters/rest_consumer/rest_consumer_settings.py",
     "src/tests/infrastructure/driven_adapters/rest_consumer/test_rest_consumer.py"
   ],
   "gda:secrets": [
     "src/my_app/infrastructure/driven_adapters/secrets/__init__.py",
     "src/my_app/infrastructure/driven_adapters/secrets/secrets_adapter.py",
+    "src/my_app/infrastructure/driven_adapters/secrets/secrets_settings.py",
     "src/tests/infrastructure/driven_adapters/secrets/test_secrets_adapter.py"
   ],
   "gep:agent": [
+    "src/my_app/application/agent_app.py",
     "src/my_app/infrastructure/entry_points/agent/__init__.py",
     "src/my_app/infrastructure/entry_points/agent/agent.py",
     "src/my_app/infrastructure/entry_points/agent/card.py",
@@ -22,6 +25,7 @@
     "src/tests/infrastructure/entry_points/agent/test_agent.py"
   ],
   "gep:generic": [
+    "src/my_app/application/generic_app.py",
     "src/my_app/infrastructure/entry_points/generic/__init__.py",
     "src/my_app/infrastructure/entry_points/generic/entry_point.py",
     "src/my_app/main.py",
