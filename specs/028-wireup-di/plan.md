@@ -28,10 +28,14 @@ The following issues were discovered by running `uv run ruff check .` and `uv ru
 | H8 | spec | FR-006 says `<name>.py`; implementation uses `<name>_usecase.py` | Spec inconsistency — fixed: `<name>_usecase.py` is canonical |
 | H9 | request | Remove all legacy dependency-injector code; 0.5.0 projects → `migrate-di` only | Replace `warn_legacy_project` with `require_wireup_project` (exit 1) |
 | H10 | request | `di = "wireup"` records a decision; `scaffold_version = "<version>"` is more general | Replace key, detect legacy by absence of `scaffold_version` |
+| H11 | pytest | After `ca` + `gm` + `guc --uses` both wiring tests fail, not only the use-case one | Wireup validates the whole graph in `create_container()`; one missing adapter fails every wiring test |
+| H12 | mypy | `Unused "type: ignore"` in generated `_Fake<Gw>` stubs | Gateway ABC has no abstract methods |
+| H13 | ruff format | `config.py`, use-case factory and wiring stubs not formatter-clean | Missing blank line after docstring / between functions |
+| H14 | review | `gda --gateway` never appended its wiring test; template had no `await`, resolved the concrete class | Stub template never rendered |
 
-**Decisions**: (a) `ca` generates `test_wiring.py`; `guc --uses` and `gda --gateway` append to it (idempotent); (b) mypy added to dev group; (c) guard replaces warning; (d) `scaffold_version` replaces `di`.
+**Decisions**: (a) `ca` generates `test_wiring.py`; `guc --uses` and `gda --gateway` append to it (idempotent); (b) mypy added to dev group; (c) guard replaces warning; (d) `scaffold_version` replaces `di`; (e) `test_wiring.py` carries `MISSING_ADAPTERS` plus one module-level strict xfail (graph-wide validation), maintained by `guc`, `gda` and `dm`.
 
-These findings are addressed in Phase 3.1 (T075–T091).
+These findings are addressed in Phase 3.1 (T075–T091) and Phase 3.2 (T092–T100).
 
 ---
 

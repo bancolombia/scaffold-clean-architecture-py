@@ -88,7 +88,7 @@
 - [X] T081 [US1] Add `ca` templates: `test_config.py.jinja2`, `test_wiring.py.jinja2`, `test_main.py.jinja2`; register in `commands/generate_project.py`; add `mypy==<pin>` to `dev` group in `templates/project/pyproject_toml.jinja2`
 - [X] T082 [US1] Implement wiring-test append via `ModuleBuilder.append_to_file` with AST idempotency; add stub templates `templates/use_case/wiring_test_stub.py.jinja2` and `templates/driven_adapter/wiring_test_stub.py.jinja2`
 - [X] T083 [US1] Implement `gda --gateway`: add CLI option, move `_find_gateway` to `commands/_shared.py`, add `gateway` context to adapter factories, update adapter templates with `{% if gateway %}` blocks for `@injectable(as_type=...)` and class inheritance; re-mark T021 `[X]`
-- [ ] T084 [US1] `delete-module`: remove wiring test function via AST line ranges; also delete the factory test file
+- [X] T084 [US1] `delete-module`: remove wiring test function via AST line ranges; also delete the factory test file <!-- adapter wiring test + marker sync completed in T100 -->
 - [X] T085 [US1] `guc --uses`: print hint when no adapter with `as_type=<Gw>` found under `infrastructure/driven_adapters/`
 - [X] T086 [US1] Write failing tests: `require_wireup_project` exits 1 with `migrate-di`/`--install-skill` message; `gda`/`guc`/`gep`/`dm` on a legacy project exit 1 and write nothing
 - [X] T087 [US1] Implement `require_wireup_project` in `commands/_shared.py`; remove `warn_legacy_project`; call guard in all project-modifying commands
@@ -98,6 +98,24 @@
 - [X] T091 [US1] `scaffold_version` (H10): write failing tests → implement `core/version.py`, `ProjectContext.scaffold_version`/`is_legacy`, update `project_detector`, update pyproject template, update `generate_project.py`
 
 **Checkpoint**: `gda --gateway` works; wiring tests are appended idempotently; legacy projects are refused (exit 1); `scaffold_version` replaces `di =` in generated pyproject.
+
+---
+
+## Phase 3.2 — US1 Hardening (ms_library pytest findings)
+
+**Purpose**: `ca` + `gm` + `guc --uses` (no adapter yet) must leave `pytest`, `ruff format --check` and `mypy --strict` green. Wireup validates the whole graph in `create_container()`, so one missing adapter breaks every wiring test; the wiring module is therefore marked as one strict expected failure driven by `MISSING_ADAPTERS`, which the scaffolder maintains.
+
+- [X] T092 [US1] Write failing tests: `tests/core/test_wiring_utils.py` (`find_missing_adapters`, `sync_missing_adapters_marker`: rewrite, idempotent, no-op without marker); `guc --uses` without adapter writes `MISSING_ADAPTERS = ["<Gw>"]`; `gda --gateway` empties it and appends an awaited stub that resolves the gateway
+- [X] T093 [US1] Update `templates/project/test_wiring.py.jinja2`: `MISSING_ADAPTERS: list[str] = []` and module-level `pytestmark = pytest.mark.xfail(bool(MISSING_ADAPTERS), raises=WireupError, strict=True, reason=...)`; fix the stale docstring
+- [X] T094 [US1] Add `find_missing_adapters` / `sync_missing_adapters_marker` / `sync_wiring_marker` to `core/wiring_utils.py` (AST based); `_warn_missing_adapters` in `generate_use_case.py` reuses `find_missing_adapters`
+- [X] T095 [US1] Call `sync_wiring_marker` after writing (never in dry-run) from `generate_use_case.py`, `generate_driven_adapter.py` (when `--gateway`) and `delete_module_factory.py`
+- [X] T096 [US1] Fix `templates/driven_adapter/wiring_test_stub.py.jinja2` (`await container.get(<Gateway>)`, gateway import path from context) and render it idempotently from the generic, rest-consumer and secrets factories via `DrivenAdapterFactory.append_wiring_test`
+- [X] T097 [US1] Remove `# type: ignore[abstract]` from `test_use_case.py.jinja2` and `test_use_case_factory.py.jinja2`
+- [X] T098 [US1] `ruff format --check` clean output: blank line after docstring in `config.py.jinja2` and `use_case_factory.py.jinja2`; double leading blank line in both `wiring_test_stub.py.jinja2`
+- [X] T099 [US1] End-to-end test (`ca` → `gm` → `guc --uses` → ruff/format/mypy/pytest green with xfailed → `gda --gateway` → green with no xfailed)
+- [X] T100 [US1] `delete-module` removes `test_container_resolves_<adapter>` as well and re-syncs `MISSING_ADAPTERS` (completes T084)
+
+**Checkpoint**: the user flow `ca` + `gm` + `guc --uses` passes `pytest` (with expected failures naming the missing gateway) and all static checks; after `gda --gateway` there are zero xfails.
 
 ---
 
@@ -227,6 +245,7 @@
 - **Phase 1 (Setup)**: No dependencies — start immediately
 - **Phase 2 (Foundational)**: Depends on Phase 1 — **BLOCKS all user stories**
 - **Phase 3 (US1)**: Depends on Phase 2 — implements `guc --uses`, adapter/helper `@injectable`
+- **Phase 3.2 (US1 hardening)**: Depends on Phase 3.1; blocks the T073 quickstart validation
 - **Phase 4 (US2)**: Depends on Phase 2; can run in parallel with Phase 3 (different files)
 - **Phase 5 (US3)**: Depends on Phase 3 and Phase 4 being mostly complete (needs wiring templates)
 - **Phase 6 (US4)**: Depends on Phase 3 and Phase 4 (migrate-di replaces what those phases generate)

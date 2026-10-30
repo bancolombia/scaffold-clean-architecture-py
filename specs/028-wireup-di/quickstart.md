@@ -189,7 +189,8 @@ uv run scaffold guc --name book --uses book_repository
 **After these three commands**:
 - `ruff check .` → **green** (import order correct, FR-032)
 - `guc` output includes a hint: `Next step: scaffold gda --type ... --gateway book_repository` (FR-035)
-- `pytest` → `test_container_resolves_book_usecase` **FAILS** with a clear `WireupError: unknown dependency on BookRepository` (SC-003)
+- `ruff format --check .` and `mypy --strict src/` → **green**
+- `pytest` → **green**: wiring tests are reported as `xfailed` with reason `No adapter implements: BookRepository` (the underlying error is `WireupError: unknown dependency on BookRepository`, SC-003)
 
 ```bash
 uv run scaffold gda --type generic --name book_repository_adapter --gateway book_repository
@@ -199,7 +200,7 @@ uv run scaffold gda --type generic --name book_repository_adapter --gateway book
 ```bash
 uv run ruff check .                   # green
 uv run mypy --strict src/             # green
-uv run pytest                         # green; coverage ≥ 75%
+uv run pytest                         # green; 0 xfailed; coverage ≥ 75%
 uv run scaffold validate-structure    # green
 ```
 

@@ -127,6 +127,12 @@ The last error is why the `TC` ruff rule must be disabled in generated projects 
 
 ---
 
+## Decision: wiring tests use one module-level strict xfail
+
+Wireup validates the entire dependency graph inside `create_container()`. A single gateway without an adapter therefore makes **every** test in `test_wiring.py` raise `WireupError`, not just the test for the affected use case. A per-function marker would be wrong, so the generated module defines `MISSING_ADAPTERS` and one `pytestmark = pytest.mark.xfail(bool(MISSING_ADAPTERS), raises=WireupError, strict=True)`. `strict=True` turns a stale list (adapter added by hand) into an XPASS failure, preserving the fail-fast guarantee of SC-003 while keeping `pytest` green in the intermediate state. The scaffolder recomputes the list in `guc`, `gda` and `dm`.
+
+---
+
 ## wireup and libcst maintenance status (as of 2026-10-29)
 
 - **wireup**: last release 2.13.0 (recent); Python 3.13+ tested; pure Python (no Cython), so new Python versions are low-risk.

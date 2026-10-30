@@ -50,7 +50,7 @@ src/tests/application/config/usecases/test_<name>_usecase.py  # factory test (FR
 ```
 
 **Appended when `--uses` is provided**:
-- `src/tests/application/config/test_wiring.py` ← `test_container_resolves_<name>_usecase` (idempotent, FR-034)
+- `src/tests/application/config/test_wiring.py` ← `test_container_resolves_<name>_usecase` (idempotent, FR-034); `MISSING_ADAPTERS` updated (FR-037)
 
 **Hint printed** when no driven adapter with `as_type=<Gw>` found (FR-035):
 ```
@@ -66,7 +66,7 @@ src/tests/application/config/usecases/test_<name>_usecase.py   # if it exists
 ```
 
 **Also modified by `scaffold dm`**:
-- `src/tests/application/config/test_wiring.py` ← removes `test_container_resolves_<name>_usecase` (FR-034)
+- `src/tests/application/config/test_wiring.py` ← removes `test_container_resolves_<name>_usecase` and `test_container_resolves_<name>` (FR-034); `MISSING_ADAPTERS` re-synced (FR-037)
 
 ---
 
@@ -81,7 +81,7 @@ tests/.../test_<name>_adapter.py
 **When `--gateway <gw>` is provided**:
 - Adapter class inherits from `<Gw>` and carries `@wireup.injectable(as_type=<Gw>)`.
 - Gateway ABC is imported from `domain/model/*/gateways/<gw>.py`.
-- `src/tests/application/config/test_wiring.py` ← `test_container_resolves_<name>` appended (idempotent, FR-034).
+- `src/tests/application/config/test_wiring.py` ← `async def test_container_resolves_<name>` appended (idempotent, FR-034); it awaits `container.get(<Gw>)`. `MISSING_ADAPTERS` re-synced (FR-037).
 
 No additional files (generic adapter; resource convention is documented, not generated).
 
