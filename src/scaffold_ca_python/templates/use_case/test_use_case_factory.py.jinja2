@@ -9,7 +9,7 @@ from {{ project.python_package }}.domain.model.{{ gw.model_module }}.gateways.{{
 from {{ project.python_package }}.domain.usecase.{{ module_name }}_usecase import {{ class_name }}UseCase
 {% for gw in gateways %}
 
-class _Fake{{ gw.class_name }}({{ gw.class_name }}):  # type: ignore[abstract]
+class _Fake{{ gw.class_name }}({{ gw.class_name }}):
     """Minimal stub of {{ gw.class_name }} for unit tests."""
 {% endfor %}
 

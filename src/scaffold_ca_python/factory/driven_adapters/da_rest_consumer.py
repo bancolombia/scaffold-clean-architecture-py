@@ -62,6 +62,8 @@ class DrivenAdapterRestConsumer(DrivenAdapterFactory):
             template_name=f"{base}/rest_consumer.py.jinja2",
         )
 
+        self.append_wiring_test(builder, ctx_dict)
+
         # Add test files
         builder.add_file(
             test_dir / "test_rest_consumer.py",

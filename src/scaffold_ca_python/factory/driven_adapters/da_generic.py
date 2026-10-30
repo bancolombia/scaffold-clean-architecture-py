@@ -64,6 +64,8 @@ class DrivenAdapterGeneric(DrivenAdapterFactory):
             template_name=f"{base}/adapter.py.jinja2",
         )
 
+        self.append_wiring_test(builder, ctx_dict)
+
         # Add test files
         builder.add_file(
             test_dir / f"test_{base_name}_adapter.py",

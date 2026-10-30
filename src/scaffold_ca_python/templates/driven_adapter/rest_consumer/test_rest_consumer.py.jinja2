@@ -8,12 +8,18 @@ import respx
 
 from {{ project.python_package }}.infrastructure.driven_adapters.rest_consumer.rest_consumer import (
     RestConsumerAdapter,
+    RestConsumerSettings,
 )
+
+@pytest.fixture(autouse=True)
+def rest_consumer_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("REST_CONSUMER_BASE_URL", "https://example.com")
 
 
 @pytest.fixture()
 def adapter() -> RestConsumerAdapter:
-    return RestConsumerAdapter(base_url="https://example.com")
+    settings = RestConsumerSettings(base_url="https://example.com")
+    return RestConsumerAdapter(settings)
 
 
 @respx.mock

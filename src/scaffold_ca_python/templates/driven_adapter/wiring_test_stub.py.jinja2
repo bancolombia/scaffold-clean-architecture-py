@@ -1,12 +1,11 @@
 
+
 async def test_container_resolves_{{ module_name }}() -> None:
-    """Container must resolve {{ class_name }} through the wireup DI graph."""
-    from {{ project.python_package }}.application.config.wiring import create_container
+    """Container must resolve {{ gateway.class_name }} through the {{ module_name }} adapter."""
+    from {{ project.python_package }}.domain.model.{{ gateway.model_module }}.gateways.{{ gateway.name }} import {{ gateway.class_name }}
 
     container = create_container()
     try:
-        from {{ project.python_package }}.infrastructure.driven_adapters.{{ module_name }}.adapter import {{ class_name }}
-
-        container.get({{ class_name }})
+        await container.get({{ gateway.class_name }})
     finally:
         await container.close()

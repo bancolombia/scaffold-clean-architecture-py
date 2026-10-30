@@ -1,12 +1,11 @@
 
+
 async def test_container_resolves_{{ module_name }}_usecase() -> None:
     """Container must resolve {{ class_name }}UseCase through the wireup DI graph."""
-    from {{ project.python_package }}.application.config.wiring import create_container
+    from {{ project.python_package }}.domain.usecase.{{ module_name }}_usecase import {{ class_name }}UseCase
 
     container = create_container()
     try:
-        from {{ project.python_package }}.domain.usecase.{{ module_name }}_usecase import {{ class_name }}UseCase
-
         await container.get({{ class_name }}UseCase)
     finally:
         await container.close()

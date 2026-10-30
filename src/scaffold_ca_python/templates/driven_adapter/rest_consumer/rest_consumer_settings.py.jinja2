@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import wireup
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -18,3 +19,7 @@ class RestConsumerSettings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
     )
+
+@wireup.injectable
+def rest_consumer_settings_factory() -> RestConsumerSettings:
+    return RestConsumerSettings()

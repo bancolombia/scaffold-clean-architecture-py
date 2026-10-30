@@ -355,3 +355,118 @@ def test_guc_uses_hint_when_no_adapter(project_root_with_gateway: Path) -> None:
     assert result.exit_code == 0
     out = strip_ansi(result.output)
     assert "No adapter implements" in out or "OrderRepository" in out
+
+
+# ---------------------------------------------------------------------------
+# T092 / T097 / T098 / T099: Phase 3.2 — green suite before any adapter exists
+# ---------------------------------------------------------------------------
+
+
+def _wiring_test_path(root: Path) -> Path:
+    return root / "src" / "tests" / "application" / "config" / "test_wiring.py"
+
+
+def test_ca_wiring_test_has_empty_marker_and_strict_xfail(project_root: Path) -> None:
+    """T093: ca generates MISSING_ADAPTERS (empty) and a strict module-level xfail."""
+    content = _wiring_test_path(project_root).read_text()
+    assert "MISSING_ADAPTERS: list[str] = []" in content
+    assert "pytestmark = pytest.mark.xfail(" in content
+    assert "strict=True" in content
+    assert "raises=WireupError" in content
+    assert "no registered use cases yet" not in content
+
+
+def test_guc_uses_without_adapter_sets_missing_adapters(project_root_with_gateway: Path) -> None:
+    """T092: guc --uses with no adapter lists the gateway in MISSING_ADAPTERS."""
+    runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
+    content = _wiring_test_path(project_root_with_gateway).read_text()
+    assert 'MISSING_ADAPTERS: list[str] = ["OrderRepository"]' in content
+
+
+def test_gda_gateway_clears_missing_adapters_and_appends_awaited_stub(project_root_with_gateway: Path) -> None:
+    """T092/T096: gda --gateway empties the list and appends a stub that awaits the gateway."""
+    runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
+    result = runner.invoke(
+        app,
+        ["gda", "--type", "generic", "--name", "order_repository_adapter", "--gateway", "order_repository"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    content = _wiring_test_path(project_root_with_gateway).read_text()
+    assert "MISSING_ADAPTERS: list[str] = []" in content
+    assert "async def test_container_resolves_order_repository_adapter" in content
+    assert "await container.get(OrderRepository)" in content
+
+
+def test_gda_gateway_wiring_stub_is_idempotent_and_dm_removes_it(project_root_with_gateway: Path) -> None:
+    """T100: dm on the adapter removes its wiring test and restores MISSING_ADAPTERS."""
+    runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
+    runner.invoke(
+        app,
+        ["gda", "--type", "generic", "--name", "order_repository_adapter", "--gateway", "order_repository"],
+        catch_exceptions=False,
+    )
+    runner.invoke(app, ["dm", "--name", "order_repository_adapter", "--confirm"], catch_exceptions=False)
+    content = _wiring_test_path(project_root_with_gateway).read_text()
+    assert "test_container_resolves_order_repository_adapter" not in content
+    assert 'MISSING_ADAPTERS: list[str] = ["OrderRepository"]' in content
+
+
+def test_generated_use_case_tests_have_no_type_ignore(project_root_with_gateway: Path) -> None:
+    """T097: generated tests must not carry unused `type: ignore` comments."""
+    runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
+    root = project_root_with_gateway / "src" / "tests"
+    for path in (
+        root / "domain" / "usecase" / "test_create_order_usecase.py",
+        root / "application" / "config" / "usecases" / "test_create_order_usecase.py",
+    ):
+        assert "type: ignore" not in path.read_text(), path
+
+
+def test_generated_config_and_factory_pass_ruff_format(project_root_with_gateway: Path) -> None:
+    """T098: blank line after module docstring in config.py and the factory."""
+    runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
+    src = project_root_with_gateway / "src" / "my_app" / "application" / "config"
+    for path in (src / "config.py", src / "usecases" / "create_order_usecase.py"):
+        lines = path.read_text().splitlines()
+        assert lines[0].startswith('"""') and lines[1] == "", path
+
+
+def test_ca_gm_guc_then_gda_full_quality_flow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """T099: pytest/ruff/mypy are green before and after the adapter exists."""
+    import subprocess
+
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["ca", "--name", "ms_library"], catch_exceptions=False)
+    project_dir = tmp_path / "ms_library"
+    monkeypatch.chdir(project_dir)
+    runner.invoke(app, ["gm", "--name", "book"], catch_exceptions=False)
+    runner.invoke(app, ["guc", "--name", "book", "--uses", "book_repository"], catch_exceptions=False)
+
+    sync = subprocess.run(["uv", "sync", "--no-progress"], cwd=project_dir, capture_output=True, text=True, timeout=180)
+    if sync.returncode != 0:
+        pytest.skip(f"uv sync failed: {sync.stderr}")
+
+    def run(*cmd: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(["uv", "run", *cmd], cwd=project_dir, capture_output=True, text=True, timeout=180)
+
+    def assert_quality() -> None:
+        for cmd in (("ruff", "check", "."), ("ruff", "format", "--check", "."), ("mypy", "--strict", "src/")):
+            res = run(*cmd)
+            assert res.returncode == 0, f"{cmd} failed: {res.stdout}\n{res.stderr}"
+
+    assert_quality()
+    before = run("pytest", "-q", "-rx")
+    assert before.returncode == 0, before.stdout + before.stderr
+    assert "xfailed" in before.stdout
+    assert "BookRepository" in before.stdout
+
+    runner.invoke(
+        app,
+        ["gda", "--type", "generic", "--name", "book_repository_adapter", "--gateway", "book_repository"],
+        catch_exceptions=False,
+    )
+    assert_quality()
+    after = run("pytest", "-q")
+    assert after.returncode == 0, after.stdout + after.stderr
+    assert "xfailed" not in after.stdout

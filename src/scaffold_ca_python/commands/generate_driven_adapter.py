@@ -20,7 +20,8 @@ from scaffold_ca_python.commands._shared import (
 )
 from scaffold_ca_python.core.module_builder import ModuleBuilder
 from scaffold_ca_python.core.name_utils import to_pascal_case, to_snake_case, validate_module_name
-from scaffold_ca_python.core.project_detector import load_project_context
+from scaffold_ca_python.core.project_detector import load_project_context, resolve_tests_root
+from scaffold_ca_python.core.wiring_utils import sync_wiring_marker
 from scaffold_ca_python.factory.driven_adapters import DRIVEN_ADAPTER_FACTORIES
 from scaffold_ca_python.models.context import ModuleContext
 from scaffold_ca_python.models.layer import Layer
@@ -101,6 +102,9 @@ def _generate_driven_adapter_impl(
         print_dry_run_tree(subdir, created, project_root)
         print_pending_dependencies(builder)
         return
+
+    if gateway:
+        sync_wiring_marker(project_root, project_ctx.python_package, resolve_tests_root(project_root))
 
     console.print(f"[green]✓[/green] Driven adapter [bold]{subdir}[/bold] created. Created {len(created)} file(s).")
 

@@ -21,6 +21,7 @@ from scaffold_ca_python.commands._shared import (
 from scaffold_ca_python.core.module_builder import ModuleBuilder
 from scaffold_ca_python.core.name_utils import strip_usecase_suffix, to_snake_case, validate_module_name
 from scaffold_ca_python.core.project_detector import load_project_context, resolve_tests_root
+from scaffold_ca_python.core.wiring_utils import find_missing_adapters, sync_wiring_marker
 from scaffold_ca_python.factory.simple.use_case_factory import UseCaseFactory, _gateway_context
 from scaffold_ca_python.models.context import ModuleContext
 from scaffold_ca_python.models.layer import Layer
@@ -115,20 +116,17 @@ def _generate_use_case_impl(name: str, dry_run: bool, uses: str | None) -> None:
 
     # Hint when no adapter implements the gateway yet
     if gateways:
+        sync_wiring_marker(project_root, project_ctx.python_package, resolve_tests_root(project_root))
         _warn_missing_adapters(project_root, project_ctx.python_package, gateways)
 
 
 def _warn_missing_adapters(project_root: Path, pkg: str, gateways: list[dict[str, str]]) -> None:
     """Print a hint for each gateway that has no wireup adapter yet."""
-    adapters_dir = project_root / "src" / pkg / "infrastructure" / "driven_adapters"
-    if not adapters_dir.is_dir():
-        return
-    all_adapter_src = "\n".join(f.read_text() for f in adapters_dir.rglob("*.py") if f.is_file())
+    missing = set(find_missing_adapters(project_root, pkg))
     for gw in gateways:
-        gw_class = gw["class_name"]
-        if f"as_type={gw_class}" not in all_adapter_src:
+        if gw["class_name"] in missing:
             console.print(
-                f"[yellow]⚠[/yellow]  No adapter implements [bold]{gw_class}[/bold] yet.\n"
+                f"[yellow]⚠[/yellow]  No adapter implements [bold]{gw['class_name']}[/bold] yet.\n"
                 f"   Run: [dim]scaffold gda --type generic "
                 f"--name {gw['name']}_adapter --gateway {gw['name']}[/dim]"
             )

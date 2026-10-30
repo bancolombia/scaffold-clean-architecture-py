@@ -61,6 +61,8 @@ class DrivenAdapterSecrets(DrivenAdapterFactory):
             template_name=f"{base}/secrets_adapter.py.jinja2",
         )
 
+        self.append_wiring_test(builder, ctx_dict)
+
         # Add test files
         builder.add_file(
             test_dir / "test_secrets_adapter.py",

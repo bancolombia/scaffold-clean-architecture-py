@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 from scaffold_ca_python.core.module_locator import find_module_targets
 from scaffold_ca_python.core.name_utils import to_snake_case
 from scaffold_ca_python.core.project_detector import resolve_tests_root
-from scaffold_ca_python.core.wiring_utils import remove_test_function
+from scaffold_ca_python.core.wiring_utils import remove_test_function, sync_wiring_marker
 from scaffold_ca_python.factory import ModuleFactory
 
 if TYPE_CHECKING:
@@ -54,9 +54,11 @@ class DeleteModuleFactory(ModuleFactory):
             if factory_test_path.exists():
                 factory_test_path.unlink()
             if wiring_test_path.exists():
-                updated = remove_test_function(wiring_test_path.read_text(encoding="utf-8"), wiring_fn_name)
-                if updated is not None:
-                    wiring_test_path.write_text(updated, encoding="utf-8")
+                source = wiring_test_path.read_text(encoding="utf-8")
+                for fn_name in (wiring_fn_name, f"test_container_resolves_{snake_name}"):
+                    source = remove_test_function(source, fn_name) or source
+                wiring_test_path.write_text(source, encoding="utf-8")
+            sync_wiring_marker(project_root, pkg, tests_root)
 
     @staticmethod
     def _delete_path(path: Path) -> None:
