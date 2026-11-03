@@ -95,9 +95,12 @@ infrastructure/driven_adapters/<name>/<name>_settings.py   # RestConsumerSetting
 infrastructure/driven_adapters/<name>/<name>_config.py     # async yield: httpx.AsyncClient
 infrastructure/driven_adapters/<name>/__init__.py
 tests/.../test_<name>_adapter.py
+src/tests/conftest.py                                       # autouse fixture REST_CONSUMER_BASE_URL (appended idempotently, FR-039)
 ```
 
 Dependencies added to `pyproject.toml`: `httpx~=<version>`; `respx` in test group.
+
+**`src/tests/conftest.py`**: Created by `ca` (empty stub) or appended to by `gda rest-consumer`. Contains an autouse pytest fixture that sets `REST_CONSUMER_BASE_URL` in the test environment, ensuring wiring tests can resolve the container even when the adapter is registered (D5: required env var). The fixture is idempotent — running `gda rest-consumer` multiple times does not duplicate it.
 
 ---
 

@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import importlib.util
+from pathlib import Path
+
+import pytest
 
 
 def test_entry_module_exists() -> None:
@@ -12,3 +15,18 @@ def test_entry_module_exists() -> None:
     assert main_spec is not None or server_spec is not None, (
         "Neither main.py nor server.py found in the project package."
     )
+
+
+def test_main_runs(capsys: pytest.CaptureFixture[str]) -> None:
+    """Default scaffold main() runs and prints (skipped after gep replaces main)."""
+    main_spec = importlib.util.find_spec("{{ python_package }}.main")
+    if main_spec is None or main_spec.origin is None:
+        pytest.skip("No main module (entry point may use server.py)")
+    if "Hello, World!" not in Path(main_spec.origin).read_text(encoding="utf-8"):
+        pytest.skip("main is not the default scaffold entrypoint")
+
+    from {{ python_package }}.main import main
+
+    main()
+    captured = capsys.readouterr()
+    assert captured.out != "" or captured.err != ""

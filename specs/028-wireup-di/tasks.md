@@ -238,6 +238,33 @@
 
 ---
 
+## Phase 3.3 — Rest-consumer quality (QA ms_library oct-2026)
+
+**Goal**: Ensure generated projects pass pytest, ruff, ruff-format, and mypy for all rest-consumer scaffolding scenarios (QA reports escenarios 1–3).
+
+- [X] T101 (H1/§1): Fix `test_config.py.jinja2` to import `config.config` and assert `Settings` defaults; fix `test_main.py.jinja2` to call `main()` with `capsys`. `ca`+`gm` must pass `pytest --cov-fail-under=75`.
+- [X] T102 (H2/§2): Append idempotent `REST_CONSUMER_BASE_URL` autouse fixture to `src/tests/conftest.py` from `da_rest_consumer`; remove duplicate fixture from `test_rest_consumer.py.jinja2`; clean up in `delete_module_factory`.
+- [X] T103 (H3/§3, H19): Fix import separation in `rest_consumer.py.jinja2`, fixture/import spacing in `test_rest_consumer.py.jinja2` and generated conftest, and decorator spacing in settings. Re-test 3: Ruff and formatting pass at all nine milestones.
+- [X] T104 (H4/§4): Add `plugins = pydantic.mypy` to `mypy_ini.jinja2`; replace `**kwargs: object` with explicit typed keyword params in `rest_consumer.py.jinja2`; add async `post` test in `test_rest_consumer.py.jinja2`.
+- [ ] T105 (§5, H20): Parametrized E2E with 3 QA scenarios (`guc→gda rest-consumer`, `guc→gda rest-consumer --gateway`, `gda rest-consumer --gateway→guc`); assert pytest/ruff/ruff-format/mypy pass at each milestone. Re-test 3: all three cases fail on `mypy --strict src/` because generated `test_main.py` types `capsys` as object with an incorrect ignore; correct the fixture type. Intermediate milestone assertions are still missing.
+- [X] T106 (§5): Unit tests in `test_da_rest_consumer.py`: no double blank lines between imports, conftest.py fixture present, no `**kwargs: object`.
+- [X] T107 (§6): Re-run QA scenarios; add **Re-test** section to each `docs/qa-report-escenario-0X-ms_library.md`.
+- [X] T108 (§7): Spec review: SC-001 / quickstart mention rest-consumer; FR-039 coherent with scaffolder tests.
+
+**Re-test 2026-10-30:** T107 executed with **FAIL / No conforme**, not a quality sign-off. T101/T102/T104 behavior passes in generated projects; the nine factory unit tests (T106) pass. T103 remains open (Ruff and formatting). The three T105 E2E cases fail on Ruff; the current E2E checks only the final state, so intermediate milestone assertions are also still required. T108 records the spec review and documentation alignment, not FR-039 conformance. `spec-028-post` cannot close until T103/T105 pass.
+
+Evidence: [scenario 1 Re-test](../../docs/qa-report-escenario-01-ms_library.md#9-re-test--2026-10-30-t107), [scenario 2 Re-test](../../docs/qa-report-escenario-02-ms_library.md#9-re-test--2026-10-30-t107), [scenario 3 Re-test](../../docs/qa-report-escenario-03-ms_library.md#10-re-test--2026-10-30-t107), [failed regression log](../../docs/.qa-logs/retest-2026-10-30/regresion-rest-consumer.log).
+
+**Re-test 2 (2026-10-30, requested 16:35 -05:00): FAIL / No conforme.** 32/36 checks pass: pytest, mypy and formatting pass at all nine milestones; Ruff fails at four post-adapter milestones with one I001 in the adapter. H19 and the conftest I001 no longer reproduce. Focused regression exits 1 (3 E2E failed, 9 unit tests passed). T103/T105 remain open; the E2E still checks final state only. All three generated projects were removed.
+
+Latest evidence: [scenario 1](../../docs/qa-report-escenario-01-ms_library.md#10-re-test-2--2026-10-30), [scenario 2](../../docs/qa-report-escenario-02-ms_library.md#10-re-test-2--2026-10-30), [scenario 3](../../docs/qa-report-escenario-03-ms_library.md#11-re-test-2--2026-10-30), [regression failures](../../docs/.qa-logs/retest-2026-10-30-ronda-2/regresion-rest-consumer.log).
+
+**Re-test 3 (2026-10-30, requested 17:18 -05:00): manual scope PASS, expanded regression FAIL.** All 36 manual checks pass. T103 closes; H15–H19 no longer reproduce. T105 remains open: 3 E2E fail on generated test typing (H20), 9 unit tests pass; the E2E still checks final state only. The additional `uv run mypy --strict src/` fails in all three manually generated projects, whereas the requested `uv run mypy src/ms_library` passes. All generated projects were removed; `spec-028-post` remains blocked.
+
+Latest evidence: [scenario 1](../../docs/qa-report-escenario-01-ms_library.md#11-re-test-3--2026-10-30), [scenario 2](../../docs/qa-report-escenario-02-ms_library.md#11-re-test-3--2026-10-30), [scenario 3](../../docs/qa-report-escenario-03-ms_library.md#12-re-test-3--2026-10-30), [regression failures](../../docs/.qa-logs/retest-2026-10-30-ronda-3/regresion-rest-consumer.log).
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies

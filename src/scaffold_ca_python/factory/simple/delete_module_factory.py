@@ -59,6 +59,8 @@ class DeleteModuleFactory(ModuleFactory):
                     source = remove_test_function(source, fn_name) or source
                 wiring_test_path.write_text(source, encoding="utf-8")
             sync_wiring_marker(project_root, pkg, tests_root)
+            if snake_name == "rest_consumer":
+                self._remove_rest_consumer_conftest_fixture(tests_root)
 
     @staticmethod
     def _delete_path(path: Path) -> None:
@@ -66,3 +68,23 @@ class DeleteModuleFactory(ModuleFactory):
             path.unlink()
         elif path.is_dir():
             shutil.rmtree(path)
+
+    @staticmethod
+    def _remove_rest_consumer_conftest_fixture(tests_root: Path) -> None:
+        """Remove rest_consumer_env autouse fixture from conftest.py if present."""
+        import re
+
+        conftest_path = tests_root / "conftest.py"
+        if not conftest_path.exists():
+            return
+        source = conftest_path.read_text(encoding="utf-8")
+        if "rest_consumer_env" not in source:
+            return
+        cleaned = re.sub(
+            r"\n@pytest\.fixture\(autouse=True\)\ndef rest_consumer_env\(.*?\) -> None:.*?(?=\n\n|\Z)",
+            "",
+            source,
+            flags=re.DOTALL,
+        )
+        if cleaned != source:
+            conftest_path.write_text(cleaned, encoding="utf-8")

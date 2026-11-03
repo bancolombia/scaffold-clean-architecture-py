@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import httpx
 import wireup
-{% if gateway %}
+{%- if gateway %}
 from {{ project.python_package }}.domain.model.{{ gateway.model_module }}.gateways.{{ gateway.name }} import {{ gateway.class_name }}
-{% endif %}
+{%- endif %}
 from {{ project.python_package }}.infrastructure.driven_adapters.rest_consumer.rest_consumer_settings import (
     RestConsumerSettings,
 )
@@ -32,12 +32,24 @@ class RestConsumerAdapter:
     def __init__(self, settings: RestConsumerSettings) -> None:
         self._settings = settings
 
-    async def get(self, path: str, **kwargs: object) -> httpx.Response:
+    async def get(
+        self,
+        path: str,
+        *,
+        params: dict[str, str] | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> httpx.Response:
         """Perform an async GET request."""
         async with httpx.AsyncClient(base_url=self._settings.base_url) as client:
-            return await client.get(path, **kwargs)
+            return await client.get(path, params=params, headers=headers)
 
-    async def post(self, path: str, **kwargs: object) -> httpx.Response:
+    async def post(
+        self,
+        path: str,
+        *,
+        json: object | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> httpx.Response:
         """Perform an async POST request."""
         async with httpx.AsyncClient(base_url=self._settings.base_url) as client:
-            return await client.post(path, **kwargs)
+            return await client.post(path, json=json, headers=headers)

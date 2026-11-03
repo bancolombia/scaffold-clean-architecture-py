@@ -8,3 +8,11 @@ def test_config_module_imports() -> None:
     import importlib
 
     importlib.import_module("{{ python_package }}.application.config")
+
+
+def test_settings_defaults() -> None:
+    """Settings must expose default ENV value without env vars."""
+    from {{ python_package }}.application.config.config import Settings
+
+    settings = Settings()
+    assert settings.ENV == "development"

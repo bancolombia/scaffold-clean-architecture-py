@@ -470,3 +470,63 @@ def test_ca_gm_guc_then_gda_full_quality_flow(tmp_path: Path, monkeypatch: pytes
     after = run("pytest", "-q")
     assert after.returncode == 0, after.stdout + after.stderr
     assert "xfailed" not in after.stdout
+
+
+# ---------------------------------------------------------------------------
+# T105 (Phase 3.3): E2E rest-consumer quality — three QA scenarios
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "scenario",
+    [
+        pytest.param("guc_then_gda", id="guc_then_gda"),
+        pytest.param("guc_gateway_then_gda", id="guc_gateway_then_gda"),
+        pytest.param("gda_then_guc", id="gda_then_guc"),
+    ],
+)
+def test_rest_consumer_quality_flow(scenario: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """T105: pytest/ruff/ruff-format/mypy pass for all rest-consumer scaffolding orders."""
+    import subprocess
+
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["ca", "--name", "ms_library"], catch_exceptions=False)
+    project_dir = tmp_path / "ms_library"
+    monkeypatch.chdir(project_dir)
+    runner.invoke(app, ["gm", "--name", "book"], catch_exceptions=False)
+
+    if scenario == "guc_then_gda":
+        runner.invoke(app, ["guc", "--name", "book"], catch_exceptions=False)
+        runner.invoke(app, ["gda", "--type", "rest-consumer"], catch_exceptions=False)
+    elif scenario == "guc_gateway_then_gda":
+        runner.invoke(app, ["guc", "--name", "book", "--uses", "book_repository"], catch_exceptions=False)
+        runner.invoke(
+            app,
+            ["gda", "--type", "rest-consumer", "--gateway", "book_repository"],
+            catch_exceptions=False,
+        )
+    elif scenario == "gda_then_guc":
+        runner.invoke(
+            app,
+            ["gda", "--type", "rest-consumer", "--gateway", "book_repository"],
+            catch_exceptions=False,
+        )
+        runner.invoke(app, ["guc", "--name", "book", "--uses", "book_repository"], catch_exceptions=False)
+
+    sync = subprocess.run(["uv", "sync", "--no-progress"], cwd=project_dir, capture_output=True, text=True, timeout=180)
+    if sync.returncode != 0:
+        pytest.skip(f"uv sync failed: {sync.stderr}")
+
+    def run(*cmd: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(["uv", "run", *cmd], cwd=project_dir, capture_output=True, text=True, timeout=180)
+
+    for cmd in (
+        ("ruff", "check", "."),
+        ("ruff", "format", "--check", "."),
+        ("mypy", "--strict", "src/"),
+    ):
+        res = run(*cmd)
+        assert res.returncode == 0, f"[{scenario}] {cmd} failed:\n{res.stdout}\n{res.stderr}"
+
+    result = run("pytest", "-q", "-rx")
+    assert result.returncode == 0, f"[{scenario}] pytest failed:\n{result.stdout}\n{result.stderr}"

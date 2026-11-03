@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import subprocess
 from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, NoReturn
@@ -93,10 +94,28 @@ def print_pending_dependencies(builder: ModuleBuilder) -> None:
         console.print(f"[dim]Would add to {target}: {', '.join(pkgs)}[/dim]")
 
 
+def auto_format_project(project_root: Path) -> None:
+    """Run ruff check --fix (I rules) then ruff format on *project_root* (best-effort).
+
+    Silently skips when ruff is not on PATH.
+    """
+    for cmd in (
+        ["ruff", "check", "--fix", "--select", "I", "--quiet", "--no-cache", "."],
+        ["ruff", "format", "--quiet", "--no-cache", "."],
+    ):
+        try:
+            subprocess.run(cmd, cwd=project_root, check=False, capture_output=True)
+        except FileNotFoundError:
+            return
+
+
 def build_and_persist(factory: ModuleFactory, builder: ModuleBuilder) -> list[Path]:
     """Build and persist module operations, returning the affected paths."""
     factory.build(builder)
-    return builder.persist()
+    paths = builder.persist()
+    if not builder.dry_run:
+        auto_format_project(builder.project_root)
+    return paths
 
 
 def warn_legacy_project(ctx: ProjectContext) -> None:

@@ -35,7 +35,20 @@ The following issues were discovered by running `uv run ruff check .` and `uv ru
 
 **Decisions**: (a) `ca` generates `test_wiring.py`; `guc --uses` and `gda --gateway` append to it (idempotent); (b) mypy added to dev group; (c) guard replaces warning; (d) `scaffold_version` replaces `di`; (e) `test_wiring.py` carries `MISSING_ADAPTERS` plus one module-level strict xfail (graph-wide validation), maintained by `guc`, `gda` and `dm`.
 
-These findings are addressed in Phase 3.1 (T075–T091) and Phase 3.2 (T092–T100).
+| # | Origin | Finding | Source | Task / re-test status (2026-10-30) |
+|---|--------|---------|--------|----------------------------------|
+| H15 | Post-gen | `test_config.py.jinja2` only imports the module — `config.py` and `Settings` defaults never exercised; `--cov-fail-under=75` breaks after `ca`+`gm` | test_config.py.jinja2 | Phase 3.3 T101 — mitigated; pytest passes at all nine milestones |
+| H16 | Post-gen | `REST_CONSUMER_BASE_URL` fixture is scoped to `test_rest_consumer.py` — `test_wiring.py` fails to resolve the container (D5: required field) | test_rest_consumer.py.jinja2, da_rest_consumer.py | Phase 3.3 T102 — mitigated; wiring resolves after the adapter exists |
+| H17 | Post-gen | Missing third-party/first-party import separation in the adapter; conftest spacing | rest_consumer.py.jinja2 | Mitigated in re-test 3; all nine Ruff runs exit 0; T103 complete |
+| H18 | Post-gen | `**kwargs: object` passed to httpx → 16 mypy errors; pydantic plugin missing in mypy.ini → 1 call-arg error | rest_consumer.py.jinja2, mypy_ini.jinja2 | Phase 3.3 T104 — mitigated; mypy passes at all nine milestones |
+| H19 | Re-test | Missing blank line before decorators in generated settings and conftest | rest_consumer_settings.py.jinja2, da_rest_consumer.py | Mitigated in re-test 2; all nine formatting runs exit 0 |
+| H20 | Re-test 3 | Generated `test_main.py` uses `capsys: object` and incorrect `ignore[union-attr]`; expanded mypy reports attr-defined and unused-ignore | test_main.py.jinja2 | T105 — OPEN; 3 E2E and 3 additional manual `mypy --strict src/` runs fail |
+
+These findings are tracked in Phase 3.1 (T075–T091), Phase 3.2 (T092–T100), and Phase 3.3 (T101–T108). Re-test 3 confirms all 36 manual checks pass and closes T103. Phase 3.3 is not complete: T105 still fails in all three E2E cases on expanded mypy (H20) and lacks intermediate milestone assertions; `spec-028-post` is blocked. Manual FR-033/FR-039 flows pass, but broader SC-001 quality conformance is not certified.
+
+Re-test evidence: [scenario 1](../../docs/qa-report-escenario-01-ms_library.md#9-re-test--2026-10-30-t107), [scenario 2](../../docs/qa-report-escenario-02-ms_library.md#9-re-test--2026-10-30-t107), [scenario 3](../../docs/qa-report-escenario-03-ms_library.md#10-re-test--2026-10-30-t107), [focused regression failures](../../docs/.qa-logs/retest-2026-10-30/regresion-rest-consumer.log).
+
+Latest re-test (round 3, requested 2026-10-30 17:18 -05:00): 36/36 manual checks pass. Focused regression: exit 1, 3 E2E failed on H20, 9 unit tests passed. [Current consolidated findings](../../docs/qa-scaffold-ms-library-hallazgos.md#re-test-3--2026-10-30-solicitado-a-las-1718--0500).
 
 ---
 

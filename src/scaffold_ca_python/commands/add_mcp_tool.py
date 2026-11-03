@@ -10,7 +10,12 @@ from typing import TYPE_CHECKING
 import typer
 from rich.syntax import Syntax
 
-from scaffold_ca_python.commands._shared import console, require_project_root, require_wireup_project
+from scaffold_ca_python.commands._shared import (
+    auto_format_project,
+    console,
+    require_project_root,
+    require_wireup_project,
+)
 from scaffold_ca_python.core import mcp_tool_spec
 from scaffold_ca_python.core.module_builder import ModuleBuilder
 from scaffold_ca_python.core.name_utils import ScaffoldError
@@ -198,4 +203,6 @@ def add_mcp_tool(options: EntryPointOptions) -> None:
     builder.append_to_file(tools_py, tool_stub)
     builder.append_to_file(test_tools_py, test_stub)
     modified = _persist_with_restore(builder, (tools_py, tools_src, test_tools_py, test_tools_src))
+    if not options.dry_run:
+        auto_format_project(project_root)
     _report_add_tool(modified, tool_stub, test_stub, spec, project_root, options.dry_run)

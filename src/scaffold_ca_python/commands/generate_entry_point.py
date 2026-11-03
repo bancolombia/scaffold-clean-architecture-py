@@ -10,6 +10,7 @@ import typer
 
 from scaffold_ca_python.commands._entry_point_rules import check_conflicts, check_flags
 from scaffold_ca_python.commands._shared import (
+    auto_format_project,
     console,
     ensure_absent,
     fail,
@@ -115,6 +116,8 @@ def _build(
     factory = factory_class()
     factory.build(builder)
     created = builder.persist()
+    if not options.dry_run:
+        auto_format_project(project_root)
     return _BuildResult(factory=factory, builder=builder, subdir=subdir, created=created)
 
 
