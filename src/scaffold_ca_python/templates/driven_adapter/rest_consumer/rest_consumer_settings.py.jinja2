@@ -18,6 +18,7 @@ class RestConsumerSettings(BaseSettings):
         env_prefix="{{ module_name | upper }}_",
         env_file=".env",
         env_file_encoding="utf-8",
+        extra="ignore",
     )
 
 
