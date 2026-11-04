@@ -93,7 +93,7 @@
 - [X] T086 [US1] Write failing tests: `require_wireup_project` exits 1 with `migrate-di`/`--install-skill` message; `gda`/`guc`/`gep`/`dm` on a legacy project exit 1 and write nothing
 - [X] T087 [US1] Implement `require_wireup_project` in `commands/_shared.py`; remove `warn_legacy_project`; call guard in all project-modifying commands
 - [X] T088 [US1] Remove legacy branches from `ep_mcp.py` and `ep_restapi.py`; delete `templates/legacy/`; delete legacy tests
-- [ ] T089 [US1] Rewrite T056 description in `tasks.md` to use sha256 fingerprints in `core/migrations/fingerprints_050.py` instead of rendered templates
+- [X] T089 [US1] Rewrite T056 description in `tasks.md` to use sha256 fingerprints in `core/migrations/fingerprints_050.py` instead of rendered templates
 - [X] T090 [US1] Grep audit: `grep -rn "dependency.injector\|dependency_injector" src/` must show only `project_detector`, `context.py`, fingerprints, and `core/migrations/`
 - [X] T091 [US1] `scaffold_version` (H10): write failing tests → implement `core/version.py`, `ProjectContext.scaffold_version`/`is_legacy`, update `project_detector`, update pyproject template, update `generate_project.py`
 
