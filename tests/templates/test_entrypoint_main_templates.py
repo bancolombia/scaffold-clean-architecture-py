@@ -69,6 +69,11 @@ def test_mcp_main_uses_asyncio() -> None:
     assert "uvicorn" in out
 
 
+def test_mcp_main_does_not_use_sys_exit() -> None:
+    out = _render("entry_point/mcp/server.py.jinja2")
+    assert "sys.exit" not in out
+
+
 # --- generic entrypoint_main.py -------------------------------------------
 
 

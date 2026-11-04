@@ -297,6 +297,13 @@ def test_mcp_server_imports_app() -> None:
     assert "import app" in out
 
 
+def test_mcp_server_main_guard_calls_main_without_sys_exit() -> None:
+    out = renderer.render_string(_tmpl("entry_point/mcp/server.py.jinja2"), _ctx().model_dump())
+    assert 'if __name__ == "__main__":' in out
+    assert "sys.exit" not in out
+    assert "    main()" in out
+
+
 # ---------------------------------------------------------------------------
 # mcp — app.py (composition root) — Phase 5 / T026–T027
 # ---------------------------------------------------------------------------
@@ -314,7 +321,7 @@ def _routes_out() -> str:
         "from starlette.requests import Request",
         "from starlette.responses import JSONResponse, Response",
         "def bind_routes(mcp: FastMCP) -> None:",
-        '@mcp.custom_route(name="health_check", path="/api/v1/health", methods=["GET"])',
+        '@mcp.custom_route(name="health_check", path="/api/v1/health", methods=["GET"])  # type: ignore[misc]',
         "async def health_check(_request: Request) -> Response:",
         '{"status": "ok"}',
         "return JSONResponse(response_data)",

@@ -530,3 +530,62 @@ def test_rest_consumer_quality_flow(scenario: str, tmp_path: Path, monkeypatch: 
 
     result = run("pytest", "-q", "-rx")
     assert result.returncode == 0, f"[{scenario}] pytest failed:\n{result.stdout}\n{result.stderr}"
+
+
+# ---------------------------------------------------------------------------
+# MCP QA scenarios (DEF-MCP-001/002): ca → gm → guc → gda rest-consumer → gep mcp
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "scenario",
+    [
+        pytest.param("mcp_01", id="mcp_01"),
+        pytest.param("mcp_02", id="mcp_02"),
+    ],
+)
+def test_mcp_qa_quality_flow(scenario: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """pytest/ruff/mypy pass after full MCP scaffolding flow (mirrors docs/.qa-logs/run-mcp-scenarios.sh)."""
+    import subprocess
+
+    pkg = "ms_mcp_qa"
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["ca", "--name", pkg], catch_exceptions=False)
+    project_dir = tmp_path / pkg
+    monkeypatch.chdir(project_dir)
+    runner.invoke(app, ["gm", "--name", "book"], catch_exceptions=False)
+    runner.invoke(app, ["guc", "--name", "book"], catch_exceptions=False)
+    runner.invoke(app, ["gda", "--type", "rest-consumer"], catch_exceptions=False)
+    runner.invoke(app, ["gep", "--type", "mcp"], catch_exceptions=False)
+    if scenario == "mcp_02":
+        runner.invoke(
+            app,
+            [
+                "gep",
+                "--type",
+                "mcp",
+                "--add-tool",
+                "--name",
+                "read_book",
+                "--param",
+                "book_id:int",
+                "--returns",
+                "str",
+            ],
+            catch_exceptions=False,
+        )
+
+    sync = subprocess.run(["uv", "sync", "--no-progress"], cwd=project_dir, capture_output=True, text=True, timeout=180)
+    if sync.returncode != 0:
+        pytest.skip(f"uv sync failed: {sync.stderr}")
+
+    def run(*cmd: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(["uv", "run", *cmd], cwd=project_dir, capture_output=True, text=True, timeout=180)
+
+    for cmd in (
+        ("pytest",),
+        ("ruff", "check", "."),
+        ("mypy", f"src/{pkg}"),
+    ):
+        res = run(*cmd)
+        assert res.returncode == 0, f"[{scenario}] {cmd} failed:\n{res.stdout}\n{res.stderr}"
