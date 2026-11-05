@@ -4,6 +4,8 @@
 **Created**: 2026-03-27
 **Status**: Ready
 
+> **Partial supersession**: [Spec 028 — Wireup DI for new projects](../028-wireup-di/spec.md) replaces the **dependency-injector / container** scaffolding described in User Story 2 and related requirements for projects generated with scaffold-ca-python 0.6.0+. Other enhancements in this spec (Docker, ruff in pyproject, etc.) remain authoritative where not contradicted by 028.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Simplified Project Bootstrapping (Priority: P1)

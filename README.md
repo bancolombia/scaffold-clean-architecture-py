@@ -99,8 +99,14 @@ scaffold gm --name order --dry-run
 
 Scaffold a use case in `domain/usecase/`. The module is always named `<name>_usecase.py` and the class `<Name>UseCase`. Writing `_usecase` in `--name` is optional and the suffix is never duplicated: `create_order`, `create_order_usecase` and `create_order_use_case` all create `create_order_usecase.py` with `CreateOrderUseCase`.
 
+Use `--uses` with one or more **domain gateway** names (comma-separated) to generate a typed constructor and a wireup factory under `application/config/usecases/`. Gateway names must match ABCs in `domain/model/*/gateways/`. Helpers and adapters are not valid `--uses` targets.
+
 ```bash
 scaffold guc --name create_order
+```
+
+```bash
+scaffold guc --name create_order --uses order_repository
 ```
 
 ```bash
@@ -111,8 +117,14 @@ scaffold guc --name create_order --dry-run
 
 Scaffold a driven adapter such as an HTTP client, secrets adapter, or generic outbound adapter.
 
+Use `--gateway` with a domain gateway ABC name so the adapter is registered as `@injectable(as_type=<Gateway>)` and wired to that port.
+
 ```bash
 scaffold gda --type rest-consumer
+```
+
+```bash
+scaffold gda --type generic --name order_repository_adapter --gateway order_repository
 ```
 
 ```bash
@@ -195,11 +207,23 @@ scaffold up --dry-run
 scaffold update-project --dry-run
 ```
 
+## Dependency injection (wireup)
+
+New projects generated with `scaffold ca` use [wireup](https://pypi.org/project/wireup/) for async-first dependency injection:
+
+- `application/config/wiring.py` defines `create_container()` and package scan targets (`driven_adapters`, `helpers`, `usecases`).
+- Use cases declare gateway dependencies with `scaffold guc --uses …`; adapters bind to gateways with `scaffold gda --gateway …`.
+- Entry points inject use cases with `Injected[…]` (REST/MCP) or resolve types from the container (agent/generic)—without importing `application` from infrastructure.
+- Generated code enables ruff rule `ASYNC` and pytest `asyncio_mode = auto`.
+
+**Legacy projects** (generated with scaffold-ca-python ≤ 0.5.0, `dependency-injector`, no `scaffold_version` in `[tool.scaffold-ca-python]`) are not modified by generate commands. Migrate to wireup manually, then set `scaffold_version` in `pyproject.toml` before using newer scaffold commands on that repo.
+
 ## Technologies
 
 | Tool / Library | Version | Role |
 |----------------|---------|------|
 | Python | >=3.13 | Runtime |
+| wireup | 2.13.0 | DI in generated projects |
 | uv | latest | Dependency management, build, and publish |
 | Typer | >=0.27.2 | CLI framework |
 | Rich | >=15.0.0 | Terminal output formatting |
@@ -215,8 +239,8 @@ scaffold update-project --dry-run
 
 - Generates full Clean Architecture project skeletons with `scaffold ca`.
 - Generates domain models with `scaffold gm`.
-- Generates domain use cases with `scaffold guc`.
-- Generates driven adapters with `scaffold gda`.
+- Generates domain use cases with `scaffold guc` (optional `--uses` for gateway wiring and DI factories).
+- Generates driven adapters with `scaffold gda` (optional `--gateway` for port binding).
 - Generates entry points for REST API, agent, MCP, and generic modes with `scaffold gep`.
 - Generates helper utilities with `scaffold gh`.
 - Generates CI/CD pipeline files with `scaffold gpipe`.

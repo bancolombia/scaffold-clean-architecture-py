@@ -178,45 +178,12 @@ tests/.../test_entry_point.py
 
 ## Legacy Projects (FR-020)
 
-All `generate-*` commands that modify an existing project (`gm`, `guc`, `gda`, `gh`, `gep`, `--add-tool`, `gp`, `dm`, `up`) MUST refuse (exit 1) when the project's `[tool.scaffold-ca-python]` section lacks the `scaffold_version` key. The error message MUST include both:
-- `scaffold migrate-di` (automated codemod)
-- `scaffold migrate-di --install-skill` (agent-assisted migration)
+All `generate-*` commands that modify an existing project (`gm`, `guc`, `gda`, `gh`, `gep`, `--add-tool`, `gp`, `dm`, `up`) MUST refuse (exit 1) when the project's `[tool.scaffold-ca-python]` section lacks the `scaffold_version` key. The error message MUST point to [docs/spec-029-migrate-di](../../../docs/spec-029-migrate-di/README.md) and MAY name the planned `scaffold migrate-di` / `--install-skill` commands.
 
 No files are written. `ca` (creates a new project) and `vs` (read-only) are exempt.
 
 ---
 
-## `scaffold migrate-di [--dry-run] [--yes] [--report json] [--install-skill] [--target <t>] [--force]`
+## Migration (`scaffold migrate-di`)
 
-**Files written by `--yes`** (not written by `--dry-run`):
-
-```
-pyproject.toml                                          # updated in-place
-application/config/wiring.py                           # NEW
-application/config/usecases/<name>_usecase.py          # one per use case found in containers
-application/config/usecases/__init__.py                # NEW
-infrastructure/driven_adapters/**/<name>_adapter.py    # @injectable added
-infrastructure/helpers/**/<name>.py                    # @injectable added
-infrastructure/entry_points/**/*.py                    # Provide → Injected, @inject removed
-```
-
-**Files deleted by `--yes`**:
-```
-application/config/container.py
-application/config/resource_container.py
-application/config/driven_adapters_container.py
-application/config/usecases_container.py
-```
-
-**Files installed by `--install-skill`** (in the target project, not the scaffolder repo):
-```
-.claude/skills/migrate-di/SKILL.md
-.claude/skills/migrate-di/references/recipes.md
-.claude/skills/migrate-di/references/errors.md
-.claude/skills/migrate-di/references/checklist.md
-.cursor/skills/migrate-di/SKILL.md
-.cursor/skills/migrate-di/references/...
-.agents/skills/migrate-di/SKILL.md
-.agents/skills/migrate-di/references/...
-AGENTS.md                                               # line appended (created if absent)
-```
+**Out of scope for spec 028.** File layout, flags, and report schema: [docs/spec-029-migrate-di/contracts/migrate-di.md](../../../docs/spec-029-migrate-di/contracts/migrate-di.md).

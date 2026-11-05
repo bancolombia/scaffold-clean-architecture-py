@@ -136,7 +136,7 @@ def test_print_pending_dependencies(tmp_path: Path) -> None:
 
 
 def test_warn_legacy_project_prints_warning(capsys: pytest.CaptureFixture[str]) -> None:
-    """warn_legacy_project must print a warning pointing to scaffold migrate-di (FR-020)."""
+    """warn_legacy_project must tell the user to migrate manually (FR-020)."""
     from scaffold_ca_python.commands._shared import warn_legacy_project
 
     ctx = ProjectContext(name="old-app")  # scaffold_version=None → is_legacy=True
@@ -144,7 +144,8 @@ def test_warn_legacy_project_prints_warning(capsys: pytest.CaptureFixture[str]) 
     # Rich outputs to stderr; check combined output
     captured = capsys.readouterr()
     output = captured.out + captured.err
-    assert "migrate-di" in output  # Rich Console captures go through console, not capsys
+    assert "manually" in output.lower()
+    assert "scaffold_version" in output
 
 
 def test_warn_legacy_project_imported() -> None:
@@ -167,10 +168,10 @@ def test_require_wireup_project_exits_1_for_legacy(tmp_path: Path) -> None:
     assert exc_info.value.code == 1
 
 
-def test_require_wireup_project_message_mentions_migrate_di(
+def test_require_wireup_project_message_mentions_manual_migration(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """require_wireup_project exit message must mention both migrate-di and --install-skill (T086)."""
+    """require_wireup_project exit message must explain manual wireup migration (T086)."""
     from scaffold_ca_python.commands._shared import require_wireup_project
 
     ctx = ProjectContext(name="old-app")
@@ -178,8 +179,9 @@ def test_require_wireup_project_message_mentions_migrate_di(
         require_wireup_project(ctx)
     captured = capsys.readouterr()
     output = captured.out + captured.err
-    # Rich console may not capture via capsys; the test is a best-effort check
-    assert "migrate-di" in output  # verified via integration in T087
+    assert "manually" in output.lower()
+    assert "wireup" in output.lower()
+    assert "scaffold_version" in output
 
 
 def test_require_wireup_project_passes_for_wireup_project(tmp_path: Path) -> None:

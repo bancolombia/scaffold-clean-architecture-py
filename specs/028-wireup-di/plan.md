@@ -1,4 +1,4 @@
-# Implementation Plan: Wireup DI Migration
+# Implementation Plan: Wireup DI for New Projects
 
 **Branch**: `feature/028-wireup-di` | **Date**: 2026-10-29 | **Spec**: [spec.md](spec.md)
 
@@ -8,7 +8,7 @@
 
 ## Summary
 
-Replace `dependency-injector` with `wireup==2.13.0` in all generated projects. Generated projects gain a validated async dependency graph (discovered by package scan), typed adapter settings, and entry points that inject by type without importing from `application`. Eight commands are updated; two bugs are fixed; a new `migrate-di` command (libcst codemod + guide + agent skill) provides a complete upgrade path for existing 0.5.0 projects.
+Replace `dependency-injector` with `wireup==2.13.0` in all **new** generated projects. Generated projects gain a validated async dependency graph (discovered by package scan), typed adapter settings, and entry points that inject by type without importing from `application`. Eight commands are updated; two entry-point bugs are fixed; legacy projects are refused with a pointer to [docs/spec-029-migrate-di](../../docs/spec-029-migrate-di/README.md) for future `scaffold migrate-di`.
 
 ---
 
@@ -26,7 +26,7 @@ The following issues were discovered by running `uv run ruff check .` and `uv ru
 | H6 | review | SC-1/FR-007 require `mypy --strict`; pyproject has no mypy; e2e tests removed it | `pyproject_toml.jinja2` dev group incomplete |
 | H7 | review | `@pytest.mark.asyncio` unnecessary with `asyncio_mode = "auto"` | Test templates for use_case, agent, and generic |
 | H8 | spec | FR-006 says `<name>.py`; implementation uses `<name>_usecase.py` | Spec inconsistency — fixed: `<name>_usecase.py` is canonical |
-| H9 | request | Remove all legacy dependency-injector code; 0.5.0 projects → `migrate-di` only | Replace `warn_legacy_project` with `require_wireup_project` (exit 1) |
+| H9 | request | Remove all legacy dependency-injector code; 0.5.0 projects → spec 029 migration | Replace `warn_legacy_project` with `require_wireup_project` (exit 1) |
 | H10 | request | `di = "wireup"` records a decision; `scaffold_version = "<version>"` is more general | Replace key, detect legacy by absence of `scaffold_version` |
 | H11 | pytest | After `ca` + `gm` + `guc --uses` both wiring tests fail, not only the use-case one | Wireup validates the whole graph in `create_container()`; one missing adapter fails every wiring test |
 | H12 | mypy | `Unused "type: ignore"` in generated `_Fake<Gw>` stubs | Gateway ABC has no abstract methods |
@@ -58,7 +58,6 @@ Latest re-test (round 3, requested 2026-10-30 17:18 -05:00): 36/36 manual checks
 
 **Primary Dependencies**:
 - `wireup==2.13.0` (generated projects, replaces `dependency-injector`)
-- `libcst` (scaffolder, for the `migrate-di` codemod)
 - `pydantic-settings` (unchanged, already in generated projects)
 - `Jinja2`, `typer`, `rich` (unchanged, scaffolder)
 
@@ -72,9 +71,9 @@ Latest re-test (round 3, requested 2026-10-30 17:18 -05:00): 36/36 manual checks
 
 **Performance Goals**: No regression in command execution time; all existing tests continue to pass
 
-**Constraints**: Must not break any existing `generate-*` command for new (wireup) projects; legacy projects (missing `scaffold_version` key) are refused (exit 1) with a message pointing to `scaffold migrate-di` / `scaffold migrate-di --install-skill` — no legacy templates are shipped
+**Constraints**: Must not break any existing `generate-*` command for new (wireup) projects; legacy projects (missing `scaffold_version` key) are refused (exit 1) with a message pointing to [docs/spec-029-migrate-di](../../docs/spec-029-migrate-di/README.md) — no legacy templates are shipped
 
-**Scale/Scope**: 8 commands modified, 1 new command (`migrate-di`), ~30 files in the scaffolder, ~15 template files replaced/added
+**Scale/Scope**: 8 commands modified, ~30 files in the scaffolder, ~15 template files replaced/added (migration command is spec 029)
 
 ---
 
@@ -84,10 +83,10 @@ Latest re-test (round 3, requested 2026-10-30 17:18 -05:00): 36/36 manual checks
 |-----------|--------|-------|
 | I — Clean Architecture in generated projects | ✅ | Entry points use `Injected[...]`; domain stays decorator-free; `validate-structure` enforced |
 | II — Tests first; `tests/templates/` per group | ✅ | All implementation blocks follow red-green-refactor; `tests/templates/test_di_config_templates.py` is rewritten; new end-to-end and golden tests added |
-| III — Command table and aliases | ✅ | `migrate-di` alias `mdi`; `guc` keeps `guc`; all existing aliases preserved |
+| III — Command table and aliases | ✅ | `guc` keeps `guc`; all existing aliases preserved |
 | IV — Python-first idioms (async, ruff, mypy strict) | ✅ | D2 enforces async-first; FR-003 mandates ruff ASYNC rule + asyncio_mode=auto |
 | V — Test-first development, 80% coverage gate | ✅ | Tests precede implementation in each block |
-| VI — DX: dry-run, aliases, hints, help examples | ✅ | `migrate-di` has `--dry-run`; FR-021 hint; FR-005 helper-vs-gateway hint |
+| VI — DX: dry-run, aliases, hints, help examples | ✅ | FR-005 helper-vs-gateway hint; legacy guard cites spec 029 |
 | VII — Branch naming | ✅ | `feature/028-wireup-di` |
 
 ---
@@ -103,8 +102,7 @@ specs/028-wireup-di/
 ├── data-model.md        ← Phase 1
 ├── quickstart.md        ← Phase 1
 ├── contracts/
-│   ├── generated-files.md    ← per-command file layout
-│   └── migrate-di.md         ← migrate-di interface (flags, exit codes, report schema)
+│   └── generated-files.md    ← per-command file layout (migration contract → docs/spec-029-migrate-di)
 ├── checklists/
 │   └── requirements.md
 └── tasks.md             ← /speckit-tasks (not yet created)
@@ -114,20 +112,17 @@ specs/028-wireup-di/
 
 ```text
 src/scaffold_ca_python/
-├── cli.py                                       # register migrate-di + alias mdi
+├── cli.py
 ├── commands/
 │   ├── generate_project.py                      # replace _DI_CONFIG_FILES
 │   ├── generate_use_case.py                     # add --uses option
 │   ├── generate_driven_adapter.py               # no new args; factory changes
 │   ├── generate_helper.py                       # no new args; factory changes
-│   ├── generate_entry_point.py                  # dispatch wireup vs legacy
+│   ├── generate_entry_point.py                  # wireup entry points only
 │   ├── add_mcp_tool.py                          # wireup stub
-│   ├── delete_module.py                         # also deletes usecase factory
-│   └── migrate_di.py                            # NEW
+│   └── delete_module.py                         # also deletes usecase factory
 ├── core/
-│   ├── project_detector.py                      # load_project_context reads di=
-│   └── migrations/
-│       └── di_wireup.py                         # NEW — libcst transforms
+│   └── project_detector.py                      # load_project_context reads scaffold_version
 ├── factory/
 │   ├── simple/
 │   │   ├── use_case_factory.py                  # generate factory file
@@ -143,14 +138,7 @@ src/scaffold_ca_python/
 │       ├── ep_agent.py                          # async composition root, fix class name
 │       └── ep_generic.py                        # async composition root, fix run import
 ├── models/
-│   └── context.py                               # add di field to ProjectContext
-├── skills/
-│   └── migrate-di/                              # NEW — packaged in wheel
-│       ├── SKILL.md
-│       └── references/
-│           ├── recipes.md
-│           ├── errors.md
-│           └── checklist.md
+│   └── context.py                               # scaffold_version / is_legacy
 └── templates/
     ├── project/
     │   ├── pyproject_toml.jinja2                # wireup, ruff ASYNC, asyncio_mode
@@ -193,21 +181,12 @@ tests/
 ├── commands/
 │   ├── test_generate_project.py                 # update DI assertions
 │   ├── test_generate_use_case.py                # --uses scenarios
-│   ├── test_generate_entry_point.py             # wireup end-to-end
-│   └── test_migrate_di.py                       # NEW — golden + dry-run + idempotent
-├── core/
-│   └── test_di_wireup_transforms.py             # NEW — libcst transform unit tests
+│   └── test_generate_entry_point.py             # wireup end-to-end
 ├── factory/
 │   └── fixtures/
 │       └── dry_run_baseline.json                # update for wireup file layout
-├── templates/
-│   └── test_di_config_templates.py              # rewrite for wiring.py/usecases/
-└── fixtures/
-    └── legacy_project_050/                      # NEW — 0.5.0 golden fixture
-
-docs/
-└── migration/
-    └── dependency-injector-to-wireup.md         # NEW — complete migration guide
+└── templates/
+    └── test_di_config_templates.py              # rewrite for wiring.py/usecases/
 ```
 
 ---
@@ -230,7 +209,7 @@ No constitution violations. All new code complies with every principle.
 1. Add `scaffold_version: str | None = None` to `ProjectContext` and `is_legacy` property (`scaffold_version is None`). Legacy projects that lack the key are detected by absence, not version comparison.
 2. `load_project_context` reads the `scaffold_version` key from `[tool.scaffold-ca-python]`.
 3. `pyproject_toml.jinja2` emits `scaffold_version = "{{ scaffold_version }}"`.
-4. Add `require_wireup_project(ctx: ProjectContext)` guard in `_shared.py` for all project-modifying `generate-*` commands; exits 1 with message pointing to `scaffold migrate-di` and `scaffold migrate-di --install-skill` when `ctx.is_legacy`.
+4. Add `require_wireup_project(ctx: ProjectContext)` guard in `_shared.py` for all project-modifying `generate-*` commands; exits 1 with message pointing to [docs/spec-029-migrate-di](../../docs/spec-029-migrate-di/README.md) when `ctx.is_legacy`.
 
 **Tests first**:
 - `test_project_context_scaffold_version`: `scaffold_version` is `None` for a project without the key (`is_legacy=True`); non-None for a project that has it.
@@ -244,7 +223,7 @@ No constitution violations. All new code complies with every principle.
 
 **Changes**:
 1. Replace `_DI_CONFIG_FILES` tuple: generate `__init__.py`, `config.py`, `wiring.py`, and `usecases/__init__.py` instead of the four container files.
-2. Remove the four `*_container.py.jinja2` and `container.py.jinja2` (legacy templates no longer shipped; migration handled by `migrate-di`).
+2. Remove the four `*_container.py.jinja2` and `container.py.jinja2` (legacy templates no longer shipped; upgrade path is spec 029).
 3. New templates: `wiring.py.jinja2`, `usecases/__init__.py.jinja2`.
 4. `pyproject_toml.jinja2`: replace `dependency-injector==4.49.1` with `wireup==2.13.0`; add `scaffold_version = "{{ scaffold_version }}"` in `[tool.scaffold-ca-python]`; add ruff `ASYNC` rule; disable ruff `TC` rule (keeps `Inject`/`Injected` at module scope, not under `TYPE_CHECKING`); add `asyncio_mode = "auto"` to pytest; add `mypy` to the `dev` group.
 5. `config.py.jinja2`: keep only ENV and LOG_LEVEL (MCP still appends HOST/PORT via the existing anchor).
@@ -325,61 +304,16 @@ No constitution violations. All new code complies with every principle.
 
 ---
 
-### Block F — `scaffold migrate-di` (codemod)
+### Block F — Documentation (028 scope)
 
-**Files**: `commands/migrate_di.py` (new), `core/migrations/di_wireup.py` (new), `cli.py`
-
-**Changes**:
-1. Register `migrate-di` in `cli.py` with alias `mdi`.
-2. `migrate_di.py`: preconditions (git clean tree check), `--dry-run`, `--yes`, `--report json`, `--install-skill`, `--target`, `--force`.
-3. `di_wireup.py`: libcst-based transforms for all FR-023 transformations:
-   - `pyproject.toml` update (reuse `core/pyproject_writer.py`)
-   - container → factory codemods
-   - `@injectable` / `@injectable(as_type=...)` insertion
-   - `Provide[...]` → `Injected[...]` conversion
-   - composition-root template match and replace
-4. Exit codes: 0 = no changes needed, 1 = applied with no pending, 2 = applied with pending, 3 = precondition failure, 4 = post-verification failure.
-5. `--install-skill`: copy from `scaffold_ca_python/skills/migrate-di/` using `importlib.resources`; respect `--target`, `--dry-run`, `--force`.
-
-**Tests first**:
-- `test_migrate_di_requires_clean_tree`: dirty tree → exit 3 with hint.
-- `test_migrate_di_dry_run_no_writes`: checksum before == after.
-- `test_migrate_di_idempotent`: running twice → exit 0, no changes.
-- `test_migrate_di_transforms_pyproject`: `wireup` in deps, `scaffold_version = "<installed version>"` in tool section.
-- `test_migrate_di_transforms_containers`: container file → factory files.
-- `test_migrate_di_factory_provider_to_transient`: `Factory` → `lifetime="transient"`.
-- `test_migrate_di_injectable_on_adapter`: adapter that inherits from gateway ABC gets `as_type`.
-- `test_migrate_di_provide_to_injected`: `= Depends(Provide[...])` → `Injected[...]`.
-- `test_migrate_di_report_json_schema`: output matches the schema in contracts.
-- `test_migrate_di_install_skill_all_targets`: creates three skill dirs + AGENTS.md line.
-- `test_migrate_di_install_skill_no_overwrite`: without `--force` does not overwrite.
-- Golden test: apply to `tests/fixtures/legacy_project_050/` → match snapshot.
-
----
-
-### Block G — Documentation
-
-**Files**: `docs/migration/dependency-injector-to-wireup.md`, `README.md`, template project README, spec notes in 006, 008, 019
+**Files**: `README.md`, template project README, spec notes in 006, 008, 019
 
 **Changes**:
-1. Migration guide with before/after for every artefact type; table of lifecycle equivalences; error reference; checklist; rollback.
-2. `README.md`: updated command sections for `ca`, `guc` (with `--uses`), `gda`, `gh`, `gep`, `dm`, and new `migrate-di`.
-3. Template `README.md` for generated projects: injectable scope rules (D7), adapter-with-resource convention (D6), async-to-sync bridge (`asyncio.to_thread`), `scoped` lifecycle (documented, not generated).
-4. Notes in `specs/006`, `specs/008`, `specs/019` plan/spec files that spec 028 supersedes those sections.
+1. `README.md`: updated command sections for `ca`, `guc` (with `--uses`), `gda`, `gh`, `gep`, `dm`; link legacy upgrades to [docs/spec-029-migrate-di](../../docs/spec-029-migrate-di/README.md).
+2. Template `README.md` for generated projects: injectable scope rules (D7), adapter-with-resource convention (D6), async-to-sync bridge (`asyncio.to_thread`), `scoped` lifecycle (documented, not generated).
+3. Notes in `specs/006`, `specs/008`, `specs/019` plan/spec files that spec 028 supersedes those sections.
 
----
-
-### Block H — Agent migration skill
-
-**Files**: `src/scaffold_ca_python/skills/migrate-di/` (new), `pyproject.toml` (wheel include)
-
-**Changes**:
-1. `SKILL.md`: 10-step flow covering preconditions, dry-run diagnosis, apply-with-approval, resolve-pending, arch rules (D2/D7), verification, stop conditions, rollback, and commit gate.
-2. `references/recipes.md`: before/after code block per `kind` value.
-3. `references/errors.md`: wireup error messages, causes, and fixes.
-4. `references/checklist.md`: final verification checklist.
-5. `pyproject.toml` of scaffolder: add `package-data` include for `skills/migrate-di/**`.
-6. Alignment test: every `kind` in `migrate-di --report json` has a recipe key and a guide section.
+**Deferred to spec 029**: `migrate-di` codemod, migration guide, agent skill — see [plan.md](../../docs/spec-029-migrate-di/plan.md).
 
 ---
 
@@ -392,6 +326,3 @@ See [research.md](research.md) for full details. Highlights:
 | DI library | wireup 2.13.0 | Async-native, validates graph at creation, typed injection, no domain imports |
 | Factory placement | one file per use case in `application/config/usecases/` | No markers, no `insert_after`, `delete-module` just deletes a file |
 | Adapter config | `<Name>Settings(BaseSettings)` | Type-safe, mypy-verified, pydantic-settings validates at startup |
-| Codemod library | libcst | Preserves formatting and comments; used by `bump-pydantic` for the same pattern |
-| Migration exit codes | 0/1/2/3/4 | Agent skill uses codes to decide next action without parsing output |
-| Skill packaging | inside wheel | Skill version always matches scaffolder version |

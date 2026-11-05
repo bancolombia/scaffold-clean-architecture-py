@@ -5,6 +5,8 @@
 **Status**: Ready  
 **Input**: User description: "Improve FastAPI entry point generation aligned with ms_test baseline"
 
+> **Partial supersession**: [Spec 028 — Wireup DI for new projects](../028-wireup-di/spec.md) replaces **DI wiring** in REST entry points (`Injected[…]`, `wireup.integration.fastapi`, no `Container` imports from infrastructure) for projects generated with scaffold-ca-python 0.6.0+. Layout and routing expectations in this spec still apply where compatible.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 — Baseline Structure Alignment (Priority: P1)

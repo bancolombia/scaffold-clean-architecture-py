@@ -1,4 +1,4 @@
-# Data Model: Wireup DI Migration
+# Data Model: Wireup DI for New Projects
 
 **Feature**: 028-wireup-di
 
@@ -17,7 +17,7 @@ Extended with `scaffold_version` and `is_legacy`.
 | `name` | `str` | kebab-case or snake_case | existing |
 | `python_package` | `str` (computed) | snake_case of name | existing |
 | `python_package_script` | `str` (computed) | kebab-case of name | existing |
-| `scaffold_version` | `str \| None` | semver string or dev version | **NEW** — `None` when key is absent (legacy project); set by `generate-project`; updated by `migrate-di --yes` |
+| `scaffold_version` | `str \| None` | semver string or dev version | **NEW** — `None` when key is absent (legacy project); set by `generate-project` (spec 029 may update it during migration) |
 | `is_legacy` | `bool` (property) | `scaffold_version is None` | **NEW** — `True` for ≤ 0.5.0 projects that were never generated or migrated with 0.6.0+ |
 
 **State transition**:
@@ -84,39 +84,6 @@ Optional file in adapter package for adapters with lifecycle resources.
 
 ---
 
-### Migration Report Item
-
-Structured output of `migrate-di --report json`.
-
-```jsonc
-{
-  "items": [
-    {
-      "kind": "resource_provider",          // see Kind enum below
-      "file": "application/config/resource_container.py",
-      "line": 12,
-      "guide_section": "providers-resource", // anchor in migration guide
-      "suggested_skeleton": "# <name>_config.py skeleton:\n@injectable\nasync def make_<name>(...) -> AsyncIterator[<Type>]:\n    resource = <Type>(...)\n    yield resource\n    await resource.close()"
-    }
-  ]
-}
-```
-
-**Kind values** (must match recipe keys in `SKILL.md/references/recipes.md` and guide sections):
-
-| Kind | Description |
-|------|-------------|
-| `resource_provider` | `providers.Resource` — needs async factory with `yield` |
-| `configuration_provider` | `providers.Configuration` — needs `<Name>Settings` per adapter |
-| `selector_provider` | `providers.Selector` — needs runtime selection logic |
-| `callable_provider` | `providers.Callable` — needs a plain factory function |
-| `nested_container` | Container-within-container — needs restructuring |
-| `override_in_test` | `container.x.override(...)` in test — needs `container.override.injectable(...)` |
-| `usecase_uses_helper` | Use case that injects a helper — needs a gateway port (D7 violation) |
-| `composition_root_modified` | `app.py` / `main.py` modified from template — needs manual rewrite |
-
----
-
 ### Wiring.py structure (generated)
 
 ```python
@@ -136,31 +103,12 @@ def create_container(settings: Settings | None = None) -> AsyncContainer:
 
 ---
 
-## State Transitions: `migrate-di` command
+## Legacy project guard (FR-020)
 
 ```
 State: Legacy project (scaffold_version key absent)
-  │
-  ├─ git tree dirty → EXIT 3 (precondition failure)
-  │
-  ├─ --dry-run → print diff + report → EXIT 0 (no writes)
-  │
-  └─ --yes
-       │
-       ├─ apply transforms (FR-023)
-       │    ├─ pyproject update (adds scaffold_version = "<version>")
-       │    ├─ containers → factory files
-       │    ├─ @injectable on adapters/helpers
-       │    ├─ Provide → Injected in entry points
-       │    └─ composition-root replacement (if unmodified)
-       │
-       ├─ collect pending items (FR-024)
-       │
-       ├─ run uv sync + ruff + mypy + pytest
-       │
-       ├─ no pending items → EXIT 1
-       └─ pending items remain → EXIT 2
-
-State: Already-migrated project (scaffold_version key present)
-  └─ any run → EXIT 0 (idempotent, no changes)
+  └─ any project-modifying generate-* command → EXIT 1
+       message points to docs/spec-029-migrate-di/
 ```
+
+Migration state transitions: [docs/spec-029-migrate-di/data-model.md](../../docs/spec-029-migrate-di/data-model.md).

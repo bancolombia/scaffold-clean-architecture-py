@@ -118,12 +118,17 @@ def build_and_persist(factory: ModuleFactory, builder: ModuleBuilder) -> list[Pa
     return paths
 
 
+_LEGACY_MIGRATION_HINT = (
+    "Migrate from dependency-injector to wireup manually, then set "
+    "[bold]scaffold_version[/bold] under [bold][tool.scaffold-ca-python][/bold] in pyproject.toml."
+)
+
+
 def warn_legacy_project(ctx: ProjectContext) -> None:
     """Print a Rich-formatted warning for legacy projects (scaffold_version absent)."""
     console.print(
         f"[yellow]⚠ Warning:[/yellow] Project [bold]{ctx.name}[/bold] uses the legacy "
-        "[bold]dependency-injector[/bold] DI framework.\n"
-        "[dim]Run [bold]scaffold migrate-di[/bold] to migrate to wireup and remove this warning.[/dim]"
+        f"[bold]dependency-injector[/bold] DI framework.\n[dim]{_LEGACY_MIGRATION_HINT}[/dim]"
     )
 
 
@@ -133,9 +138,8 @@ def require_wireup_project(ctx: ProjectContext) -> None:
         console.print(
             f"[red]✗ Error:[/red] Project [bold]{ctx.name}[/bold] was generated with "
             "scaffold-ca-python ≤ 0.5.0 (dependency-injector).\n"
-            "[dim]Migrate it first:\n"
-            "  [bold]scaffold migrate-di[/bold]          – automated codemod\n"
-            "  [bold]scaffold migrate-di --install-skill[/bold]  – AI-guided migration[/dim]"
+            "[dim]This scaffolder only modifies wireup projects (0.6.0+). "
+            f"{_LEGACY_MIGRATION_HINT}[/dim]"
         )
         raise SystemExit(1)
 
