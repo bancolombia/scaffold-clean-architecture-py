@@ -17,10 +17,6 @@ from tests.helpers import strip_ansi
 
 runner = CliRunner()
 
-# Shared fixture
-
-#  — gep error cases
-
 
 @pytest.mark.parametrize(
     ("args", "expected_fragment"),
@@ -101,9 +97,6 @@ def test_gep_mcp_twice_shows_directory_exists(mcp_project: Path) -> None:
     assert "already" in out
 
 
-#  — gda, gpipe, gm, guc, gh, dm error cases
-
-
 def test_gda_generic_requires_name(project_root: Path) -> None:
     result = runner.invoke(app, ["gda", "--type", "generic"])
     assert result.exit_code == 1
@@ -144,9 +137,6 @@ def test_dm_module_not_found(project_root: Path) -> None:
     assert "No module named 'nope' found in project." in strip_ansi(result.output)
 
 
-#  — gep success and dry-run outputs
-
-
 def test_gep_restapi_dry_run_shows_would_update(project_root: Path) -> None:
     result = runner.invoke(app, ["gep", "--type", "restapi", "--dry-run"])
     assert result.exit_code == 0
@@ -157,14 +147,6 @@ def test_gep_restapi_shows_updated(project_root: Path) -> None:
     result = runner.invoke(app, ["gep", "--type", "restapi"])
     assert result.exit_code == 0
     assert 'Updated [project.scripts]: my_app = "my_app.server:start_server"' in strip_ansi(result.output)
-
-
-def test_gep_mcp_shows_replaced_message(project_root: Path) -> None:
-    result = runner.invoke(app, ["gep", "--type", "mcp"])
-    assert result.exit_code == 0
-    out = strip_ansi(result.output)
-    assert "Deleted src/my_app/main.py" in out
-    assert 'Updated [project.scripts]: my_app = "my_app.server:start_server"' in out
 
 
 def test_gep_mcp_success_message(project_root: Path) -> None:

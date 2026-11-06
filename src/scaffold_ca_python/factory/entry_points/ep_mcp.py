@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 class EntryPointMcp(EntryPointFactory):
     """Factory for MCP entry-point type."""
 
+    description: ClassVar[str] = "Model Context Protocol server (FastMCP)"
     subdir: ClassVar[str] = "mcp_server"
     supported_flags: ClassVar[frozenset[EntryPointFlag]] = frozenset({EntryPointFlag.MCP_PRIMITIVES})
     conflicts: ClassVar[tuple[EntryPointConflict, ...]] = (EntryPointConflict(type_key="restapi"),)

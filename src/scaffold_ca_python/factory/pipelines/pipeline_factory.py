@@ -17,11 +17,12 @@ class PipelineFactory:
     output_path: PurePosixPath
     template: str
     display_name: str
+    description: str = ""
 
     def build(self, builder: ModuleBuilder) -> None:
         """Queue the pipeline file for creation via *builder*."""
         builder.add_rendered(
             builder.project_root / self.output_path,
             self.template,
-            builder.project_ctx.model_dump(),
+            builder.base_context(),
         )

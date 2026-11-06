@@ -99,16 +99,6 @@ def inject_group_dependencies(
     return to_add
 
 
-def dry_run_group_inject(project_root: Path, group: str, packages: list[str]) -> list[str]:
-    """Return packages that *would* be added to ``[dependency-groups.<group>]``."""
-    return inject_group_dependencies(project_root, group, packages, dry_run=True)
-
-
-def dry_run_inject(project_root: Path, packages: list[str]) -> list[str]:
-    """Return packages that *would* be added without writing to disk."""
-    return inject_dependencies(project_root, packages, dry_run=True)
-
-
 def update_project_scripts(
     project_root: Path,
     pkg: ProjectContext,
@@ -134,8 +124,3 @@ def update_project_scripts(
         scripts[pkg.python_package_script] = new_value
         _save(project_root, data, dry_run=False)
     return True
-
-
-def dry_run_scripts_update(project_root: Path, pkg: ProjectContext, entry_fn: str = "start_server") -> bool:
-    """Return whether ``update_project_scripts`` *would* write to disk."""
-    return update_project_scripts(project_root, pkg, entry_fn, dry_run=True)

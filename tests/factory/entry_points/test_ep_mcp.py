@@ -31,7 +31,7 @@ def _make_builder(tmp_path: Path, *, dry_run: bool = True) -> ModuleBuilder:
 
 
 def test_mcp_files_queued_in_dry_run(tmp_path: Path) -> None:
-    """: tools.py present; no server.py inside mcp_server/."""
+    """tools.py present; no server.py inside mcp_server/."""
     builder = _make_builder(tmp_path)
 
     from scaffold_ca_python.factory.entry_points.ep_mcp import EntryPointMcp
@@ -51,7 +51,7 @@ def test_mcp_files_queued_in_dry_run(tmp_path: Path) -> None:
 
 
 def test_mcp_with_resources_queues_resources_file(tmp_path: Path) -> None:
-    """: --with-resources adds resources.py and test_resources.py."""
+    """--with-resources adds resources.py and test_resources.py."""
     builder = _make_builder(tmp_path)
     builder.add_param("with_resources", True)
 
@@ -68,7 +68,7 @@ def test_mcp_with_resources_queues_resources_file(tmp_path: Path) -> None:
 
 
 def test_mcp_without_resources_does_not_queue_resources_file(tmp_path: Path) -> None:
-    """: without --with-resources no resources.py is generated."""
+    """without --with-resources no resources.py is generated."""
     builder = _make_builder(tmp_path)
 
     from scaffold_ca_python.factory.entry_points.ep_mcp import EntryPointMcp
@@ -81,7 +81,7 @@ def test_mcp_without_resources_does_not_queue_resources_file(tmp_path: Path) -> 
 
 
 def test_mcp_with_prompts_queues_prompts_file(tmp_path: Path) -> None:
-    """: --with-prompts adds prompts.py and test_prompts.py."""
+    """--with-prompts adds prompts.py and test_prompts.py."""
     builder = _make_builder(tmp_path)
     builder.add_param("with_prompts", True)
 
@@ -98,7 +98,7 @@ def test_mcp_with_prompts_queues_prompts_file(tmp_path: Path) -> None:
 
 
 def test_mcp_without_prompts_does_not_queue_prompts_file(tmp_path: Path) -> None:
-    """: without --with-prompts no prompts.py is generated."""
+    """without --with-prompts no prompts.py is generated."""
     builder = _make_builder(tmp_path)
 
     from scaffold_ca_python.factory.entry_points.ep_mcp import EntryPointMcp
@@ -184,7 +184,7 @@ def test_mcp_main_py_overwritten(tmp_path: Path) -> None:
 
 
 def test_mcp_queues_app_py(tmp_path: Path) -> None:
-    """: application/app.py must be in the dry-run preview."""
+    """application/app.py must be in the dry-run preview."""
     builder = _make_builder(tmp_path)
 
     from scaffold_ca_python.factory.entry_points.ep_mcp import EntryPointMcp
@@ -197,7 +197,7 @@ def test_mcp_queues_app_py(tmp_path: Path) -> None:
 
 
 def test_mcp_app_py_not_overwritten(tmp_path: Path) -> None:
-    """: existing application/app.py raises FileExistsError (no-overwrite guard)."""
+    """existing application/app.py raises FileExistsError (no-overwrite guard)."""
     write_minimal_pyproject(tmp_path)
     project = _project_ctx()
 

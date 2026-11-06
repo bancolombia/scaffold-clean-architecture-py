@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from scaffold_ca_python.core.name_utils import ScaffoldError
+from scaffold_ca_python.core.errors import ScaffoldError
 from scaffold_ca_python.core.template_renderer import TemplateRenderer
 from scaffold_ca_python.models.context import ModuleContext, ProjectContext
 

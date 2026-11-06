@@ -10,6 +10,7 @@ import typer
 from scaffold_ca_python.commands._shared import (
     DryRunDelete,
     console,
+    fail,
     register_with_alias,
     require_wireup_context,
     show_help_if_missing,
@@ -43,11 +44,10 @@ def _delete_module_impl(name: str, confirm: bool, dry_run: bool) -> None:
     targets = find_module_targets(project_root, project_ctx.src_pkg_root, snake)
 
     if not targets:
-        console.print(
-            f"[red]Error:[/red] No module named '{snake}' found in project.\n"
-            "[dim]Hint:[/dim] Module names match directories under domain/model/ (snake_case)."
+        fail(
+            f"No module named '{snake}' found in project.",
+            hint="Module names match directories under domain/model/ (snake_case).",
         )
-        raise typer.Exit(code=1)
 
     # dry_run OR no --confirm → preview mode only
     if dry_run or not confirm:
@@ -75,8 +75,6 @@ def _delete_module_impl(name: str, confirm: bool, dry_run: bool) -> None:
 
 
 def register(app: typer.Typer) -> None:
-    """Register dm / delete-module command onto *app*."""
-
     def delete_module(
         ctx: typer.Context,
         name: Annotated[
@@ -92,7 +90,6 @@ def register(app: typer.Typer) -> None:
         ] = False,
         dry_run: DryRunDelete = False,
     ) -> None:
-        """Delete a module and its test mirror."""
         name = show_help_if_missing(ctx, name)
         _delete_module_impl(name, confirm, dry_run)
 

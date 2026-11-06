@@ -145,8 +145,6 @@ def _generate_entry_point(options: EntryPointOptions) -> None:
 
 
 def register(app: typer.Typer) -> None:
-    """Register gep / generate-entry-point commands onto *app*."""
-
     def generate_entry_point(
         ctx: typer.Context,
         type_: Annotated[str | None, typer.Option("--type", help=_TYPE_HELP, rich_help_panel="Required")] = None,
@@ -207,10 +205,8 @@ def register(app: typer.Typer) -> None:
         ] = None,
         dry_run: DryRun = False,
     ) -> None:
-        """Scaffold an entry point inside infrastructure/entry_points/."""
         if add_tool and type_ is None:
-            console.print("[red]Error:[/red] --add-tool is only valid with --type mcp.")
-            raise typer.Exit(code=1)
+            fail("--add-tool is only valid with --type mcp.")
 
         type_ = show_help_if_missing(ctx, type_)
 

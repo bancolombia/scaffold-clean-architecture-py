@@ -180,7 +180,7 @@ def test_bare_import_form_detected(tmp_path: Path) -> None:
 
 
 def test_no_src_raises_scaffold_error(tmp_path: Path) -> None:
-    from scaffold_ca_python.core.name_utils import ScaffoldError
+    from scaffold_ca_python.core.errors import ScaffoldError
 
     with pytest.raises(ScaffoldError, match="src/"):
         StructureValidator().validate(tmp_path)

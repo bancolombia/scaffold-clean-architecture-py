@@ -1,14 +1,12 @@
 """Template rendering tests for entry_point/ group — all 4 types."""
 
 import ast
-import importlib.resources
 
 import pytest
 
-from scaffold_ca_python.core.template_renderer import TemplateRenderer
 from scaffold_ca_python.models.context import ModuleContext, ProjectContext
-
-renderer = TemplateRenderer()
+from tests.helpers import read_template as _tmpl
+from tests.helpers import renderer
 
 
 def _project() -> ProjectContext:
@@ -17,10 +15,6 @@ def _project() -> ProjectContext:
 
 def _ctx(name: str = "my-app", subtype: str | None = None) -> ModuleContext:
     return ModuleContext(name=name, project=_project())
-
-
-def _tmpl(name: str) -> str:
-    return importlib.resources.files("scaffold_ca_python.templates").joinpath(name).read_text(encoding="utf-8")
 
 
 # restapi
@@ -73,7 +67,7 @@ def test_entry_point_restapi_app_has_lifespan() -> None:
 
 
 def test_entry_point_restapi_app_has_wireup_setup() -> None:
-    """: restapi app.py must use wireup.integration.fastapi.setup (not dependency-injector Container)."""
+    """restapi app.py must use wireup.integration.fastapi.setup (not dependency-injector Container)."""
     out = renderer.render_string(_tmpl("entry_point/restapi/app.py.jinja2"), _ctx().model_dump())
     assert "wireup.integration.fastapi" in out
     assert "create_container" in out
@@ -102,7 +96,7 @@ def test_entry_point_restapi_test_server_template_references_start_server() -> N
 
 def test_entry_point_restapi_test_exception_handler_template_has_status_codes() -> None:
     out = renderer.render_string(_tmpl("entry_point/restapi/test_exception_handler.py.jinja2"), _ctx().model_dump())
-    assert "422" in out or "HTTPException" in out
+    assert "422" in out and "HTTPException" in out
 
 
 # restapi — test_rest_controller.py template correctness (, )
@@ -173,7 +167,7 @@ def test_mcp_tools_is_async() -> None:
 
 
 def test_mcp_tools_bind_tools_is_last_statement() -> None:
-    """: Regression guard — bind_tools must be the last top-level statement.
+    """Regression guard — bind_tools must be the last top-level statement.
 
     The --add-tool feature relies on this invariant: appending to the end of
     tools.py effectively inserts inside bind_tools because bind_tools is always last.
@@ -187,7 +181,7 @@ def test_mcp_tools_bind_tools_is_last_statement() -> None:
 
 
 def test_mcp_tools_contains_nested_example_tool() -> None:
-    """: Regression guard — bind_tools contains nested @mcp.tool decorator.
+    """Regression guard — bind_tools contains nested @mcp.tool decorator.
 
     The --add-tool feature appends new tool stubs in the same nested pattern.
     """
@@ -464,7 +458,7 @@ def test_entry_point_restapi_test_rest_controller_has_testclient() -> None:
 
 
 def test_tool_stub_template_renders_nested_function_with_decorator() -> None:
-    """: tool_stub.py.jinja2 renders 4-space-indented nested @mcp.tool function."""
+    """tool_stub.py.jinja2 renders 4-space-indented nested @mcp.tool function."""
     context = {
         "name": "create_file",
         "params": [
@@ -484,7 +478,7 @@ def test_tool_stub_template_renders_nested_function_with_decorator() -> None:
 
 
 def test_tool_stub_template_with_no_params() -> None:
-    """: tool_stub.py.jinja2 renders correctly with zero parameters."""
+    """tool_stub.py.jinja2 renders correctly with zero parameters."""
     context = {
         "name": "list_files",
         "params": [],
@@ -499,7 +493,7 @@ def test_tool_stub_template_with_no_params() -> None:
 
 
 def test_tool_stub_template_not_wrapped_in_registrar() -> None:
-    """: tool_stub.py.jinja2 must NOT use @_register_tool or def _bind_."""
+    """tool_stub.py.jinja2 must NOT use @_register_tool or def _bind_."""
     context = {
         "name": "search",
         "params": [{"name": "query", "type": "str"}],
@@ -516,18 +510,18 @@ def test_tool_stub_template_not_wrapped_in_registrar() -> None:
 
 
 def test_test_tool_stub_template_renders_registration_test() -> None:
-    """: test_tool_stub.py.jinja2 renders registration assertion test."""
+    """test_tool_stub.py.jinja2 renders registration assertion test."""
     context = {"name": "create_file"}
     out = renderer.render_string(_tmpl("entry_point/mcp/test_tool_stub.py.jinja2"), context)
 
     # Must be a top-level function (not indented)
     assert "def test_bind_tools_registers_create_file() -> None:" in out
-    assert '"create_file" in registered' in out or "'create_file' in registered" in out
+    assert '"create_file" in registered' in out
     assert "_make_mock_mcp()" in out
 
 
 def test_test_tool_stub_template_does_not_call_tool() -> None:
-    """: test_tool_stub.py.jinja2 must NOT call/await the tool itself."""
+    """test_tool_stub.py.jinja2 must NOT call/await the tool itself."""
     context = {"name": "do_action"}
     out = renderer.render_string(_tmpl("entry_point/mcp/test_tool_stub.py.jinja2"), context)
 

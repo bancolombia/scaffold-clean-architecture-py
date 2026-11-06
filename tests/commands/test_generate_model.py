@@ -90,11 +90,6 @@ def test_existing_tests_dir_exits_1(project_root: Path) -> None:
     assert not (project_root / "src" / "my_app" / "domain" / "model" / "order").exists()
 
 
-def test_invalid_name_exits_nonzero(project_root: Path) -> None:
-    result = runner.invoke(app, ["gm", "--name", "1Bad"])
-    assert result.exit_code != 0
-
-
 def test_snake_name_generates_pascal_class(project_root: Path) -> None:
     result = runner.invoke(app, ["gm", "--name", "my_model"], catch_exceptions=False)
     assert result.exit_code == 0

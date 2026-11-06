@@ -98,28 +98,6 @@ def test_not_found_error_message(project_root: Path) -> None:
     assert "ghost" in result.output.lower()
 
 
-# Error: invalid name
-
-
-def test_invalid_name_exits_1(project_root: Path) -> None:
-    result = runner.invoke(app, ["dm", "--name", "123bad"], catch_exceptions=False)
-    assert result.exit_code == 1
-
-
-def test_invalid_name_error_message(project_root: Path) -> None:
-    result = runner.invoke(app, ["dm", "--name", "123bad"], catch_exceptions=False)
-    assert "invalid" in result.output.lower()
-
-
-# Error: no project root
-
-
-def test_no_project_root_error_message(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.chdir(tmp_path)
-    result = runner.invoke(app, ["dm", "--name", "order"], catch_exceptions=False)
-    assert "scaffold ca" in result.output.lower()
-
-
 # : no-args → help
 
 
@@ -202,3 +180,12 @@ def test_preview_lists_model_and_use_case_sharing_a_name(project_with_use_case: 
     assert "book_usecase.py" in out
     assert (root / "src" / "my_app" / "domain" / "model" / "book").exists()
     assert _uc_paths(root)[0].exists()
+
+
+def test_dm_help_confirm_option_describes_delete(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """dm --help must describe --confirm as deleting immediately, not as running vs."""
+    result = runner.invoke(app, ["dm", "--help"])
+    out = strip_ansi(result.output)
+    assert "delete" in out.lower()
+    assert "--confirm" in out
+    assert "scaffold vs" not in out

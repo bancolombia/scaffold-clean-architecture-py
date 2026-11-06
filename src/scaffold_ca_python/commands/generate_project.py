@@ -44,8 +44,8 @@ _LAYER_DIRS: tuple[tuple[str, str], ...] = (
     ("application", "application"),
     ("domain/model", "domain/model"),
     ("domain/usecase", "domain/usecase"),
-    ("infrastructure/driven_adapters", "infrastructure/driven-adapters"),
-    ("infrastructure/entry_points", "infrastructure/entry-points"),
+    ("infrastructure/driven_adapters", "infrastructure/driven_adapters"),
+    ("infrastructure/entry_points", "infrastructure/entry_points"),
     ("infrastructure/helpers", "infrastructure/helpers"),
 )
 
@@ -127,7 +127,7 @@ def _generate_project_impl(
     files = _collect_files(name, python_pkg, target_dir, _renderer)
 
     if dry_run:
-        print_dry_run_tree(f"{python_pkg}/", [p for p, _ in files], target_dir)
+        print_dry_run_tree(f"{name}/", [p for p, _ in files], target_dir)
         return
 
     for path, content in files:
@@ -137,8 +137,6 @@ def _generate_project_impl(
 
 
 def register(app: typer.Typer) -> None:
-    """Register clean-architecture / ca commands onto *app*."""
-
     def clean_architecture(
         ctx: typer.Context,
         name: Annotated[
@@ -151,7 +149,6 @@ def register(app: typer.Typer) -> None:
         ] = None,
         dry_run: DryRunProject = False,
     ) -> None:
-        """Scaffold a complete Clean Architecture Python project."""
         name = show_help_if_missing(ctx, name)
         _generate_project_impl(name, dry_run)
 

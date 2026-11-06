@@ -18,7 +18,7 @@ def _module_ctx(project: ProjectContext, subtype: str = "generic") -> ModuleCont
 
 
 def test_generic_files_queued_in_dry_run(tmp_path: Path) -> None:
-    """: Verify EntryPointGeneric.build() queues expected files."""
+    """Verify EntryPointGeneric.build() queues expected files."""
     write_minimal_pyproject(tmp_path)
     project = _project_ctx()
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, module_ctx=_module_ctx(project), dry_run=True)
@@ -48,7 +48,7 @@ def test_generic_files_queued_in_dry_run(tmp_path: Path) -> None:
 
 
 def test_generic_no_dependencies_injected(tmp_path: Path) -> None:
-    """: Verify EntryPointGeneric does not add dependencies."""
+    """Verify EntryPointGeneric does not add dependencies."""
     write_minimal_pyproject(tmp_path)
     project = _project_ctx()
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, module_ctx=_module_ctx(project), dry_run=False)
@@ -66,7 +66,7 @@ def test_generic_no_dependencies_injected(tmp_path: Path) -> None:
 
 
 def test_generic_main_py_overwritten(tmp_path: Path) -> None:
-    """: Verify EntryPointGeneric overwrites main.py."""
+    """Verify EntryPointGeneric overwrites main.py."""
     write_minimal_pyproject(tmp_path)
     project = _project_ctx()
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, module_ctx=_module_ctx(project), dry_run=True)

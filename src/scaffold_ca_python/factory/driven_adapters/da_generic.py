@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 class DrivenAdapterGeneric(DrivenAdapterFactory):
     """Factory for Generic driven-adapter type."""
 
+    description: ClassVar[str] = "Custom adapter (--name required)"
     template_pkg: ClassVar[str] = "driven_adapter/generic"
     src_files: ClassVar[tuple[tuple[str, str], ...]] = (
         ("__init__.py", "__init__.py.jinja2"),

@@ -133,8 +133,6 @@ def _warn_missing_adapters(src_pkg_root: Path, gateways: list[dict[str, str]]) -
 
 
 def register(app: typer.Typer) -> None:
-    """Register guc / generate-use-case commands onto *app*."""
-
     def generate_use_case(
         ctx: typer.Context,
         name: Annotated[
@@ -150,7 +148,6 @@ def register(app: typer.Typer) -> None:
         ] = None,
         dry_run: DryRun = False,
     ) -> None:
-        """Scaffold a use case in domain/usecase/."""
         name = show_help_if_missing(ctx, name)
         _generate_use_case_impl(name, dry_run, uses)
 

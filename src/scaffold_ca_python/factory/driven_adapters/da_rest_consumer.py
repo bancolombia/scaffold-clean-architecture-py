@@ -42,6 +42,7 @@ def _append_rest_consumer_conftest(builder: ModuleBuilder, conftest_path: Path) 
 class DrivenAdapterRestConsumer(DrivenAdapterFactory):
     """Factory for REST Consumer driven-adapter type."""
 
+    description: ClassVar[str] = "HTTP outbound client (httpx)"
     fixed_name: ClassVar[str] = "rest_consumer"
     template_pkg: ClassVar[str] = "driven_adapter/rest_consumer"
     src_files: ClassVar[tuple[tuple[str, str], ...]] = (

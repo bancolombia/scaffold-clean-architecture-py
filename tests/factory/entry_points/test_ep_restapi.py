@@ -18,7 +18,7 @@ def _module_ctx(project: ProjectContext, subtype: str = "restapi") -> ModuleCont
 
 
 def test_restapi_files_queued_in_dry_run(tmp_path: Path) -> None:
-    """: Verify EntryPointRestApi.build() queues expected files."""
+    """Verify EntryPointRestApi.build() queues expected files."""
     write_minimal_pyproject(tmp_path)
     project = _project_ctx()
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, module_ctx=_module_ctx(project), dry_run=True)
@@ -59,7 +59,7 @@ def test_restapi_files_queued_in_dry_run(tmp_path: Path) -> None:
 
 
 def test_restapi_dependencies_injected(tmp_path: Path) -> None:
-    """: Verify EntryPointRestApi adds fastapi dependencies."""
+    """Verify EntryPointRestApi adds fastapi dependencies."""
     write_minimal_pyproject(tmp_path)
     project = _project_ctx()
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, module_ctx=_module_ctx(project), dry_run=False)
@@ -84,7 +84,7 @@ def test_restapi_dependencies_injected(tmp_path: Path) -> None:
 
 
 def test_restapi_main_py_deleted(tmp_path: Path) -> None:
-    """: Verify EntryPointRestApi deletes main.py."""
+    """Verify EntryPointRestApi deletes main.py."""
     write_minimal_pyproject(tmp_path)
     project = _project_ctx()
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, module_ctx=_module_ctx(project), dry_run=True)
@@ -106,7 +106,7 @@ def test_restapi_main_py_deleted(tmp_path: Path) -> None:
 
 
 def test_restapi_scripts_param_set(tmp_path: Path) -> None:
-    """: Verify EntryPointRestApi sets scripts param."""
+    """Verify EntryPointRestApi sets scripts param."""
     write_minimal_pyproject(tmp_path)
     project = _project_ctx()
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, module_ctx=_module_ctx(project), dry_run=True)

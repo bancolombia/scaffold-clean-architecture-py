@@ -18,7 +18,7 @@ def _module_ctx(project: ProjectContext) -> ModuleContext:
 
 
 def test_rest_consumer_files_queued_in_dry_run(tmp_path: Path) -> None:
-    """: Verify DrivenAdapterRestConsumer.build() queues expected files."""
+    """Verify DrivenAdapterRestConsumer.build() queues expected files."""
     write_minimal_pyproject(tmp_path)
     project = _project_ctx()
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, module_ctx=_module_ctx(project), dry_run=True)
@@ -46,9 +46,14 @@ def test_rest_consumer_files_queued_in_dry_run(tmp_path: Path) -> None:
     for expected in expected_files:
         assert expected in preview, f"Expected {expected.relative_to(tmp_path)} in preview"
 
+    # conftest.py must appear in the dry-run preview without being written to disk
+    conftest_path = tmp_path / "src" / "tests" / "conftest.py"
+    assert conftest_path in preview, "conftest.py must appear in dry-run preview"
+    assert not conftest_path.exists(), "conftest.py must NOT be written to disk in dry-run"
+
 
 def test_rest_consumer_dependencies_injected(tmp_path: Path) -> None:
-    """: Verify DrivenAdapterRestConsumer adds httpx (runtime) and respx (test group)."""
+    """Verify DrivenAdapterRestConsumer adds httpx (runtime) and respx (test group)."""
     import tomllib
 
     write_minimal_pyproject(tmp_path, with_dependency_groups=True)
@@ -150,7 +155,7 @@ def _render_adapter(tmp_path: Path, gateway: object | None = None) -> str:
 
 
 def test_rest_consumer_no_double_blank_lines_between_imports(tmp_path: Path) -> None:
-    """: Without gateway, import wireup must be directly followed by from-import (no stray blank)."""
+    """Without gateway, import wireup must be directly followed by from-import (no stray blank)."""
     content = _render_adapter(tmp_path)
     lines = content.splitlines()
     wireup_idx = next(i for i, ln in enumerate(lines) if ln == "import wireup")
@@ -161,7 +166,7 @@ def test_rest_consumer_no_double_blank_lines_between_imports(tmp_path: Path) -> 
 
 
 def test_rest_consumer_gateway_no_double_blank_lines_between_imports(tmp_path: Path) -> None:
-    """: With gateway, gateway import must directly follow wireup import (no stray blank from {%- if %})."""
+    """With gateway, gateway import must directly follow wireup import (no stray blank from {%- if %})."""
     from types import SimpleNamespace
 
     gw = SimpleNamespace(
@@ -179,13 +184,13 @@ def test_rest_consumer_gateway_no_double_blank_lines_between_imports(tmp_path: P
 
 
 def test_rest_consumer_no_kwargs_object(tmp_path: Path) -> None:
-    """: Generated rest_consumer.py must not contain **kwargs: object."""
+    """Generated rest_consumer.py must not contain **kwargs: object."""
     content = _render_adapter(tmp_path)
     assert "**kwargs" not in content, "rest_consumer.py.jinja2 must not render **kwargs"
 
 
 def test_rest_consumer_conftest_fixture_appended(tmp_path: Path) -> None:
-    """: gda rest-consumer must create/append REST_CONSUMER_BASE_URL fixture in conftest.py."""
+    """gda rest-consumer must create/append REST_CONSUMER_BASE_URL fixture in conftest.py."""
     write_minimal_pyproject(tmp_path)
     project = ProjectContext(name="ms-demo")
     module_ctx = ModuleContext(name="rest_consumer", project=project)
@@ -205,7 +210,7 @@ def test_rest_consumer_conftest_fixture_appended(tmp_path: Path) -> None:
 
 
 def test_rest_consumer_conftest_fixture_is_idempotent(tmp_path: Path) -> None:
-    """: Calling _append_rest_consumer_conftest twice must not duplicate the fixture."""
+    """Calling _append_rest_consumer_conftest twice must not duplicate the fixture."""
     from scaffold_ca_python.factory.driven_adapters.da_rest_consumer import _append_rest_consumer_conftest
 
     write_minimal_pyproject(tmp_path)

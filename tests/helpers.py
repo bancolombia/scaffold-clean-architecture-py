@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.resources
 import os
 import re
 from pathlib import Path
@@ -10,9 +11,11 @@ from typer.testing import CliRunner, Result
 
 from scaffold_ca_python.cli import app
 from scaffold_ca_python.core.project_detector import load_project_context
+from scaffold_ca_python.core.template_renderer import TemplateRenderer
 from scaffold_ca_python.models.context import ModuleContext, ProjectContext
 
 runner = CliRunner()
+renderer = TemplateRenderer()
 
 
 def invoke_in(cwd: Path, *cli_args: str) -> Result:
@@ -52,10 +55,9 @@ dev = [
     (root / "pyproject.toml").write_text(body + "\n", encoding="utf-8")
 
 
-def read_template(relative_path: str) -> str:
-    """Read a scaffold template file by path under templates/."""
-    templates = Path(__file__).resolve().parent.parent / "src" / "scaffold_ca_python" / "templates"
-    return (templates / relative_path).read_text(encoding="utf-8")
+def read_template(name: str) -> str:
+    """Read a scaffold template file by path under scaffold_ca_python/templates/."""
+    return importlib.resources.files("scaffold_ca_python.templates").joinpath(name).read_text(encoding="utf-8")
 
 
 def strip_ansi(text: str) -> str:

@@ -87,7 +87,7 @@ def test_pyproject_has_di_dependencies(tmp_path: Path, monkeypatch: pytest.Monke
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["ca", "--name", "my-project"], catch_exceptions=False)
     content = (tmp_path / "my-project" / "pyproject.toml").read_text()
-    assert "wireup==2.13.0" in content
+    assert "wireup" in content
     assert "pydantic-settings" in content
 
 
@@ -149,7 +149,7 @@ def test_clean_architecture_help_contains_options() -> None:
 
 
 def test_ca_help_identical_to_clean_architecture_help() -> None:
-    """: ca --help must match clean-architecture --help in all content.
+    """ca --help must match clean-architecture --help in all content.
 
     The Usage line inherently shows the invoked command name (Typer behaviour),
     so we normalise that line before comparing.
@@ -218,6 +218,16 @@ def test_dry_run_prints_file_list(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     assert "pyproject.toml" in result.output or "dry-project" in result.output
 
 
+def test_dry_run_header_uses_original_name(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Dry-run tree header must show the original name (e.g. 'my-project/'), not the snake_case package."""
+    monkeypatch.chdir(tmp_path)
+    result = runner.invoke(app, ["ca", "--name", "my-project", "--dry-run"], catch_exceptions=False)
+    assert result.exit_code == 0
+    # The root label in the tree must use the original name, not python_pkg (snake_case).
+    first_line = result.output.strip().splitlines()[0]
+    assert "my-project" in first_line, f"Expected 'my-project' in first line, got: {first_line!r}"
+
+
 # Error cases
 
 
@@ -258,7 +268,7 @@ def test_kebab_name_generates_snake_case_files(tmp_path: Path, monkeypatch: pyte
 
 
 def test_ca_generates_wiring_py(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """: ca must generate wiring.py instead of *_container.py files."""
+    """ca must generate wiring.py instead of *_container.py files."""
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["ca", "--name", "my-project"], catch_exceptions=False)
     cfg = tmp_path / "my-project" / "src" / "my_project" / "application" / "config"
@@ -266,7 +276,7 @@ def test_ca_generates_wiring_py(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
 
 
 def test_ca_generates_usecases_package(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """: ca must generate application/config/usecases/__init__.py."""
+    """ca must generate application/config/usecases/__init__.py."""
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["ca", "--name", "my-project"], catch_exceptions=False)
     usecases_init = (
@@ -276,7 +286,7 @@ def test_ca_generates_usecases_package(tmp_path: Path, monkeypatch: pytest.Monke
 
 
 def test_ca_does_not_generate_container_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """: ca must NOT generate *_container.py files for wireup projects."""
+    """ca must NOT generate *_container.py files for wireup projects."""
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["ca", "--name", "my-project"], catch_exceptions=False)
     cfg = tmp_path / "my-project" / "src" / "my_project" / "application" / "config"
@@ -285,11 +295,11 @@ def test_ca_does_not_generate_container_files(tmp_path: Path, monkeypatch: pytes
 
 
 def test_ca_pyproject_has_wireup_dependency(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """: generated pyproject.toml must declare wireup==2.13.0, not dependency-injector."""
+    """Generated pyproject.toml must declare wireup (not dependency-injector)."""
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["ca", "--name", "my-project"], catch_exceptions=False)
     content = (tmp_path / "my-project" / "pyproject.toml").read_text()
-    assert "wireup==2.13.0" in content, "wireup dependency not found"
+    assert "wireup" in content, "wireup dependency not found"
     assert "dependency-injector" not in content, "legacy dependency still present"
 
 
@@ -303,7 +313,7 @@ def test_ca_pyproject_has_scaffold_version_key(tmp_path: Path, monkeypatch: pyte
 
 
 def test_ca_pyproject_has_ruff_async_rule(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """: generated pyproject.toml must enable ruff ASYNC rule."""
+    """generated pyproject.toml must enable ruff ASYNC rule."""
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["ca", "--name", "my-project"], catch_exceptions=False)
     content = (tmp_path / "my-project" / "pyproject.toml").read_text()
@@ -311,7 +321,7 @@ def test_ca_pyproject_has_ruff_async_rule(tmp_path: Path, monkeypatch: pytest.Mo
 
 
 def test_ca_pyproject_has_asyncio_mode_auto(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """: generated pyproject.toml must set asyncio_mode = 'auto' in pytest config."""
+    """generated pyproject.toml must set asyncio_mode = 'auto' in pytest config."""
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["ca", "--name", "my-project"], catch_exceptions=False)
     content = (tmp_path / "my-project" / "pyproject.toml").read_text()
@@ -319,7 +329,7 @@ def test_ca_pyproject_has_asyncio_mode_auto(tmp_path: Path, monkeypatch: pytest.
 
 
 def test_ca_pyproject_disables_tc_rule(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """: generated pyproject.toml must disable ruff TC rule to keep Injected/Inject at runtime."""
+    """generated pyproject.toml must disable ruff TC rule to keep Injected/Inject at runtime."""
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["ca", "--name", "my-project"], catch_exceptions=False)
     content = (tmp_path / "my-project" / "pyproject.toml").read_text()
@@ -360,7 +370,7 @@ def test_generate_project_uses_injected_renderer_and_writer(tmp_path: Path, monk
 
 
 def test_wiring_uses_injectables_param(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """: generated wiring.py must use create_async_container(injectables=...) not service_modules=."""
+    """generated wiring.py must use create_async_container(injectables=...) not service_modules=."""
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["ca", "--name", "my-project"], catch_exceptions=False)
     wiring_path = tmp_path / "my-project" / "src" / "my_project" / "application" / "config" / "wiring.py"

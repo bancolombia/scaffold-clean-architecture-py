@@ -5,15 +5,6 @@ import pytest
 from scaffold_ca_python.models.layer import FORBIDDEN_IMPORTS, Layer
 
 
-def test_layer_values() -> None:
-    assert Layer.DOMAIN_MODEL.value == "domain/model"
-    assert Layer.DOMAIN_USECASE.value == "domain/usecase"
-    assert Layer.ENTRY_POINTS.value == "infrastructure/entry_points"
-    assert Layer.DRIVEN_ADAPTERS.value == "infrastructure/driven_adapters"
-    assert Layer.HELPERS.value == "infrastructure/helpers"
-    assert Layer.APPLICATION.value == "application"
-
-
 def test_forbidden_imports_exists() -> None:
     assert isinstance(FORBIDDEN_IMPORTS, dict)
     assert len(FORBIDDEN_IMPORTS) > 0

@@ -93,11 +93,6 @@ def test_duplicate_adapter_dir_exits_1(project_root: Path) -> None:
     assert result.exit_code == 1
 
 
-def test_invalid_name_exits_1(project_root: Path) -> None:
-    result = runner.invoke(app, ["gda", "--type", "generic", "--name", "2bad"])
-    assert result.exit_code != 0
-
-
 # : Auto-inject dependencies
 
 

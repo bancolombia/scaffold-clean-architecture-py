@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from scaffold_ca_python.core.name_utils import to_pascal_case, to_snake_case
 from scaffold_ca_python.core.project_detector import resolve_tests_root
@@ -36,9 +36,7 @@ class UseCaseFactory(ModuleFactory):
 
         base = "use_case"
 
-        ctx_dict: dict[str, Any] = {}
-        if builder.module_ctx:
-            ctx_dict.update(builder.module_ctx.model_dump())
+        ctx_dict = dict(builder.base_context())
 
         # gateways is a list[dict] set by generate_use_case when --uses is given
         raw_gateways = builder.get_param("gateways", default=[])

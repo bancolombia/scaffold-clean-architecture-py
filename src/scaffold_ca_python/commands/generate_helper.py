@@ -52,8 +52,6 @@ def _generate_helper_impl(name: str, dry_run: bool) -> None:
 
 
 def register(app: typer.Typer) -> None:
-    """Register gh / generate-helper commands onto *app*."""
-
     def generate_helper(
         ctx: typer.Context,
         name: Annotated[
@@ -61,7 +59,6 @@ def register(app: typer.Typer) -> None:
         ] = None,
         dry_run: DryRun = False,
     ) -> None:
-        """Scaffold a helper in infrastructure/helpers/."""
         name = show_help_if_missing(ctx, name)
         _generate_helper_impl(name, dry_run)
 

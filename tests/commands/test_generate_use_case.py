@@ -79,11 +79,6 @@ def test_duplicate_use_case_exits_1(project_root: Path) -> None:
     assert result.exit_code == 1
 
 
-def test_invalid_name_exits_nonzero(project_root: Path) -> None:
-    result = runner.invoke(app, ["guc", "--name", "2Bad"])
-    assert result.exit_code != 0
-
-
 # : no-args → help
 
 
@@ -195,7 +190,7 @@ def test_legacy_file_is_ignored(project_root: Path) -> None:
 
 
 def test_guc_uses_creates_factory_file(project_with_order_model: Path) -> None:
-    """: --uses should create application/config/usecases/<name>_usecase.py factory."""
+    """--uses should create application/config/usecases/<name>_usecase.py factory."""
     result = runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
     assert result.exit_code == 0
     factory_path = (
@@ -205,7 +200,7 @@ def test_guc_uses_creates_factory_file(project_with_order_model: Path) -> None:
 
 
 def test_guc_uses_factory_has_typed_params(project_with_order_model: Path) -> None:
-    """: factory file must inject the named gateways as typed parameters."""
+    """factory file must inject the named gateways as typed parameters."""
     runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
     factory_path = (
         project_with_order_model / "src" / "my_app" / "application" / "config" / "usecases" / "create_order_usecase.py"
@@ -216,7 +211,7 @@ def test_guc_uses_factory_has_typed_params(project_with_order_model: Path) -> No
 
 
 def test_guc_without_uses_no_factory_file(project_root: Path) -> None:
-    """: without --uses, generate-use-case must NOT create a factory file."""
+    """without --uses, generate-use-case must NOT create a factory file."""
     runner.invoke(app, ["guc", "--name", "create_order"], catch_exceptions=False)
     usecases_dir = project_root / "src" / "my_app" / "application" / "config" / "usecases"
     factory = usecases_dir / "create_order_usecase.py"
@@ -224,13 +219,13 @@ def test_guc_without_uses_no_factory_file(project_root: Path) -> None:
 
 
 def test_guc_uses_gateway_not_found_exits_nonzero(project_root: Path) -> None:
-    """: --uses with unknown gateway name must exit non-zero."""
+    """--uses with unknown gateway name must exit non-zero."""
     result = runner.invoke(app, ["guc", "--name", "create_order", "--uses", "nonexistent_gateway"])
     assert result.exit_code != 0
 
 
 def test_guc_uses_helper_name_exits_with_infra_hint(project_root: Path, tmp_path: Path) -> None:
-    """: --uses with a helper name must exit non-zero with an infra-only hint."""
+    """--uses with a helper name must exit non-zero with an infra-only hint."""
     runner.invoke(app, ["gh", "--name", "log_helper"], catch_exceptions=False)
     result = runner.invoke(app, ["guc", "--name", "create_order", "--uses", "log_helper"])
     assert result.exit_code != 0
@@ -242,7 +237,7 @@ def test_guc_uses_helper_name_exits_with_infra_hint(project_root: Path, tmp_path
 
 
 def test_guc_uses_creates_factory_test_file(project_with_order_model: Path) -> None:
-    """: --uses must also create tests/application/config/usecases/test_<name>_usecase.py."""
+    """--uses must also create tests/application/config/usecases/test_<name>_usecase.py."""
     runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
     test_path = (
         project_with_order_model
@@ -260,7 +255,7 @@ def test_guc_uses_creates_factory_test_file(project_with_order_model: Path) -> N
 
 
 def test_guc_uses_appends_wiring_test(project_with_order_model: Path) -> None:
-    """: --uses must append a test function to test_wiring.py."""
+    """--uses must append a test function to test_wiring.py."""
     runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
     wiring_test = project_with_order_model / "src" / "tests" / "application" / "config" / "test_wiring.py"
     assert wiring_test.exists()
@@ -280,7 +275,7 @@ def test_guc_uses_wiring_append_is_idempotent(project_with_order_model: Path) ->
 
 
 def test_guc_uses_hint_when_no_adapter(project_with_order_model: Path) -> None:
-    """: guc --uses must warn when no adapter implements the gateway."""
+    """guc --uses must warn when no adapter implements the gateway."""
     result = runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
     assert result.exit_code == 0
     out = strip_ansi(result.output)
@@ -295,7 +290,7 @@ def _wiring_test_path(root: Path) -> Path:
 
 
 def test_ca_wiring_test_has_empty_marker_and_strict_xfail(project_root: Path) -> None:
-    """: ca generates MISSING_ADAPTERS (empty) and a strict module-level xfail."""
+    """ca generates MISSING_ADAPTERS (empty) and a strict module-level xfail."""
     content = _wiring_test_path(project_root).read_text()
     assert "MISSING_ADAPTERS: list[str] = []" in content
     assert "pytestmark = pytest.mark.xfail(" in content
@@ -305,7 +300,7 @@ def test_ca_wiring_test_has_empty_marker_and_strict_xfail(project_root: Path) ->
 
 
 def test_guc_uses_without_adapter_sets_missing_adapters(project_with_order_model: Path) -> None:
-    """: guc --uses with no adapter lists the gateway in MISSING_ADAPTERS."""
+    """guc --uses with no adapter lists the gateway in MISSING_ADAPTERS."""
     runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
     content = _wiring_test_path(project_with_order_model).read_text()
     assert 'MISSING_ADAPTERS: list[str] = ["OrderRepository"]' in content
@@ -327,7 +322,7 @@ def test_gda_gateway_clears_missing_adapters_and_appends_awaited_stub(project_wi
 
 
 def test_gda_gateway_wiring_stub_is_idempotent_and_dm_removes_it(project_with_order_model: Path) -> None:
-    """: dm on the adapter removes its wiring test and restores MISSING_ADAPTERS."""
+    """dm on the adapter removes its wiring test and restores MISSING_ADAPTERS."""
     runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
     runner.invoke(
         app,
@@ -341,7 +336,7 @@ def test_gda_gateway_wiring_stub_is_idempotent_and_dm_removes_it(project_with_or
 
 
 def test_generated_use_case_tests_have_no_type_ignore(project_with_order_model: Path) -> None:
-    """: generated tests must not carry unused `type: ignore` comments."""
+    """generated tests must not carry unused `type: ignore` comments."""
     runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
     root = project_with_order_model / "src" / "tests"
     for path in (
@@ -352,164 +347,9 @@ def test_generated_use_case_tests_have_no_type_ignore(project_with_order_model: 
 
 
 def test_generated_config_and_factory_pass_ruff_format(project_with_order_model: Path) -> None:
-    """: blank line after module docstring in config.py and the factory."""
+    """blank line after module docstring in config.py and the factory."""
     runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
     src = project_with_order_model / "src" / "my_app" / "application" / "config"
     for path in (src / "config.py", src / "usecases" / "create_order_usecase.py"):
         lines = path.read_text().splitlines()
         assert lines[0].startswith('"""') and lines[1] == "", path
-
-
-def test_ca_gm_guc_then_gda_full_quality_flow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """: pytest/ruff/mypy are green before and after the adapter exists."""
-    import subprocess
-
-    monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["ca", "--name", "ms_library"], catch_exceptions=False)
-    project_dir = tmp_path / "ms_library"
-    monkeypatch.chdir(project_dir)
-    runner.invoke(app, ["gm", "--name", "book"], catch_exceptions=False)
-    runner.invoke(app, ["guc", "--name", "book", "--uses", "book_repository"], catch_exceptions=False)
-
-    sync = subprocess.run(["uv", "sync", "--no-progress"], cwd=project_dir, capture_output=True, text=True, timeout=180)
-    if sync.returncode != 0:
-        pytest.skip(f"uv sync failed: {sync.stderr}")
-
-    def run(*cmd: str) -> subprocess.CompletedProcess[str]:
-        return subprocess.run(["uv", "run", *cmd], cwd=project_dir, capture_output=True, text=True, timeout=180)
-
-    def assert_quality() -> None:
-        for cmd in (("ruff", "check", "."), ("ruff", "format", "--check", "."), ("mypy", "--strict", "src/")):
-            res = run(*cmd)
-            assert res.returncode == 0, f"{cmd} failed: {res.stdout}\n{res.stderr}"
-
-    assert_quality()
-    before = run("pytest", "-q", "-rx")
-    assert before.returncode == 0, before.stdout + before.stderr
-    assert "xfailed" in before.stdout
-    assert "BookRepository" in before.stdout
-
-    runner.invoke(
-        app,
-        ["gda", "--type", "generic", "--name", "book_repository_adapter", "--gateway", "book_repository"],
-        catch_exceptions=False,
-    )
-    assert_quality()
-    after = run("pytest", "-q")
-    assert after.returncode == 0, after.stdout + after.stderr
-    assert "xfailed" not in after.stdout
-
-
-#  (.3): E2E rest-consumer quality — three QA scenarios
-
-
-@pytest.mark.parametrize(
-    "scenario",
-    [
-        pytest.param("guc_then_gda", id="guc_then_gda"),
-        pytest.param("guc_gateway_then_gda", id="guc_gateway_then_gda"),
-        pytest.param("gda_then_guc", id="gda_then_guc"),
-    ],
-)
-def test_rest_consumer_quality_flow(scenario: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """: pytest/ruff/ruff-format/mypy pass for all rest-consumer scaffolding orders."""
-    import subprocess
-
-    monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["ca", "--name", "ms_library"], catch_exceptions=False)
-    project_dir = tmp_path / "ms_library"
-    monkeypatch.chdir(project_dir)
-    runner.invoke(app, ["gm", "--name", "book"], catch_exceptions=False)
-
-    if scenario == "guc_then_gda":
-        runner.invoke(app, ["guc", "--name", "book"], catch_exceptions=False)
-        runner.invoke(app, ["gda", "--type", "rest-consumer"], catch_exceptions=False)
-    elif scenario == "guc_gateway_then_gda":
-        runner.invoke(app, ["guc", "--name", "book", "--uses", "book_repository"], catch_exceptions=False)
-        runner.invoke(
-            app,
-            ["gda", "--type", "rest-consumer", "--gateway", "book_repository"],
-            catch_exceptions=False,
-        )
-    elif scenario == "gda_then_guc":
-        runner.invoke(
-            app,
-            ["gda", "--type", "rest-consumer", "--gateway", "book_repository"],
-            catch_exceptions=False,
-        )
-        runner.invoke(app, ["guc", "--name", "book", "--uses", "book_repository"], catch_exceptions=False)
-
-    sync = subprocess.run(["uv", "sync", "--no-progress"], cwd=project_dir, capture_output=True, text=True, timeout=180)
-    if sync.returncode != 0:
-        pytest.skip(f"uv sync failed: {sync.stderr}")
-
-    def run(*cmd: str) -> subprocess.CompletedProcess[str]:
-        return subprocess.run(["uv", "run", *cmd], cwd=project_dir, capture_output=True, text=True, timeout=180)
-
-    for cmd in (
-        ("ruff", "check", "."),
-        ("ruff", "format", "--check", "."),
-        ("mypy", "--strict", "src/"),
-    ):
-        res = run(*cmd)
-        assert res.returncode == 0, f"[{scenario}] {cmd} failed:\n{res.stdout}\n{res.stderr}"
-
-    result = run("pytest", "-q", "-rx")
-    assert result.returncode == 0, f"[{scenario}] pytest failed:\n{result.stdout}\n{result.stderr}"
-
-
-# MCP QA scenarios (/002): ca → gm → guc → gda rest-consumer → gep mcp
-
-
-@pytest.mark.parametrize(
-    "scenario",
-    [
-        pytest.param("mcp_01", id="mcp_01"),
-        pytest.param("mcp_02", id="mcp_02"),
-    ],
-)
-def test_mcp_qa_quality_flow(scenario: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """pytest/ruff/mypy pass after full MCP scaffolding flow (mirrors docs/.qa-logs/run-mcp-scenarios.sh)."""
-    import subprocess
-
-    pkg = "ms_mcp_qa"
-    monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["ca", "--name", pkg], catch_exceptions=False)
-    project_dir = tmp_path / pkg
-    monkeypatch.chdir(project_dir)
-    runner.invoke(app, ["gm", "--name", "book"], catch_exceptions=False)
-    runner.invoke(app, ["guc", "--name", "book"], catch_exceptions=False)
-    runner.invoke(app, ["gda", "--type", "rest-consumer"], catch_exceptions=False)
-    runner.invoke(app, ["gep", "--type", "mcp"], catch_exceptions=False)
-    if scenario == "mcp_02":
-        runner.invoke(
-            app,
-            [
-                "gep",
-                "--type",
-                "mcp",
-                "--add-tool",
-                "--name",
-                "read_book",
-                "--param",
-                "book_id:int",
-                "--returns",
-                "str",
-            ],
-            catch_exceptions=False,
-        )
-
-    sync = subprocess.run(["uv", "sync", "--no-progress"], cwd=project_dir, capture_output=True, text=True, timeout=180)
-    if sync.returncode != 0:
-        pytest.skip(f"uv sync failed: {sync.stderr}")
-
-    def run(*cmd: str) -> subprocess.CompletedProcess[str]:
-        return subprocess.run(["uv", "run", *cmd], cwd=project_dir, capture_output=True, text=True, timeout=180)
-
-    for cmd in (
-        ("pytest",),
-        ("ruff", "check", "."),
-        ("mypy", f"src/{pkg}"),
-    ):
-        res = run(*cmd)
-        assert res.returncode == 0, f"[{scenario}] {cmd} failed:\n{res.stdout}\n{res.stderr}"

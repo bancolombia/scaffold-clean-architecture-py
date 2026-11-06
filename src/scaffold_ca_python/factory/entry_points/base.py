@@ -39,6 +39,7 @@ class EntryPointFactory(ABC):
     never need to know about individual types.
     """
 
+    description: ClassVar[str] = ""
     subdir: ClassVar[str]
     supported_flags: ClassVar[frozenset[EntryPointFlag]] = frozenset()
     conflicts: ClassVar[tuple[EntryPointConflict, ...]] = ()

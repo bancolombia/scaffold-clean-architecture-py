@@ -31,7 +31,7 @@ def _create_test_helper(root: Path, snake_name: str) -> None:
 
 
 def test_delete_module_removes_helper(tmp_path: Path) -> None:
-    """: Verify DeleteModuleFactory.build() removes helper module."""
+    """Verify DeleteModuleFactory.build() removes helper module."""
     write_minimal_pyproject(tmp_path)
     project = _project_ctx()
 

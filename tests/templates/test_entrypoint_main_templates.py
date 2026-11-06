@@ -1,11 +1,8 @@
 """Template rendering tests for entrypoint main.py templates."""
 
-import importlib.resources
-
-from scaffold_ca_python.core.template_renderer import TemplateRenderer
 from scaffold_ca_python.models.context import ModuleContext, ProjectContext
-
-renderer = TemplateRenderer()
+from tests.helpers import read_template as _tmpl
+from tests.helpers import renderer
 
 
 def _project() -> ProjectContext:
@@ -14,10 +11,6 @@ def _project() -> ProjectContext:
 
 def _ctx(name: str = "my-app", subtype: str | None = None) -> ModuleContext:
     return ModuleContext(name=name, project=_project())
-
-
-def _tmpl(name: str) -> str:
-    return importlib.resources.files("scaffold_ca_python.templates").joinpath(name).read_text(encoding="utf-8")
 
 
 def _render(path: str) -> str:

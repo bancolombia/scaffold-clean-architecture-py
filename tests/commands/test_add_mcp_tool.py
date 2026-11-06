@@ -1,4 +1,4 @@
-""": add-mcp-tool wireup pattern tests.
+"""add-mcp-tool wireup pattern tests.
 
 Verify that --add-tool stubs use Injected[...] patterns (wireup) and
 contain no legacy dependency-injector patterns (@inject, Provide[]).
@@ -17,7 +17,7 @@ runner = CliRunner()
 
 
 def test_mcp_tools_has_injected_import(mcp_project: Path) -> None:
-    """: Initial tools.py must import Injected from wireup."""
+    """Initial tools.py must import Injected from wireup."""
     tools_py = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
     content = tools_py.read_text()
     assert "Injected" in content
@@ -25,21 +25,21 @@ def test_mcp_tools_has_injected_import(mcp_project: Path) -> None:
 
 
 def test_mcp_tools_has_no_inject_decorator(mcp_project: Path) -> None:
-    """: tools.py must not use legacy @inject decorator."""
+    """tools.py must not use legacy @inject decorator."""
     tools_py = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
     content = tools_py.read_text()
     assert "@inject" not in content
 
 
 def test_mcp_tools_has_no_provide_pattern(mcp_project: Path) -> None:
-    """: tools.py must not use legacy Provide[...] pattern."""
+    """tools.py must not use legacy Provide[...] pattern."""
     tools_py = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
     content = tools_py.read_text()
     assert "Provide[" not in content
 
 
 def test_add_tool_stub_has_no_inject_decorator(mcp_project: Path) -> None:
-    """: appended tool stub must not use legacy @inject decorator."""
+    """appended tool stub must not use legacy @inject decorator."""
     runner.invoke(
         app,
         ["gep", "--type", "mcp", "--add-tool", "--name", "create_file"],
@@ -51,7 +51,7 @@ def test_add_tool_stub_has_no_inject_decorator(mcp_project: Path) -> None:
 
 
 def test_add_tool_stub_has_no_provide_pattern(mcp_project: Path) -> None:
-    """: appended tool stub must not use legacy Provide[...] pattern."""
+    """appended tool stub must not use legacy Provide[...] pattern."""
     runner.invoke(
         app,
         ["gep", "--type", "mcp", "--add-tool", "--name", "create_file"],
@@ -83,7 +83,7 @@ def test_persist_restore_failure_reports_inconsistent_state(mcp_project: Path, m
 
 
 def test_add_tool_preserves_injected_import(mcp_project: Path) -> None:
-    """: after --add-tool, Injected import must still be present in tools.py."""
+    """after --add-tool, Injected import must still be present in tools.py."""
     runner.invoke(
         app,
         ["gep", "--type", "mcp", "--add-tool", "--name", "fetch_data", "--param", "query:str"],

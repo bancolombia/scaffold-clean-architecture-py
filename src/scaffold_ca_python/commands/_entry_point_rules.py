@@ -4,9 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import typer
-
-from scaffold_ca_python.commands._shared import console
+from scaffold_ca_python.commands._shared import fail
 from scaffold_ca_python.factory.entry_points.base import EntryPointFactory, EntryPointFlag
 
 
@@ -24,8 +22,7 @@ def check_flags(
                 msg = f"{flag.label} {flag.verb} only valid with --type {types_supporting[0]}."
             else:
                 msg = f"{flag.label} {flag.verb} not valid with --type {type_key}."
-            console.print(f"[red]Error:[/red] {msg}")
-            raise typer.Exit(code=1)
+            fail(msg)
 
 
 def check_conflicts(
@@ -45,10 +42,7 @@ def check_conflicts(
         conflict_dir = pkg_ep / conflict_subdir
         if conflict_dir.exists():
             rel = conflict_dir.relative_to(project_root)
-            console.print(
-                f"[red]Error:[/red] Incompatible entry point '[bold]{conflict.type_key}[/bold]' "
-                f"already exists at: {rel}\n"
-                "[dim]Hint:[/dim] A project may have only one entry-point type. "
-                f"Remove '{rel}' before adding {type_key}."
+            fail(
+                f"Incompatible entry point '[bold]{conflict.type_key}[/bold]' already exists at: {rel}",
+                hint=f"A project may have only one entry-point type. Remove '{rel}' before adding {type_key}.",
             )
-            raise typer.Exit(code=1)

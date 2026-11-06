@@ -98,14 +98,15 @@ class ModuleBuilder:
         return self._renderer.render(template_name, context)
 
     def base_context(self) -> dict[str, object]:
-        """Shared template context: module fields plus package and project root."""
-        if self.module_ctx is None:
-            return {}
-        return {
-            **self.module_ctx.model_dump(),
+        """Shared template context: project fields plus module fields (when available)."""
+        ctx: dict[str, object] = {
+            **self.project_ctx.model_dump(),
             "pkg": self.project_ctx.python_package,
             "project_root": str(self.project_root),
         }
+        if self.module_ctx is not None:
+            ctx.update(self.module_ctx.model_dump())
+        return ctx
 
     def add_rendered(
         self,

@@ -30,10 +30,8 @@ from scaffold_ca_python.models.context import ModuleContext
 _GDA_HELP = "Scaffold a driven adapter and test stub. Alias 'gda'."
 _GDA_EPILOG = (
     "Types:\n\n"
-    "  * rest-consumer    HTTP outbound client (httpx)\n\n"
-    "  * secrets          AWS Secrets Manager (boto3)\n\n"
-    "  * generic          Custom adapter (--name required)\n\n"
-    " ==================================================\n\n"
+    + "".join(f"  * {key:<16} {cls.description}\n\n" for key, cls in DRIVEN_ADAPTER_FACTORIES.items())
+    + " ==================================================\n\n"
     "Examples:\n\n"
     "  * scaffold gda --type rest-consumer\n\n"
     "  * scaffold generate-driven-adapter --type generic --name my_adapter\n\n"
@@ -109,8 +107,6 @@ def _generate_driven_adapter_impl(
 
 
 def register(app: typer.Typer) -> None:
-    """Register gda / generate-driven-adapter commands onto *app*."""
-
     def generate_driven_adapter(
         ctx: typer.Context,
         type_: Annotated[
@@ -139,7 +135,6 @@ def register(app: typer.Typer) -> None:
             ),
         ] = None,
     ) -> None:
-        """Scaffold a driven adapter inside infrastructure/driven_adapters/."""
         type_ = show_help_if_missing(ctx, type_)
         _generate_driven_adapter_impl(type_, name, dry_run, gateway)
 

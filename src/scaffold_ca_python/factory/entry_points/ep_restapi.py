@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 class EntryPointRestApi(EntryPointFactory):
     """Factory for REST API entry-point type."""
 
+    description: ClassVar[str] = "FastAPI REST adapter with OpenAPI support"
     subdir: ClassVar[str] = "api/v1"
     supported_flags: ClassVar[frozenset[EntryPointFlag]] = frozenset({EntryPointFlag.SWAGGER})
     conflicts: ClassVar[tuple[EntryPointConflict, ...]] = (

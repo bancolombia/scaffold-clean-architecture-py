@@ -22,6 +22,8 @@ _GVS_EPILOG = "Example:\n\n  * scaffold vs\n\n  * scaffold validate-structure\n"
 
 
 def _validate_structure_impl(dry_run: bool) -> None:
+    # Intentionally uses require_project_root (not require_wireup_context): structure
+    # validation applies to both legacy and wireup projects.
     project_root = require_project_root()
 
     try:
@@ -63,12 +65,9 @@ def _validate_structure_impl(dry_run: bool) -> None:
 
 
 def register(app: typer.Typer) -> None:
-    """Register vs / validate-structure commands onto *app*."""
-
     def validate_structure(
         dry_run: DryRunValidate = False,
     ) -> None:
-        """Validate Clean Architecture layer boundaries in the current project."""
         _validate_structure_impl(dry_run)
 
     register_with_alias(app, "validate-structure", "vs", validate_structure, help=_GVS_HELP, epilog=_GVS_EPILOG)

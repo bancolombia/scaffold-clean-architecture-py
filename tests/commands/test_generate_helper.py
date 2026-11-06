@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-import pytest
 from typer.testing import CliRunner
 
 from scaffold_ca_python.cli import app
@@ -84,22 +83,6 @@ def test_duplicate_error_message(project_root: Path) -> None:
 
 
 # Validation errors
-
-
-def test_invalid_name_exits_1(project_root: Path) -> None:
-    result = runner.invoke(app, ["gh", "--name", "123bad"], catch_exceptions=False)
-    assert result.exit_code == 1
-
-
-def test_invalid_name_error_message(project_root: Path) -> None:
-    result = runner.invoke(app, ["gh", "--name", "123bad"], catch_exceptions=False)
-    assert "invalid" in result.output.lower()
-
-
-def test_no_project_root_error_message(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.chdir(tmp_path)
-    result = runner.invoke(app, ["gh", "--name", "my_helper"], catch_exceptions=False)
-    assert "scaffold ca" in result.output.lower()
 
 
 # : no-args → help

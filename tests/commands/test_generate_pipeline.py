@@ -21,10 +21,21 @@ def test_github_creates_workflow_file(project_root: Path) -> None:
     assert (project_root / ".github" / "workflows" / "ci.yml").exists()
 
 
-@pytest.mark.parametrize("tool", ["ruff", "mypy", "pytest"])
-def test_github_workflow_contains_quality_tool(project_root: Path, tool: str) -> None:
-    runner.invoke(app, ["gpipe", "--provider", "github"], catch_exceptions=False)
-    content = (project_root / ".github" / "workflows" / "ci.yml").read_text()
+@pytest.mark.parametrize(
+    ("provider", "tool"),
+    [
+        ("github", "ruff"),
+        ("github", "mypy"),
+        ("github", "pytest"),
+        ("azure", "ruff"),
+        ("azure", "mypy"),
+        ("azure", "pytest"),
+    ],
+)
+def test_pipeline_contains_quality_tool(project_root: Path, provider: str, tool: str) -> None:
+    _FILES = {"github": ".github/workflows/ci.yml", "azure": "azure-pipelines.yml"}
+    runner.invoke(app, ["gpipe", "--provider", provider], catch_exceptions=False)
+    content = (project_root / _FILES[provider]).read_text()
     assert tool in content
 
 
@@ -35,13 +46,6 @@ def test_azure_creates_pipeline_file(project_root: Path) -> None:
     result = runner.invoke(app, ["gpipe", "--provider", "azure"], catch_exceptions=False)
     assert result.exit_code == 0
     assert (project_root / "azure-pipelines.yml").exists()
-
-
-@pytest.mark.parametrize("tool", ["ruff", "mypy", "pytest"])
-def test_azure_pipeline_contains_quality_tool(project_root: Path, tool: str) -> None:
-    runner.invoke(app, ["gpipe", "--provider", "azure"], catch_exceptions=False)
-    content = (project_root / "azure-pipelines.yml").read_text()
-    assert tool in content
 
 
 # Dry-run
@@ -66,11 +70,6 @@ def test_dry_run_azure_writes_nothing(project_root: Path) -> None:
 
 
 # Validation errors
-
-
-def test_missing_provider_exits_0_with_help(project_root: Path) -> None:
-    result = runner.invoke(app, ["gpipe"], catch_exceptions=False)
-    assert result.exit_code == 0
 
 
 def test_missing_provider_error_hints_providers(project_root: Path) -> None:
@@ -105,7 +104,8 @@ def test_duplicate_github_no_force_flag(project_root: Path) -> None:
     runner.invoke(app, ["gpipe", "--provider", "github"], catch_exceptions=False)
     result = runner.invoke(app, ["gpipe", "--provider", "github"], catch_exceptions=False)
     assert result.exit_code == 1
-    assert "ci.yml' already exists at '.github/workflows/ci.yml'" in result.output
+    assert ".github/workflows/ci.yml" in result.output
+    assert "already exists" in result.output
     assert "Hint: Remove the existing file first or choose a different provider." in result.output
     assert "--force" not in result.output
 

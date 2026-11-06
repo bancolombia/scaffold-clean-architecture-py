@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 class EntryPointGeneric(EntryPointFactory):
     """Factory for Generic entry-point type."""
 
+    description: ClassVar[str] = "Custom entry point (minimal scaffold)"
     subdir: ClassVar[str] = "generic"
     supported_flags: ClassVar[frozenset[EntryPointFlag]] = frozenset()
     conflicts: ClassVar[tuple[EntryPointConflict, ...]] = ()

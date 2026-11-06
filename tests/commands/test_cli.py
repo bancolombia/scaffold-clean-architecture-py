@@ -22,10 +22,11 @@ def test_root_help_does_not_show_generate_project() -> None:
 
 
 def test_root_help_alias_visible_in_description() -> None:
-    """: clean-architecture description must mention the ca alias."""
+    """clean-architecture description must mention the ca alias."""
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
-    assert "ca" in result.output
+    # The alias 'ca' must appear explicitly in the help text (e.g. "Alias: 'ca'")
+    assert "'ca'" in result.output or '"ca"' in result.output
 
 
 # : root no-args behaviour

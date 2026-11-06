@@ -9,6 +9,7 @@ from scaffold_ca_python.factory.driven_adapters.base import DrivenAdapterFactory
 class DrivenAdapterSecrets(DrivenAdapterFactory):
     """Factory for Secrets driven-adapter type."""
 
+    description: ClassVar[str] = "AWS Secrets Manager (boto3)"
     fixed_name: ClassVar[str] = "secrets"
     template_pkg: ClassVar[str] = "driven_adapter/secrets"
     src_files: ClassVar[tuple[tuple[str, str], ...]] = (

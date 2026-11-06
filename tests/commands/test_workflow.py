@@ -1,4 +1,4 @@
-"""End-to-end workflow tests ( + ).
+"""End-to-end workflow tests.
 
 Covers the full quickstart.md workflow:
   ca → gm → guc → gda → gep → gh → gpipe → vs → dm --confirm → up --dry-run

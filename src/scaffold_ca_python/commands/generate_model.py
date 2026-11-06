@@ -64,8 +64,6 @@ def _generate_model_impl(name: str, dry_run: bool) -> None:
 
 
 def register(app: typer.Typer) -> None:
-    """Register gm / generate-model commands onto *app*."""
-
     def generate_model(
         ctx: typer.Context,
         name: Annotated[
@@ -73,7 +71,6 @@ def register(app: typer.Typer) -> None:
         ] = None,
         dry_run: DryRun = False,
     ) -> None:
-        """Scaffold a domain model package with its gateway in domain/model/<name>/."""
         name = show_help_if_missing(ctx, name)
         _generate_model_impl(name, dry_run)
 

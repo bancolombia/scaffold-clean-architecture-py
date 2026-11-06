@@ -26,7 +26,7 @@ def run_quality_checks(project_dir: Path) -> None:
         ["uv", "run", "ruff", "check", "."],
         ["uv", "run", "ruff", "format", "--check", "."],
         ["uv", "run", "mypy", "--strict", "src/"],
-        ["uv", "run", "pytest", "--no-cov", "-q"],
+        ["uv", "run", "pytest", "-q"],
     ]
     for cmd in cmds:
         result = subprocess.run(cmd, cwd=project_dir, capture_output=True, text=True, env=env)

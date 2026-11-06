@@ -1,4 +1,4 @@
-"""Tests for pyproject_writer: inject_dependencies and dry_run_inject."""
+"""Tests for pyproject_writer: inject_dependencies, inject_group_dependencies, update_project_scripts."""
 
 import tomllib
 from pathlib import Path
@@ -6,9 +6,6 @@ from pathlib import Path
 import pytest
 
 from scaffold_ca_python.core.pyproject_writer import (
-    dry_run_group_inject,
-    dry_run_inject,
-    dry_run_scripts_update,
     inject_dependencies,
     inject_group_dependencies,
     update_project_scripts,
@@ -135,26 +132,26 @@ def test_inject_preserves_existing_dependencies(tmp_path: Path) -> None:
 
 def test_dry_run_returns_packages_that_would_be_added(tmp_path: Path) -> None:
     _make_pyproject(tmp_path)
-    would_add = dry_run_inject(tmp_path, ["fastapi>=0.100", "uvicorn[standard]>=0.20"])
+    would_add = inject_dependencies(tmp_path, ["fastapi>=0.100", "uvicorn[standard]>=0.20"], dry_run=True)
     assert would_add == ["fastapi>=0.100", "uvicorn[standard]>=0.20"]
 
 
 def test_dry_run_never_writes_to_disk(tmp_path: Path) -> None:
     pyproject = _make_pyproject(tmp_path)
     original = pyproject.read_bytes()
-    dry_run_inject(tmp_path, ["fastapi>=0.100"])
+    inject_dependencies(tmp_path, ["fastapi>=0.100"], dry_run=True)
     assert pyproject.read_bytes() == original
 
 
 def test_dry_run_skips_already_present_packages(tmp_path: Path) -> None:
     _make_pyproject(tmp_path, deps=["fastapi>=0.100"])
-    would_add = dry_run_inject(tmp_path, ["fastapi>=0.100"])
+    would_add = inject_dependencies(tmp_path, ["fastapi>=0.100"], dry_run=True)
     assert would_add == []
 
 
 def test_dry_run_with_empty_packages_returns_empty(tmp_path: Path) -> None:
     _make_pyproject(tmp_path)
-    would_add = dry_run_inject(tmp_path, [])
+    would_add = inject_dependencies(tmp_path, [], dry_run=True)
     assert would_add == []
 
 
@@ -173,7 +170,7 @@ def test_missing_pyproject_raises_on_inject(tmp_path: Path) -> None:
         inject_dependencies(tmp_path, ["fastapi>=0.100"])
 
 
-# update_project_scripts — writes (–)
+# update_project_scripts
 
 
 def _make_pyproject_with_scripts(tmp_path: Path, entry: str) -> Path:
@@ -216,7 +213,7 @@ def _read_scripts(pyproject: Path) -> dict[str, str]:
 
 
 def test_update_project_scripts_changes_entry(tmp_path: Path) -> None:
-    """: updates main:main → server:start_server and returns True."""
+    """updates main:main → server:start_server and returns True."""
     pyproject = _make_pyproject_with_scripts(tmp_path, "my_app.main:main")
     result = update_project_scripts(tmp_path, ProjectContext(name="my-app"))
     assert result is True
@@ -224,7 +221,7 @@ def test_update_project_scripts_changes_entry(tmp_path: Path) -> None:
 
 
 def test_update_project_scripts_is_idempotent(tmp_path: Path) -> None:
-    """: second call returns False and leaves entry unchanged."""
+    """second call returns False and leaves entry unchanged."""
     pyproject = _make_pyproject_with_scripts(tmp_path, "my_app.server:start_server")
     result = update_project_scripts(tmp_path, ProjectContext(name="my-app"), entry_fn="start_server")
     assert result is False
@@ -232,37 +229,37 @@ def test_update_project_scripts_is_idempotent(tmp_path: Path) -> None:
 
 
 def test_update_project_scripts_creates_section_when_absent(tmp_path: Path) -> None:
-    """: creates [project.scripts] when missing and writes correct entry."""
+    """creates [project.scripts] when missing and writes correct entry."""
     pyproject = _make_pyproject_without_scripts(tmp_path)
     result = update_project_scripts(tmp_path, ProjectContext(name="my-app"))
     assert result is True
     assert _read_scripts(pyproject)["my-app"] == "my_app.server:start_server"
 
 
-# dry_run_scripts_update — never writes (–)
+# dry_run_scripts_update — never writes
 
 
 def test_dry_run_scripts_update_returns_true_when_change_needed(tmp_path: Path) -> None:
-    """: returns True (change needed) but does NOT write to disk."""
+    """returns True (change needed) but does NOT write to disk."""
     pyproject = _make_pyproject_with_scripts(tmp_path, "my_app.main:main")
     original = pyproject.read_bytes()
-    result = dry_run_scripts_update(tmp_path, ProjectContext(name="my-app"))
+    result = update_project_scripts(tmp_path, ProjectContext(name="my-app"), dry_run=True)
     assert result is True
     assert pyproject.read_bytes() == original
 
 
 def test_dry_run_scripts_update_returns_false_when_already_correct(tmp_path: Path) -> None:
-    """: returns False when entry already matches server:start_server."""
+    """returns False when entry already matches server:start_server."""
     _make_pyproject_with_scripts(tmp_path, "my_app.server:start_server")
-    result = dry_run_scripts_update(tmp_path, ProjectContext(name="my-app"), entry_fn="start_server")
+    result = update_project_scripts(tmp_path, ProjectContext(name="my-app"), entry_fn="start_server", dry_run=True)
     assert result is False
 
 
 def test_dry_run_scripts_update_never_writes_to_disk(tmp_path: Path) -> None:
-    """: raw file bytes are identical before and after the call."""
+    """raw file bytes are identical before and after the call."""
     pyproject = _make_pyproject_with_scripts(tmp_path, "my_app.main:main")
     before = pyproject.read_bytes()
-    dry_run_scripts_update(tmp_path, ProjectContext(name="my-app"))
+    update_project_scripts(tmp_path, ProjectContext(name="my-app"), dry_run=True)
     assert pyproject.read_bytes() == before
 
 
@@ -355,20 +352,20 @@ def test_inject_group_multiple_packages(tmp_path: Path) -> None:
 
 def test_dry_run_group_returns_packages_that_would_be_added(tmp_path: Path) -> None:
     _make_pyproject_with_dep_groups(tmp_path)
-    would_add = dry_run_group_inject(tmp_path, "test", ["respx>=0.22"])
+    would_add = inject_group_dependencies(tmp_path, "test", ["respx>=0.22"], dry_run=True)
     assert would_add == ["respx>=0.22"]
 
 
 def test_dry_run_group_never_writes_to_disk(tmp_path: Path) -> None:
     pyproject = _make_pyproject_with_dep_groups(tmp_path)
     original = pyproject.read_bytes()
-    dry_run_group_inject(tmp_path, "test", ["respx>=0.22"])
+    inject_group_dependencies(tmp_path, "test", ["respx>=0.22"], dry_run=True)
     assert pyproject.read_bytes() == original
 
 
 def test_dry_run_group_skips_already_present_packages(tmp_path: Path) -> None:
     _make_pyproject_with_dep_groups(tmp_path, test=["respx>=0.22"])
-    would_add = dry_run_group_inject(tmp_path, "test", ["respx>=0.22"])
+    would_add = inject_group_dependencies(tmp_path, "test", ["respx>=0.22"], dry_run=True)
     assert would_add == []
 
 
@@ -401,7 +398,7 @@ def test_update_project_scripts_custom_entry_fn_is_idempotent(tmp_path: Path) ->
 def test_dry_run_scripts_update_default_uses_start_server(tmp_path: Path) -> None:
     """Default entry_fn='start_server' in dry_run preserves existing behaviour."""
     _make_pyproject_with_scripts(tmp_path, "my_app.server:start_server")
-    result = dry_run_scripts_update(tmp_path, ProjectContext(name="my-app"))
+    result = update_project_scripts(tmp_path, ProjectContext(name="my-app"), dry_run=True)
     assert result is False
 
 
@@ -409,7 +406,7 @@ def test_dry_run_scripts_update_custom_entry_fn_detects_change(tmp_path: Path) -
     """entry_fn='main' returns True when entry is currently start_server."""
     pyproject = _make_pyproject_with_scripts(tmp_path, "my_app.server:start_server")
     original = pyproject.read_bytes()
-    result = dry_run_scripts_update(tmp_path, ProjectContext(name="my-app"), entry_fn="main")
+    result = update_project_scripts(tmp_path, ProjectContext(name="my-app"), entry_fn="main", dry_run=True)
     assert result is True
     assert pyproject.read_bytes() == original  # never wrote to disk
 
@@ -417,5 +414,5 @@ def test_dry_run_scripts_update_custom_entry_fn_detects_change(tmp_path: Path) -
 def test_dry_run_scripts_update_custom_entry_fn_no_change_needed(tmp_path: Path) -> None:
     """entry_fn='main' returns False when entry already equals <pkg>.server:main."""
     _make_pyproject_with_scripts(tmp_path, "my_app.server:main")
-    result = dry_run_scripts_update(tmp_path, ProjectContext(name="my-app"), entry_fn="main")
+    result = update_project_scripts(tmp_path, ProjectContext(name="my-app"), entry_fn="main", dry_run=True)
     assert result is False

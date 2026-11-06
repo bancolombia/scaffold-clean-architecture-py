@@ -23,6 +23,7 @@ class DrivenAdapterFactory(ABC):
     and dependencies; override hooks when paths or context are dynamic.
     """
 
+    description: ClassVar[str] = ""
     fixed_name: ClassVar[str | None] = None
     template_pkg: ClassVar[str]
     src_files: ClassVar[tuple[FileSpec, ...]] = ()

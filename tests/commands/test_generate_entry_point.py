@@ -41,11 +41,6 @@ def swagger_file(tmp_path: Path) -> Path:
 
 # restapi type
 
-#  — application/app.py emitted
-
-
-#  — server.py is thin wrapper
-
 
 def test_restapi_server_py_is_thin_wrapper(project_root: Path) -> None:
     result = runner.invoke(app, ["gep", "--type", "restapi"], catch_exceptions=False)
@@ -91,7 +86,7 @@ def test_restapi_gep_twice_does_not_overwrite_app_py(project_root: Path) -> None
     assert app_py.read_text() == original_content
 
 
-#  — test files emitted by gep --type restapi (–)
+# test files emitted by gep --type restapi
 
 
 # Existing file-existence tests
@@ -153,21 +148,21 @@ def test_agent_with_enable_mcp_client(project_root: Path) -> None:
 
 
 def test_mcp_no_monolithic_server_py_in_mcp_server(project_root: Path) -> None:
-    """: old monolithic server.py must NOT exist inside mcp_server/ after restructure."""
+    """old monolithic server.py must NOT exist inside mcp_server/ after restructure."""
     runner.invoke(app, ["gep", "--type", "mcp"], catch_exceptions=False)
     server_py = project_root / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "server.py"
     assert not server_py.exists()
 
 
 def test_mcp_without_resources_no_resources_py(project_root: Path) -> None:
-    """: without --with-resources no resources.py is created."""
+    """without --with-resources no resources.py is created."""
     runner.invoke(app, ["gep", "--type", "mcp"], catch_exceptions=False)
     resources_py = project_root / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "resources.py"
     assert not resources_py.exists()
 
 
 def test_mcp_without_prompts_no_prompts_py(project_root: Path) -> None:
-    """: without --with-prompts no prompts.py is created."""
+    """without --with-prompts no prompts.py is created."""
     runner.invoke(app, ["gep", "--type", "mcp"], catch_exceptions=False)
     prompts_py = project_root / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "prompts.py"
     assert not prompts_py.exists()
@@ -397,7 +392,7 @@ def test_gep_help_contains_examples_section() -> None:
 def test_gep_restapi_blocked_when_mcp_server_exists(
     project_root: Path,
 ) -> None:
-    """: exit 1 when mcp_server/ dir already exists; no api/v1/ created."""
+    """exit 1 when mcp_server/ dir already exists; no api/v1/ created."""
     conflict = project_root / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server"
     conflict.mkdir(parents=True)
 
@@ -411,7 +406,7 @@ def test_gep_restapi_blocked_when_mcp_server_exists(
 def test_gep_restapi_blocked_when_agent_exists(
     project_root: Path,
 ) -> None:
-    """: exit 1 when agent/ dir already exists; no api/v1/ created."""
+    """exit 1 when agent/ dir already exists; no api/v1/ created."""
     conflict = project_root / "src" / "my_app" / "infrastructure" / "entry_points" / "agent"
     conflict.mkdir(parents=True)
 
@@ -434,7 +429,7 @@ def test_gep_restapi_proceeds_when_no_incompatible_entry_point(
 def test_gep_restapi_dry_run_still_reports_mcp_conflict(
     project_root: Path,
 ) -> None:
-    """: --dry-run does not bypass the compatibility guard."""
+    """--dry-run does not bypass the compatibility guard."""
     conflict = project_root / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server"
     conflict.mkdir(parents=True)
 
@@ -449,7 +444,7 @@ def test_gep_restapi_dry_run_still_reports_mcp_conflict(
 
 
 def test_restapi_deletes_main_py(project_root: Path) -> None:
-    """: main.py created by scaffold ca must be removed after gep --type restapi."""
+    """main.py created by scaffold ca must be removed after gep --type restapi."""
     main_py = project_root / "src" / "my_app" / "main.py"
     assert main_py.exists(), "fixture must create main.py via scaffold ca"
     runner.invoke(app, ["gep", "--type", "restapi"], catch_exceptions=False)
@@ -467,14 +462,14 @@ def test_restapi_second_run_exits_with_duplicate_error(project_root: Path) -> No
 
 
 def test_restapi_gep_ok_when_main_py_already_absent(project_root: Path) -> None:
-    """: silent no-op delete — command must succeed even if main.py is already gone."""
+    """silent no-op delete — command must succeed even if main.py is already gone."""
     (project_root / "src" / "my_app" / "main.py").unlink(missing_ok=True)
     result = runner.invoke(app, ["gep", "--type", "restapi"], catch_exceptions=False)
     assert result.exit_code == 0
 
 
 def test_restapi_dry_run_reports_would_delete_main_py(project_root: Path) -> None:
-    """: dry-run must mention main.py in output; the file must NOT be deleted."""
+    """dry-run must mention main.py in output; the file must NOT be deleted."""
     main_py = project_root / "src" / "my_app" / "main.py"
     assert main_py.exists()
     result = runner.invoke(app, ["gep", "--type", "restapi", "--dry-run"], catch_exceptions=False)
@@ -487,7 +482,7 @@ def test_restapi_dry_run_reports_would_delete_main_py(project_root: Path) -> Non
 
 
 def test_restapi_updates_project_scripts(project_root: Path) -> None:
-    """: [project.scripts] entry must read <pkg>.server:start_server after gep restapi."""
+    """[project.scripts] entry must read <pkg>.server:start_server after gep restapi."""
     import tomllib
 
     runner.invoke(app, ["gep", "--type", "restapi"], catch_exceptions=False)
@@ -497,7 +492,7 @@ def test_restapi_updates_project_scripts(project_root: Path) -> None:
 
 
 def test_restapi_dry_run_reports_scripts_update(project_root: Path) -> None:
-    """: dry-run reports the scripts update; pyproject.toml must remain unchanged."""
+    """dry-run reports the scripts update; pyproject.toml must remain unchanged."""
     import tomllib
 
     result = runner.invoke(app, ["gep", "--type", "restapi", "--dry-run"], catch_exceptions=False)
@@ -509,7 +504,7 @@ def test_restapi_dry_run_reports_scripts_update(project_root: Path) -> None:
 
 
 def test_agent_does_not_change_project_scripts(project_root: Path) -> None:
-    """: gep --type agent must NOT modify [project.scripts]."""
+    """gep --type agent must NOT modify [project.scripts]."""
     import tomllib
 
     runner.invoke(app, ["gep", "--type", "agent"], catch_exceptions=False)
@@ -550,7 +545,7 @@ def test_generic_does_not_change_project_scripts(project_root: Path) -> None:
 
 
 def test_gep_mcp_blocked_when_restapi_exists(project_root: Path) -> None:
-    """: mcp must be blocked when restapi entry point already exists."""
+    """mcp must be blocked when restapi entry point already exists."""
     runner.invoke(app, ["gep", "--type", "restapi"], catch_exceptions=False)
     result = runner.invoke(app, ["gep", "--type", "mcp"])
     assert result.exit_code == 1
@@ -558,7 +553,7 @@ def test_gep_mcp_blocked_when_restapi_exists(project_root: Path) -> None:
 
 
 def test_gep_agent_blocked_when_restapi_exists(project_root: Path) -> None:
-    """: agent must be blocked when restapi entry point already exists."""
+    """agent must be blocked when restapi entry point already exists."""
     runner.invoke(app, ["gep", "--type", "restapi"], catch_exceptions=False)
     result = runner.invoke(app, ["gep", "--type", "agent"])
     assert result.exit_code == 1
@@ -566,7 +561,7 @@ def test_gep_agent_blocked_when_restapi_exists(project_root: Path) -> None:
 
 
 def test_gep_generic_not_blocked_when_restapi_exists(project_root: Path) -> None:
-    """: generic is always allowed regardless of existing entry points."""
+    """generic is always allowed regardless of existing entry points."""
     runner.invoke(app, ["gep", "--type", "restapi"], catch_exceptions=False)
     result = runner.invoke(app, ["gep", "--type", "generic"], catch_exceptions=False)
     assert result.exit_code == 0
@@ -576,7 +571,7 @@ def test_gep_generic_not_blocked_when_restapi_exists(project_root: Path) -> None
 
 
 def test_mcp_app_py_with_resources_contains_bind_resources(project_root: Path) -> None:
-    """: gep --type mcp --with-resources must include bind_resources in app.py."""
+    """gep --type mcp --with-resources must include bind_resources in app.py."""
     runner.invoke(app, ["gep", "--type", "mcp", "--with-resources"], catch_exceptions=False)
     app_py = project_root / "src" / "my_app" / "application" / "app.py"
     assert app_py.exists()
@@ -727,7 +722,7 @@ def test_add_tool_only_modifies_tools_and_tests(mcp_project: Path) -> None:
 
 
 def test_add_tool_fails_when_entry_point_missing(project_root: Path) -> None:
-    """:  - Fails with hint when MCP entry point doesn't exist."""
+    """- Fails with hint when MCP entry point doesn't exist."""
     result = runner.invoke(
         app,
         ["gep", "--type", "mcp", "--add-tool", "--name", "create_file"],
@@ -747,7 +742,7 @@ def test_add_tool_fails_when_entry_point_missing(project_root: Path) -> None:
     ],
 )
 def test_add_tool_fails_on_duplicate_name(mcp_project: Path, name: str, reason: str) -> None:
-    """:  - Rejects duplicate tool names."""
+    """- Rejects duplicate tool names."""
     if reason == "duplicate_after_second_run":
         # First run succeeds
         result1 = runner.invoke(
@@ -791,7 +786,7 @@ def test_add_tool_fails_on_duplicate_name(mcp_project: Path, name: str, reason: 
 
 
 def test_add_tool_fails_on_decorator_vs_function_name_duplicate(mcp_project: Path) -> None:
-    """:  - Rejects both @mcp.tool name and function name as duplicates."""
+    """- Rejects both @mcp.tool name and function name as duplicates."""
     tools_py = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
 
     # Add a tool using the actual command where decorator name != function name
@@ -838,7 +833,7 @@ def test_add_tool_fails_on_decorator_vs_function_name_duplicate(mcp_project: Pat
     ],
 )
 def test_add_tool_incompatible_with_creation_flags(mcp_project: Path, flag_name: str, flag_value: str | None) -> None:
-    """:  - --add-tool is incompatible with creation-only flags."""
+    """- --add-tool is incompatible with creation-only flags."""
     args = ["gep", "--type", "mcp", "--add-tool", "--name", "create_file", flag_name]
     if flag_value is not None:
         args.append(flag_value)
@@ -860,7 +855,7 @@ def test_add_tool_incompatible_with_creation_flags(mcp_project: Path, flag_name:
     ],
 )
 def test_add_tool_requires_type_mcp(project_root: Path, type_value: str | None) -> None:
-    """:  - --add-tool requires --type mcp."""
+    """- --add-tool requires --type mcp."""
     args = ["gep", "--add-tool", "--name", "create_file"]
     if type_value is not None:
         args.extend(["--type", type_value])
@@ -872,7 +867,7 @@ def test_add_tool_requires_type_mcp(project_root: Path, type_value: str | None) 
 
 
 def test_add_tool_requires_name_flag(mcp_project: Path) -> None:
-    """:  - --name is required with --add-tool."""
+    """- --name is required with --add-tool."""
     result = runner.invoke(
         app,
         ["gep", "--type", "mcp", "--add-tool"],
@@ -891,7 +886,7 @@ def test_add_tool_requires_name_flag(mcp_project: Path) -> None:
     ],
 )
 def test_add_tool_validates_name_format(mcp_project: Path, name: str, expected_message_fragment: str) -> None:
-    """:  - Validates --name format and rejects keywords."""
+    """- Validates --name format and rejects keywords."""
     result = runner.invoke(
         app,
         ["gep", "--type", "mcp", "--add-tool", "--name", name],
@@ -903,7 +898,7 @@ def test_add_tool_validates_name_format(mcp_project: Path, name: str, expected_m
 
 
 def test_add_tool_accepts_soft_keywords(mcp_project: Path) -> None:
-    """:  - Soft keywords like 'match' are accepted."""
+    """- Soft keywords like 'match' are accepted."""
     result = runner.invoke(
         app,
         ["gep", "--type", "mcp", "--add-tool", "--name", "match"],
@@ -922,7 +917,7 @@ def test_add_tool_accepts_soft_keywords(mcp_project: Path) -> None:
     ],
 )
 def test_add_tool_validates_param_format(mcp_project: Path, param: str, expected_fragment: str) -> None:
-    """:  - Validates --param format."""
+    """- Validates --param format."""
     result = runner.invoke(
         app,
         ["gep", "--type", "mcp", "--add-tool", "--name", "create_file", "--param", param],
@@ -934,7 +929,7 @@ def test_add_tool_validates_param_format(mcp_project: Path, param: str, expected
 
 
 def test_add_tool_rejects_duplicate_param_names(mcp_project: Path) -> None:
-    """:  - Rejects duplicate --param names."""
+    """- Rejects duplicate --param names."""
     result = runner.invoke(
         app,
         [
@@ -957,7 +952,7 @@ def test_add_tool_rejects_duplicate_param_names(mcp_project: Path) -> None:
 
 
 def test_add_tool_validates_returns_type(mcp_project: Path) -> None:
-    """:  - Validates --returns type expression."""
+    """- Validates --returns type expression."""
     result = runner.invoke(
         app,
         [
@@ -978,7 +973,7 @@ def test_add_tool_validates_returns_type(mcp_project: Path) -> None:
 
 
 def test_add_tool_rejects_unsafe_description(mcp_project: Path) -> None:
-    """:  - Rejects --description with embedded triple quotes."""
+    """- Rejects --description with embedded triple quotes."""
     result = runner.invoke(
         app,
         [
@@ -999,7 +994,7 @@ def test_add_tool_rejects_unsafe_description(mcp_project: Path) -> None:
 
 
 def test_add_tool_fails_on_legacy_project_missing_bind_tools(mcp_project: Path) -> None:
-    """:  - Fails gracefully when bind_tools is missing."""
+    """- Fails gracefully when bind_tools is missing."""
     tools_py = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
     original_content = tools_py.read_text()
 
@@ -1022,7 +1017,7 @@ def test_add_tool_fails_on_legacy_project_missing_bind_tools(mcp_project: Path) 
 
 
 def test_add_tool_fails_when_bind_tools_not_last(mcp_project: Path) -> None:
-    """:  - Fails when bind_tools is not the last function."""
+    """- Fails when bind_tools is not the last function."""
     tools_py = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
     original_content = tools_py.read_text()
 
@@ -1045,7 +1040,7 @@ def test_add_tool_fails_when_bind_tools_not_last(mcp_project: Path) -> None:
 
 
 def test_add_tool_fails_when_tools_py_missing(mcp_project: Path) -> None:
-    """:  - Fails gracefully when tools.py is missing."""
+    """- Fails gracefully when tools.py is missing."""
     tools_py = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
     tools_py.unlink()
 
@@ -1060,7 +1055,7 @@ def test_add_tool_fails_when_tools_py_missing(mcp_project: Path) -> None:
 
 
 def test_add_tool_fails_when_test_tools_py_missing(mcp_project: Path) -> None:
-    """:  rule 10b - Fails when test_tools.py is missing."""
+    """rule 10b - Fails when test_tools.py is missing."""
     test_tools_py = mcp_project / "src" / "tests" / "infrastructure" / "entry_points" / "mcp_server" / "test_tools.py"
     tools_py = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
     original_tools = tools_py.read_text()
@@ -1083,7 +1078,7 @@ def test_add_tool_fails_when_test_tools_py_missing(mcp_project: Path) -> None:
 
 
 def test_add_tool_fails_when_test_structure_invalid(mcp_project: Path) -> None:
-    """:  rule 10b - Fails when test structure is unrecognized."""
+    """rule 10b - Fails when test structure is unrecognized."""
     test_tools_py = mcp_project / "src" / "tests" / "infrastructure" / "entry_points" / "mcp_server" / "test_tools.py"
     tools_py = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
     original_tools = tools_py.read_text()
@@ -1178,7 +1173,7 @@ def test_add_tool_restores_on_write_failure(mcp_project: Path, monkeypatch: pyte
 
 
 def test_add_tool_guard_ordering_format_before_project(project_root: Path) -> None:
-    """: Guard ordering - format validation () before project check."""
+    """Guard ordering - format validation () before project check."""
     # No MCP entry point exists (would trigger )
     # But invalid param should fail first
     result = runner.invoke(
@@ -1203,7 +1198,7 @@ def test_add_tool_guard_ordering_format_before_project(project_root: Path) -> No
 
 
 def test_add_tool_guard_ordering_structure_before_duplicate(mcp_project: Path) -> None:
-    """: Guard ordering - bind_tools check () before duplicate check."""
+    """Guard ordering - bind_tools check () before duplicate check."""
     tools_py = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
 
     # First add a tool so duplicate would apply
@@ -1356,7 +1351,7 @@ def test_add_tool_dry_run_fails_on_missing_entry_point(project_root: Path) -> No
 
 
 def test_agent_class_name_has_no_hyphens(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """: agent class name must be PascalCase even for hyphenated project names."""
+    """agent class name must be PascalCase even for hyphenated project names."""
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["ca", "--name", "my-app"], catch_exceptions=False)
     project_dir = tmp_path / "my-app"
@@ -1369,7 +1364,7 @@ def test_agent_class_name_has_no_hyphens(tmp_path: Path, monkeypatch: pytest.Mon
 
 
 def test_agent_main_does_not_import_run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """: main.py must not import a bare module-level run() that does not exist."""
+    """main.py must not import a bare module-level run() that does not exist."""
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["ca", "--name", "my-app"], catch_exceptions=False)
     project_dir = tmp_path / "my-app"
@@ -1382,7 +1377,7 @@ def test_agent_main_does_not_import_run(tmp_path: Path, monkeypatch: pytest.Monk
 
 
 def test_generic_main_does_not_import_run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """: generic main.py must not import a bare run() that does not exist."""
+    """generic main.py must not import a bare run() that does not exist."""
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["ca", "--name", "my-app"], catch_exceptions=False)
     project_dir = tmp_path / "my-app"
@@ -1395,7 +1390,7 @@ def test_generic_main_does_not_import_run(tmp_path: Path, monkeypatch: pytest.Mo
 
 
 def test_mcp_app_uses_inject_from_container(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """: mcp app.py must use inject_from_container, not container.wire."""
+    """mcp app.py must use inject_from_container, not container.wire."""
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["ca", "--name", "my-app"], catch_exceptions=False)
     project_dir = tmp_path / "my-app"
@@ -1405,124 +1400,3 @@ def test_mcp_app_uses_inject_from_container(tmp_path: Path, monkeypatch: pytest.
     content = app_file.read_text()
     assert "inject_from_container" in content, "mcp app.py must use inject_from_container"
     assert "container.wire(" not in content
-
-
-#  (): End-to-end validation — full quality checks pass
-
-
-def test_gep_restapi_full_quality_checks(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """: restapi entry point passes uv sync + ruff + pytest + vs."""
-    import subprocess
-
-    monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["ca", "--name", "quality-test"], catch_exceptions=False)
-    project_dir = tmp_path / "quality-test"
-    monkeypatch.chdir(project_dir)
-    runner.invoke(app, ["gep", "--type", "restapi"], catch_exceptions=False)
-
-    # uv sync
-    sync = subprocess.run(["uv", "sync", "--no-progress"], cwd=project_dir, capture_output=True, text=True, timeout=120)
-    if sync.returncode != 0:
-        pytest.skip(f"uv sync failed: {sync.stderr}")
-
-    # ruff
-    ruff = subprocess.run(
-        ["uv", "run", "ruff", "check", "."], cwd=project_dir, capture_output=True, text=True, timeout=60
-    )
-    assert ruff.returncode == 0, f"ruff failed: {ruff.stdout}\n{ruff.stderr}"
-
-    # pytest
-    pytest_result = subprocess.run(
-        ["uv", "run", "pytest", "--no-cov", "-q"],
-        cwd=project_dir,
-        capture_output=True,
-        text=True,
-        timeout=60,
-    )
-    assert pytest_result.returncode == 0, f"pytest failed: {pytest_result.stdout}\n{pytest_result.stderr}"
-
-    # scaffold vs
-    vs = subprocess.run(
-        ["uv", "run", "scaffold", "vs"],
-        cwd=project_dir,
-        capture_output=True,
-        text=True,
-        timeout=60,
-    )
-    assert vs.returncode == 0, f"validate-structure failed: {vs.stdout}\n{vs.stderr}"
-
-
-def test_gep_agent_full_quality_checks(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """: agent entry point passes uv sync + ruff + pytest + vs."""
-    import subprocess
-
-    monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["ca", "--name", "quality-test"], catch_exceptions=False)
-    project_dir = tmp_path / "quality-test"
-    monkeypatch.chdir(project_dir)
-    runner.invoke(app, ["gep", "--type", "agent"], catch_exceptions=False)
-
-    sync = subprocess.run(["uv", "sync", "--no-progress"], cwd=project_dir, capture_output=True, text=True, timeout=120)
-    if sync.returncode != 0:
-        pytest.skip(f"uv sync failed: {sync.stderr}")
-
-    ruff = subprocess.run(
-        ["uv", "run", "ruff", "check", "."], cwd=project_dir, capture_output=True, text=True, timeout=60
-    )
-    assert ruff.returncode == 0, f"ruff failed: {ruff.stdout}\n{ruff.stderr}"
-
-    pytest_result = subprocess.run(
-        ["uv", "run", "pytest", "--no-cov", "-q"],
-        cwd=project_dir,
-        capture_output=True,
-        text=True,
-        timeout=60,
-    )
-    assert pytest_result.returncode == 0, f"pytest failed: {pytest_result.stdout}\n{pytest_result.stderr}"
-
-    vs = subprocess.run(
-        ["uv", "run", "scaffold", "vs"],
-        cwd=project_dir,
-        capture_output=True,
-        text=True,
-        timeout=60,
-    )
-    assert vs.returncode == 0, f"validate-structure failed: {vs.stdout}\n{vs.stderr}"
-
-
-def test_gep_generic_full_quality_checks(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """: generic entry point passes uv sync + ruff + pytest + vs."""
-    import subprocess
-
-    monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["ca", "--name", "quality-test"], catch_exceptions=False)
-    project_dir = tmp_path / "quality-test"
-    monkeypatch.chdir(project_dir)
-    runner.invoke(app, ["gep", "--type", "generic"], catch_exceptions=False)
-
-    sync = subprocess.run(["uv", "sync", "--no-progress"], cwd=project_dir, capture_output=True, text=True, timeout=120)
-    if sync.returncode != 0:
-        pytest.skip(f"uv sync failed: {sync.stderr}")
-
-    ruff = subprocess.run(
-        ["uv", "run", "ruff", "check", "."], cwd=project_dir, capture_output=True, text=True, timeout=60
-    )
-    assert ruff.returncode == 0, f"ruff failed: {ruff.stdout}\n{ruff.stderr}"
-
-    pytest_result = subprocess.run(
-        ["uv", "run", "pytest", "--no-cov", "-q"],
-        cwd=project_dir,
-        capture_output=True,
-        text=True,
-        timeout=60,
-    )
-    assert pytest_result.returncode == 0, f"pytest failed: {pytest_result.stdout}\n{pytest_result.stderr}"
-
-    vs = subprocess.run(
-        ["uv", "run", "scaffold", "vs"],
-        cwd=project_dir,
-        capture_output=True,
-        text=True,
-        timeout=60,
-    )
-    assert vs.returncode == 0, f"validate-structure failed: {vs.stdout}\n{vs.stderr}"

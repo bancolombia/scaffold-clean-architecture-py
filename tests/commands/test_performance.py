@@ -1,7 +1,7 @@
-"""Performance benchmark tests ( + ).
+"""Performance benchmark tests.
 
-: All generation commands (gm, guc, gda, gep, gh) complete within 3 s.
-: `scaffold vs` completes in under 5 s on a project with 200 Python files.
+Covered: gm, guc, gda, gh complete within 3 s; scaffold vs completes in under 5 s on a project
+with 200 Python files.
 """
 
 from __future__ import annotations

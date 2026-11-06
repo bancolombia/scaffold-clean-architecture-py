@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 class EntryPointAgent(EntryPointFactory):
     """Factory for Agent entry-point type."""
 
+    description: ClassVar[str] = "Async agent with optional Kafka consumer and MCP client"
     subdir: ClassVar[str] = "agent"
     supported_flags: ClassVar[frozenset[EntryPointFlag]] = frozenset(
         {EntryPointFlag.ENABLE_MCP_CLIENT, EntryPointFlag.ENABLE_KAFKA}

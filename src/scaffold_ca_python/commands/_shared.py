@@ -5,7 +5,7 @@ from __future__ import annotations
 import subprocess
 from collections.abc import Callable, Iterable
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, Literal, NoReturn, overload
+from typing import TYPE_CHECKING, Annotated, Literal, NoReturn, cast, overload
 
 import typer
 from rich.console import Console
@@ -33,55 +33,19 @@ def fail(message: str, hint: str | None = None, *, code: int = 1) -> NoReturn:
     raise typer.Exit(code=code)
 
 
-DryRun = Annotated[
-    bool,
-    typer.Option(
-        "--dry-run/--no-dry-run",
-        help="Preview without writing.",
-        rich_help_panel="Options",
-        show_default=True,
-    ),
-]
+def dry_run_option(help: str = "Preview without writing.") -> typer.models.OptionInfo:
+    """Return a ``--dry-run/--no-dry-run`` Typer option."""
+    return cast(
+        typer.models.OptionInfo,
+        typer.Option("--dry-run/--no-dry-run", help=help, rich_help_panel="Options", show_default=True),
+    )
 
-DryRunDelete = Annotated[
-    bool,
-    typer.Option(
-        "--dry-run/--no-dry-run",
-        help="Preview deletion without removing files.",
-        rich_help_panel="Options",
-        show_default=True,
-    ),
-]
 
-DryRunProject = Annotated[
-    bool,
-    typer.Option(
-        "--dry-run/--no-dry-run",
-        help="Preview files without writing.",
-        rich_help_panel="Options",
-        show_default=True,
-    ),
-]
-
-DryRunValidate = Annotated[
-    bool,
-    typer.Option(
-        "--dry-run/--no-dry-run",
-        help="Print results but always exit 0.",
-        rich_help_panel="Options",
-        show_default=True,
-    ),
-]
-
-DryRunUpdate = Annotated[
-    bool,
-    typer.Option(
-        "--dry-run/--no-dry-run",
-        help="Preview commands without running.",
-        rich_help_panel="Options",
-        show_default=True,
-    ),
-]
+DryRun = Annotated[bool, dry_run_option("Preview without writing.")]
+DryRunDelete = Annotated[bool, dry_run_option("Preview deletion without removing files.")]
+DryRunProject = Annotated[bool, dry_run_option("Preview files without writing.")]
+DryRunValidate = Annotated[bool, dry_run_option("Print results but always exit 0.")]
+DryRunUpdate = Annotated[bool, dry_run_option("Preview commands without running.")]
 
 
 def require_project_root(not_found_message: str | None = PROJECT_NOT_FOUND) -> Path:
@@ -245,14 +209,3 @@ def find_gateway(src_pkg_root: Path, gateway_name: str) -> str | None:
         if gateway_file.exists():
             return model_dir.name
     return None
-
-
-def dry_run_option(help: str = "Preview without writing.") -> typer.models.OptionInfo:
-    """Return a ``--dry-run/--no-dry-run`` Typer option."""
-    return typer.models.OptionInfo(
-        default=False,
-        param_decls=("--dry-run/--no-dry-run",),
-        help=help,
-        rich_help_panel="Options",
-        show_default=True,
-    )
