@@ -50,7 +50,7 @@ def test_wiring_has_create_container() -> None:
 
 
 def test_wiring_calls_create_async_container() -> None:
-    """, : wiring.py must call wireup.create_async_container (async-first)."""
+    """wiring.py must call wireup.create_async_container (async-first)."""
     out = _render("wiring.py")
     assert "create_async_container" in out
 

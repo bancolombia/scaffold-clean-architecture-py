@@ -125,9 +125,11 @@ Start the container programmatically:
 from fail_test.application.config.wiring import create_container
 import asyncio
 
+
 async def main():
     c = create_container()  # must raise here
     await c.close()
+
 
 asyncio.run(main())
 ```

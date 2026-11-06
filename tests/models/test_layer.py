@@ -10,6 +10,10 @@ def test_forbidden_imports_exists() -> None:
     assert len(FORBIDDEN_IMPORTS) > 0
 
 
+def test_entry_points_layer_value() -> None:
+    assert Layer.ENTRY_POINTS == "infrastructure/entry_points"
+
+
 def test_domain_model_cannot_import_any_outer_layer() -> None:
     forbidden = FORBIDDEN_IMPORTS[Layer.DOMAIN_MODEL]
     assert Layer.DOMAIN_USECASE in forbidden

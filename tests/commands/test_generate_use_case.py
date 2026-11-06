@@ -307,7 +307,7 @@ def test_guc_uses_without_adapter_sets_missing_adapters(project_with_order_model
 
 
 def test_gda_gateway_clears_missing_adapters_and_appends_awaited_stub(project_with_order_model: Path) -> None:
-    """/: gda --gateway empties the list and appends a stub that awaits the gateway."""
+    """gda --gateway empties the list and appends a stub that awaits the gateway."""
     runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
     result = runner.invoke(
         app,

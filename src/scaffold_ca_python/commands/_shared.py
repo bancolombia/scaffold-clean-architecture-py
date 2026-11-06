@@ -30,7 +30,7 @@ def fail(message: str, hint: str | None = None, *, code: int = 1) -> NoReturn:
     console.print(f"[red]Error:[/red] {message}")
     if hint is not None:
         console.print(f"[dim]Hint:[/dim] {hint}")
-    raise typer.Exit(code=code)
+    raise typer.Exit(code=code) from None
 
 
 def dry_run_option(help: str = "Preview without writing.") -> typer.models.OptionInfo:
@@ -58,11 +58,7 @@ def require_project_root(not_found_message: str | None = PROJECT_NOT_FOUND) -> P
     try:
         return find_project_root()
     except ScaffoldError as exc:
-        if not_found_message is None:
-            console.print(f"[red]Error:[/red] {exc}")
-        else:
-            console.print(f"[red]Error:[/red] {not_found_message}")
-        raise typer.Exit(code=1) from None
+        fail(not_found_message or str(exc))
 
 
 def validate_name_or_exit(name: str, validator: Callable[[str], object]) -> None:
@@ -188,13 +184,11 @@ def register_with_alias(
 def require_wireup_project(ctx: ProjectContext) -> None:
     """Exit with code 1 when *ctx* is a legacy project (scaffold_version absent)."""
     if ctx.is_legacy:
-        console.print(
-            f"[red]✗ Error:[/red] Project [bold]{ctx.name}[/bold] was generated with "
-            "scaffold-ca-python ≤ 0.5.0 (dependency-injector).\n"
+        fail(
+            f"Project [bold]{ctx.name}[/bold] was generated with scaffold-ca-python ≤ 0.5.0 (dependency-injector).\n"
             "[dim]This scaffolder only modifies wireup projects (0.6.0+). "
             f"{_LEGACY_MIGRATION_HINT}[/dim]"
         )
-        raise typer.Exit(code=1)
 
 
 def find_gateway(src_pkg_root: Path, gateway_name: str) -> str | None:

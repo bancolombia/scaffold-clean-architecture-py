@@ -30,8 +30,6 @@ def _run_uv(cmd: list[str], cwd: Path, failure_message: str) -> None:
 
 
 def _update_project_impl(dry_run: bool) -> None:
-    # Intentionally uses require_project_root (not require_wireup_context): uv commands
-    # work on both legacy and wireup projects.
     project_root = require_project_root()
 
     lock_cmd = ["uv", "lock", "--upgrade"]

@@ -304,7 +304,7 @@ def test_ca_pyproject_has_wireup_dependency(tmp_path: Path, monkeypatch: pytest.
 
 
 def test_ca_pyproject_has_scaffold_version_key(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """/: generated pyproject.toml must contain scaffold_version in [tool.scaffold-ca-python]."""
+    """generated pyproject.toml must contain scaffold_version in [tool.scaffold-ca-python]."""
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["ca", "--name", "my-project"], catch_exceptions=False)
     content = (tmp_path / "my-project" / "pyproject.toml").read_text()

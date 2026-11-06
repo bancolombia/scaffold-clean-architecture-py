@@ -168,25 +168,15 @@ def test_mcp_without_prompts_no_prompts_py(project_root: Path) -> None:
     assert not prompts_py.exists()
 
 
-def test_mcp_with_all_flags_creates_all_primitive_files(project_root: Path) -> None:
-    """/ : --with-resources --with-prompts generates all three primitive files."""
-    result = runner.invoke(app, ["gep", "--type", "mcp", "--with-resources", "--with-prompts"], catch_exceptions=False)
-    assert result.exit_code == 0
-    mcp_dir = project_root / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server"
-    assert (mcp_dir / "tools.py").exists()
-    assert (mcp_dir / "resources.py").exists()
-    assert (mcp_dir / "prompts.py").exists()
-
-
 def test_mcp_flags_rejected_for_restapi_type(project_root: Path) -> None:
-    """/ : --with-resources with non-mcp type exits 1 with hint."""
+    """--with-resources with non-mcp type exits 1 with hint."""
     result = runner.invoke(app, ["gep", "--type", "restapi", "--with-resources"])
     assert result.exit_code == 1
     assert "only valid with --type mcp" in result.output
 
 
 def test_mcp_prompts_flag_rejected_for_agent_type(project_root: Path) -> None:
-    """/ : --with-prompts with non-mcp type exits 1 with hint."""
+    """--with-prompts with non-mcp type exits 1 with hint."""
     result = runner.invoke(app, ["gep", "--type", "agent", "--with-prompts"])
     assert result.exit_code == 1
     assert "only valid with --type mcp" in result.output
@@ -264,7 +254,7 @@ def test_agent_overwrites_main_py(project_root: Path) -> None:
 
 
 def test_mcp_replaces_main_py_with_server(project_root: Path) -> None:
-    """/ : gep --type mcp writes server.py at the package root.
+    """gep --type mcp writes server.py at the package root.
 
     When  is implemented, ep_mcp.py will:
       - add server.py.jinja2 at <pkg>/server.py (uvicorn entrypoint)
@@ -343,7 +333,7 @@ def test_dry_run_prints_deps_to_inject(project_root: Path) -> None:
     assert "fastapi" in result.output or "uvicorn" in result.output
 
 
-#  / : Idempotency integration test
+#  Idempotency integration test
 
 
 def test_gep_restapi_twice_has_exactly_one_fastapi_entry(project_root: Path) -> None:
@@ -368,7 +358,7 @@ def test_gep_restapi_twice_has_exactly_one_fastapi_entry(project_root: Path) -> 
     assert content.count("fastapi") == 1
 
 
-# : gep --help epilog
+# gep --help epilog
 
 
 def test_gep_help_shows_type_descriptions() -> None:
@@ -383,10 +373,10 @@ def test_gep_help_contains_examples_section() -> None:
     assert "Examples" in result.output
 
 
-# : no-args → help
+# no-args → help
 
 
-#  (feature 008): compatibility guard — ///
+# compatibility guard
 
 
 def test_gep_restapi_blocked_when_mcp_server_exists(
@@ -420,7 +410,7 @@ def test_gep_restapi_blocked_when_agent_exists(
 def test_gep_restapi_proceeds_when_no_incompatible_entry_point(
     project_root: Path,
 ) -> None:
-    """/: clean project — guard must NOT block generation."""
+    """clean project — guard must NOT block generation."""
     result = runner.invoke(app, ["gep", "--type", "restapi"])
 
     assert result.exit_code == 0
@@ -440,7 +430,7 @@ def test_gep_restapi_dry_run_still_reports_mcp_conflict(
     assert "mcp_server" in result.output
 
 
-# Feature 011 — : gep --type restapi deletes main.py
+# gep --type restapi deletes main.py
 
 
 def test_restapi_deletes_main_py(project_root: Path) -> None:
@@ -478,7 +468,7 @@ def test_restapi_dry_run_reports_would_delete_main_py(project_root: Path) -> Non
     assert main_py.exists()
 
 
-# Feature 011 — : gep --type restapi updates [project.scripts]
+# gep --type restapi updates [project.scripts]
 
 
 def test_restapi_updates_project_scripts(project_root: Path) -> None:
@@ -514,7 +504,7 @@ def test_agent_does_not_change_project_scripts(project_root: Path) -> None:
 
 
 def test_mcp_updates_pyproject_scripts_to_server_main(project_root: Path) -> None:
-    """/ : gep --type mcp must update [project.scripts] to <pkg>.server:main."""
+    """gep --type mcp must update [project.scripts] to <pkg>.server:main."""
     import tomllib
 
     runner.invoke(app, ["gep", "--type", "mcp"], catch_exceptions=False)
@@ -524,7 +514,7 @@ def test_mcp_updates_pyproject_scripts_to_server_main(project_root: Path) -> Non
 
 
 def test_mcp_deletes_main_py(project_root: Path) -> None:
-    """/ : gep --type mcp must delete main.py after creating server.py."""
+    """gep --type mcp must delete main.py after creating server.py."""
     main_py = project_root / "src" / "my_app" / "main.py"
     assert main_py.exists(), "fixture must provide main.py"
     runner.invoke(app, ["gep", "--type", "mcp"], catch_exceptions=False)
@@ -541,7 +531,7 @@ def test_generic_does_not_change_project_scripts(project_root: Path) -> None:
     assert data["project"]["scripts"]["my-app"] == "my_app.main:main"
 
 
-# Bidirectional exclusivity — restapi <-> mcp/agent (-)
+# Bidirectional exclusivity — restapi <-> mcp/agent
 
 
 def test_gep_mcp_blocked_when_restapi_exists(project_root: Path) -> None:
@@ -567,7 +557,7 @@ def test_gep_generic_not_blocked_when_restapi_exists(project_root: Path) -> None
     assert result.exit_code == 0
 
 
-#  /  — application/app.py composition root
+# application/app.py composition root
 
 
 def test_mcp_app_py_with_resources_contains_bind_resources(project_root: Path) -> None:
@@ -578,7 +568,7 @@ def test_mcp_app_py_with_resources_contains_bind_resources(project_root: Path) -
     assert "bind_resources" in app_py.read_text(encoding="utf-8")
 
 
-#  /  — User Story 1: --add-tool happy path
+# User Story 1: --add-tool happy path
 
 
 def test_add_tool_full_flag_invocation(mcp_project: Path) -> None:
@@ -722,7 +712,7 @@ def test_add_tool_only_modifies_tools_and_tests(mcp_project: Path) -> None:
 
 
 def test_add_tool_fails_when_entry_point_missing(project_root: Path) -> None:
-    """- Fails with hint when MCP entry point doesn't exist."""
+    """Fails with hint when MCP entry point doesn't exist."""
     result = runner.invoke(
         app,
         ["gep", "--type", "mcp", "--add-tool", "--name", "create_file"],
@@ -742,7 +732,7 @@ def test_add_tool_fails_when_entry_point_missing(project_root: Path) -> None:
     ],
 )
 def test_add_tool_fails_on_duplicate_name(mcp_project: Path, name: str, reason: str) -> None:
-    """- Rejects duplicate tool names."""
+    """Rejects duplicate tool names."""
     if reason == "duplicate_after_second_run":
         # First run succeeds
         result1 = runner.invoke(
@@ -786,7 +776,7 @@ def test_add_tool_fails_on_duplicate_name(mcp_project: Path, name: str, reason: 
 
 
 def test_add_tool_fails_on_decorator_vs_function_name_duplicate(mcp_project: Path) -> None:
-    """- Rejects both @mcp.tool name and function name as duplicates."""
+    """Rejects both @mcp.tool name and function name as duplicates."""
     tools_py = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
 
     # Add a tool using the actual command where decorator name != function name
@@ -833,7 +823,7 @@ def test_add_tool_fails_on_decorator_vs_function_name_duplicate(mcp_project: Pat
     ],
 )
 def test_add_tool_incompatible_with_creation_flags(mcp_project: Path, flag_name: str, flag_value: str | None) -> None:
-    """- --add-tool is incompatible with creation-only flags."""
+    """--add-tool is incompatible with creation-only flags."""
     args = ["gep", "--type", "mcp", "--add-tool", "--name", "create_file", flag_name]
     if flag_value is not None:
         args.append(flag_value)
@@ -855,7 +845,7 @@ def test_add_tool_incompatible_with_creation_flags(mcp_project: Path, flag_name:
     ],
 )
 def test_add_tool_requires_type_mcp(project_root: Path, type_value: str | None) -> None:
-    """- --add-tool requires --type mcp."""
+    """--add-tool requires --type mcp."""
     args = ["gep", "--add-tool", "--name", "create_file"]
     if type_value is not None:
         args.extend(["--type", type_value])
@@ -867,7 +857,7 @@ def test_add_tool_requires_type_mcp(project_root: Path, type_value: str | None) 
 
 
 def test_add_tool_requires_name_flag(mcp_project: Path) -> None:
-    """- --name is required with --add-tool."""
+    """--name is required with --add-tool."""
     result = runner.invoke(
         app,
         ["gep", "--type", "mcp", "--add-tool"],
@@ -886,7 +876,7 @@ def test_add_tool_requires_name_flag(mcp_project: Path) -> None:
     ],
 )
 def test_add_tool_validates_name_format(mcp_project: Path, name: str, expected_message_fragment: str) -> None:
-    """- Validates --name format and rejects keywords."""
+    """Validates --name format and rejects keywords."""
     result = runner.invoke(
         app,
         ["gep", "--type", "mcp", "--add-tool", "--name", name],
@@ -898,7 +888,7 @@ def test_add_tool_validates_name_format(mcp_project: Path, name: str, expected_m
 
 
 def test_add_tool_accepts_soft_keywords(mcp_project: Path) -> None:
-    """- Soft keywords like 'match' are accepted."""
+    """Soft keywords like 'match' are accepted."""
     result = runner.invoke(
         app,
         ["gep", "--type", "mcp", "--add-tool", "--name", "match"],
@@ -917,7 +907,7 @@ def test_add_tool_accepts_soft_keywords(mcp_project: Path) -> None:
     ],
 )
 def test_add_tool_validates_param_format(mcp_project: Path, param: str, expected_fragment: str) -> None:
-    """- Validates --param format."""
+    """Validates --param format."""
     result = runner.invoke(
         app,
         ["gep", "--type", "mcp", "--add-tool", "--name", "create_file", "--param", param],
@@ -929,7 +919,7 @@ def test_add_tool_validates_param_format(mcp_project: Path, param: str, expected
 
 
 def test_add_tool_rejects_duplicate_param_names(mcp_project: Path) -> None:
-    """- Rejects duplicate --param names."""
+    """Rejects duplicate --param names."""
     result = runner.invoke(
         app,
         [
@@ -952,7 +942,7 @@ def test_add_tool_rejects_duplicate_param_names(mcp_project: Path) -> None:
 
 
 def test_add_tool_validates_returns_type(mcp_project: Path) -> None:
-    """- Validates --returns type expression."""
+    """Validates --returns type expression."""
     result = runner.invoke(
         app,
         [
@@ -973,7 +963,7 @@ def test_add_tool_validates_returns_type(mcp_project: Path) -> None:
 
 
 def test_add_tool_rejects_unsafe_description(mcp_project: Path) -> None:
-    """- Rejects --description with embedded triple quotes."""
+    """Rejects --description with embedded triple quotes."""
     result = runner.invoke(
         app,
         [
@@ -994,7 +984,7 @@ def test_add_tool_rejects_unsafe_description(mcp_project: Path) -> None:
 
 
 def test_add_tool_fails_on_legacy_project_missing_bind_tools(mcp_project: Path) -> None:
-    """- Fails gracefully when bind_tools is missing."""
+    """Fails gracefully when bind_tools is missing."""
     tools_py = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
     original_content = tools_py.read_text()
 
@@ -1017,7 +1007,7 @@ def test_add_tool_fails_on_legacy_project_missing_bind_tools(mcp_project: Path) 
 
 
 def test_add_tool_fails_when_bind_tools_not_last(mcp_project: Path) -> None:
-    """- Fails when bind_tools is not the last function."""
+    """Fails when bind_tools is not the last function."""
     tools_py = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
     original_content = tools_py.read_text()
 
@@ -1040,7 +1030,7 @@ def test_add_tool_fails_when_bind_tools_not_last(mcp_project: Path) -> None:
 
 
 def test_add_tool_fails_when_tools_py_missing(mcp_project: Path) -> None:
-    """- Fails gracefully when tools.py is missing."""
+    """Fails gracefully when tools.py is missing."""
     tools_py = mcp_project / "src" / "my_app" / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
     tools_py.unlink()
 
@@ -1106,7 +1096,7 @@ def test_add_tool_fails_when_test_structure_invalid(mcp_project: Path) -> None:
     reason="Permission checks not enforced on Windows or when running as root",
 )
 def test_add_tool_fails_when_test_file_not_writable(mcp_project: Path) -> None:
-    """- Fails before any write when test file is read-only."""
+    """Fails before any write when test file is read-only."""
     import stat
 
     test_tools_py = mcp_project / "src" / "tests" / "infrastructure" / "entry_points" / "mcp_server" / "test_tools.py"

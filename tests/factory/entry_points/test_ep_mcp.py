@@ -151,7 +151,7 @@ def test_mcp_scripts_entry_fn_param_is_main(tmp_path: Path) -> None:
 
 
 def test_mcp_main_py_overwritten(tmp_path: Path) -> None:
-    """/ : server.py at package root replaces main.py.
+    """server.py at package root replaces main.py.
 
     This test is intentionally placed here to fail until +
     add server.py generation to ep_mcp.py.  It documents the expected

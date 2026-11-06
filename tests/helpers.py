@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import importlib.resources
-import os
 import re
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner, Result
 
 from scaffold_ca_python.cli import app
@@ -19,13 +19,13 @@ renderer = TemplateRenderer()
 
 
 def invoke_in(cwd: Path, *cli_args: str) -> Result:
-    """Run scaffold CLI in-process with a temporary working directory."""
-    old = os.getcwd()
+    """Run scaffold CLI in-process after temporarily changing cwd (pytest MonkeyPatch)."""
+    mp = pytest.MonkeyPatch()
     try:
-        os.chdir(cwd)
+        mp.chdir(cwd)
         return runner.invoke(app, list(cli_args), catch_exceptions=False)
     finally:
-        os.chdir(old)
+        mp.undo()
 
 
 def write_minimal_pyproject(

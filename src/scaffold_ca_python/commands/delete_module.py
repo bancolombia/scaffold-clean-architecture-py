@@ -69,7 +69,6 @@ def _delete_module_impl(name: str, confirm: bool, dry_run: bool) -> None:
 
     DeleteModuleFactory().build(builder)
 
-    # Persist deletion
     builder.persist()
     console.print(f"[green]✓[/green] Deleted module(s) for [bold]{name}[/bold].")
 

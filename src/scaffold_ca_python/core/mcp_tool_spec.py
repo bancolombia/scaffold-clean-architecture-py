@@ -26,7 +26,6 @@ class ParamSpec(BaseModel):
         """Validate parameter name is snake_case and not a hard keyword."""
         validate_snake_identifier(v, kind="parameter name")
 
-        # Check for hard keywords
         if keyword.iskeyword(v):
             msg = f"'{v}' is a Python keyword and cannot be used as a parameter name."
             raise ValueError(msg)
@@ -102,7 +101,6 @@ def parse_param(param_str: str) -> tuple[str, str]:
         msg = f"Invalid --param '{param_str}'. Expected 'name:type' format."
         raise ValueError(msg)
 
-    # Split on first colon only
     name, type_str = param_str.split(":", 1)
 
     try:
@@ -111,12 +109,10 @@ def parse_param(param_str: str) -> tuple[str, str]:
         msg = f"Invalid --param '{param_str}'. Parameter name must be snake_case (e.g., 'path:str')."
         raise ValueError(msg) from e
 
-    # Check for hard keywords
     if keyword.iskeyword(name):
         msg = f"Invalid --param '{param_str}'. '{name}' is a Python keyword and cannot be used as a parameter name."
         raise ValueError(msg)
 
-    # Validate type expression
     if not validate_type_expression(type_str):
         msg = f"Invalid --param '{param_str}'. '{type_str}' is not a recognizable type-expression."
         raise ValueError(msg)
@@ -194,7 +190,6 @@ def find_existing_tool_names(tools_py_source: str) -> set[str]:
     except SyntaxError:
         return names
 
-    # Find @<x>.tool("name") decorators
     for node in ast.walk(module):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             for decorator in node.decorator_list:
@@ -209,7 +204,6 @@ def find_existing_tool_names(tools_py_source: str) -> set[str]:
                 ):
                     names.add(decorator.args[0].value)
 
-    # Find function names inside bind_tools
     for node in ast.walk(module):
         if isinstance(node, ast.AsyncFunctionDef) and node.name == "bind_tools":
             for child in ast.walk(node):
@@ -257,10 +251,8 @@ def has_test_registration_structure(test_tools_py_source: str) -> bool:
     except SyntaxError:
         return False
 
-    # Check for _make_mock_mcp function
     has_helper = any(isinstance(node, ast.FunctionDef) and node.name == "_make_mock_mcp" for node in module.body)
 
-    # Check for required imports
     imported = set()
     for node in module.body:
         if isinstance(node, (ast.Import, ast.ImportFrom)):

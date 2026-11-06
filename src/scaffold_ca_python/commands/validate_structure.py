@@ -22,8 +22,6 @@ _GVS_EPILOG = "Example:\n\n  * scaffold vs\n\n  * scaffold validate-structure\n"
 
 
 def _validate_structure_impl(dry_run: bool) -> None:
-    # Intentionally uses require_project_root (not require_wireup_context): structure
-    # validation applies to both legacy and wireup projects.
     project_root = require_project_root()
 
     try:

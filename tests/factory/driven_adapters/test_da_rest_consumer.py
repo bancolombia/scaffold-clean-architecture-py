@@ -87,7 +87,7 @@ def test_rest_consumer_dependencies_injected(tmp_path: Path) -> None:
 
 
 def test_rest_consumer_template_has_injectable(tmp_path: Path) -> None:
-    """-: rest_consumer adapter must have @injectable from wireup."""
+    """rest_consumer adapter must have @injectable from wireup."""
     from scaffold_ca_python.core.module_builder import ModuleBuilder
     from scaffold_ca_python.models.context import ModuleContext, ProjectContext
 
@@ -109,7 +109,7 @@ def test_rest_consumer_template_has_injectable(tmp_path: Path) -> None:
 
 
 def test_rest_consumer_settings_file_generated(tmp_path: Path) -> None:
-    """-: rest_consumer must generate a RestConsumerSettings file."""
+    """rest_consumer must generate a RestConsumerSettings file."""
     from scaffold_ca_python.core.module_builder import ModuleBuilder
     from scaffold_ca_python.models.context import ModuleContext, ProjectContext
 
