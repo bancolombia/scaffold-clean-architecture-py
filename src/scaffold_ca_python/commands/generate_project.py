@@ -8,9 +8,17 @@ from typing import Annotated
 
 import typer
 
-from scaffold_ca_python.commands._shared import console, fail, print_dry_run_tree
+from scaffold_ca_python.commands._shared import (
+    DryRunProject,
+    console,
+    fail,
+    print_dry_run_tree,
+    register_with_alias,
+    show_help_if_missing,
+)
+from scaffold_ca_python.core.errors import ScaffoldError
 from scaffold_ca_python.core.file_writer import FileWriter
-from scaffold_ca_python.core.name_utils import ScaffoldError, to_snake_case, validate_name
+from scaffold_ca_python.core.name_utils import to_snake_case, validate_name
 from scaffold_ca_python.core.template_renderer import TemplateRenderer
 from scaffold_ca_python.core.version import get_scaffold_version
 from scaffold_ca_python.models.context import ProjectContext
@@ -94,15 +102,12 @@ def _collect_files(
 
 
 def _generate_project_impl(
-    name: str | None,
+    name: str,
     dry_run: bool,
     *,
     renderer: TemplateRenderer | None = None,
     writer: FileWriter | None = None,
 ) -> None:
-    if name is None:
-        return
-
     try:
         validate_name(name)
     except ScaffoldError as exc:
@@ -113,7 +118,7 @@ def _generate_project_impl(
 
     if target_dir.exists():
         fail(
-            f"Directory '{python_pkg}/' already exists. Aborting to prevent data loss.",
+            f"Directory '{name}/' already exists. Aborting to prevent data loss.",
             hint="Choose a different project name or remove the existing directory first.",
         )
 
@@ -128,25 +133,12 @@ def _generate_project_impl(
     for path, content in files:
         _writer.write(path, content)
 
-    console.print(
-        f"[green]✓[/green] Project [bold]{python_pkg}/[/bold] created successfully. Created {len(files)} file(s)."
-    )
+    console.print(f"[green]✓[/green] Project [bold]{name}/[/bold] created successfully. Created {len(files)} file(s).")
 
 
 def register(app: typer.Typer) -> None:
     """Register clean-architecture / ca commands onto *app*."""
 
-    @app.command(
-        "clean-architecture",
-        help=_GCA,
-        epilog=_GCA_EPILOG,
-    )
-    @app.command(
-        "ca",
-        hidden=True,
-        help=_GCA,
-        epilog=_GCA_EPILOG,
-    )
     def clean_architecture(
         ctx: typer.Context,
         name: Annotated[
@@ -157,18 +149,10 @@ def register(app: typer.Typer) -> None:
                 rich_help_panel="Required",
             ),
         ] = None,
-        dry_run: Annotated[
-            bool,
-            typer.Option(
-                "--dry-run/--no-dry-run",
-                help="Preview files without writing.",
-                rich_help_panel="Options",
-                show_default=True,
-            ),
-        ] = False,
+        dry_run: DryRunProject = False,
     ) -> None:
         """Scaffold a complete Clean Architecture Python project."""
-        if name is None:
-            typer.echo(ctx.get_help())
-            raise typer.Exit(0)
+        name = show_help_if_missing(ctx, name)
         _generate_project_impl(name, dry_run)
+
+    register_with_alias(app, "clean-architecture", "ca", clean_architecture, help=_GCA, epilog=_GCA_EPILOG)

@@ -9,9 +9,6 @@ from pydantic import BaseModel
 
 from scaffold_ca_python.core.file_writer import FileWriter
 from scaffold_ca_python.core.pyproject_writer import (
-    dry_run_group_inject,
-    dry_run_inject,
-    dry_run_scripts_update,
     inject_dependencies,
     inject_group_dependencies,
     update_project_scripts,
@@ -48,6 +45,8 @@ class ModuleBuilder:
         template_renderer: TemplateRenderer | None = None,
     ) -> None:
         self.project_root = project_root
+        if project_ctx.project_root is None:
+            project_ctx = project_ctx.model_copy(update={"project_root": project_root})
         self.project_ctx = project_ctx
         self.module_ctx = module_ctx
         self.dry_run = dry_run
@@ -66,22 +65,10 @@ class ModuleBuilder:
         path: Path,
         content: str,
         *,
-        template_name: str,
-        is_test: bool = False,
         overwrite: bool = False,
     ) -> None:
         """Queue a file creation operation."""
-        self._operations.append(
-            CreateFile(
-                file=GeneratedFile(
-                    path=path,
-                    content=content,
-                    template_name=template_name,
-                    is_test=is_test,
-                    overwrite=overwrite,
-                )
-            )
-        )
+        self._operations.append(CreateFile(file=GeneratedFile(path=path, content=content, overwrite=overwrite)))
 
     def delete_file(self, path: Path) -> None:
         """Queue a file deletion operation."""
@@ -96,7 +83,7 @@ class ModuleBuilder:
         """
         self._operations.append(InsertAfter(path=path, anchor=anchor, content=content))
 
-    def append_to_file(self, path: Path, content: str) -> None:
+    def append_to_file(self, path: Path, content: str, *, marker: str | None = None) -> None:
         """Queue an append-to-file operation.
 
         *content* will be appended to the end of *path*. If *path* does not exist,
@@ -104,11 +91,33 @@ class ModuleBuilder:
         normalized to a single newline before appending. In dry-run mode the path
         is included in the preview list without modifying the file.
         """
-        self._operations.append(AppendToFile(path=path, content=content))
+        self._operations.append(AppendToFile(path=path, content=content, marker=marker))
 
     def render(self, template_name: str, context: BaseModel | dict[str, Any]) -> str:
         """Render a template through the shared renderer."""
         return self._renderer.render(template_name, context)
+
+    def base_context(self) -> dict[str, object]:
+        """Shared template context: module fields plus package and project root."""
+        if self.module_ctx is None:
+            return {}
+        return {
+            **self.module_ctx.model_dump(),
+            "pkg": self.project_ctx.python_package,
+            "project_root": str(self.project_root),
+        }
+
+    def add_rendered(
+        self,
+        path: Path,
+        template: str,
+        ctx: BaseModel | dict[str, Any],
+        *,
+        overwrite: bool = False,
+    ) -> None:
+        """Render *template* with *ctx* and queue a file creation."""
+        content = self.render(template, ctx)
+        self.add_file(path, content, overwrite=overwrite)
 
     def add_dependency(self, package: str, *, group: str | None = None) -> None:
         """Queue a package dependency to inject into pyproject.toml.
@@ -139,7 +148,6 @@ class ModuleBuilder:
         return {group: list(pkgs) for group, pkgs in self._group_dependencies.items()}
 
     def set_project_script(self, entry_fn: str = "start_server") -> None:
-        """Schedule an update to [project.scripts] with *entry_fn* as the entry function."""
         self._pending_project_script = entry_fn
 
     @property
@@ -164,21 +172,17 @@ class ModuleBuilder:
         paths = self._file_writer.execute(self._operations, dry_run=self.dry_run)
 
         if self._dependencies:
-            if self.dry_run:
-                dry_run_inject(self.project_root, self._dependencies)
-            else:
-                inject_dependencies(self.project_root, self._dependencies)
+            inject_dependencies(self.project_root, self._dependencies, dry_run=self.dry_run)
 
         for grp, pkgs in self._group_dependencies.items():
-            if self.dry_run:
-                dry_run_group_inject(self.project_root, grp, pkgs)
-            else:
-                inject_group_dependencies(self.project_root, grp, pkgs)
+            inject_group_dependencies(self.project_root, grp, pkgs, dry_run=self.dry_run)
 
         if self._pending_project_script is not None:
-            if self.dry_run:
-                dry_run_scripts_update(self.project_root, self.project_ctx, self._pending_project_script)
-            else:
-                update_project_scripts(self.project_root, self.project_ctx, self._pending_project_script)
+            update_project_scripts(
+                self.project_root,
+                self.project_ctx,
+                self._pending_project_script,
+                dry_run=self.dry_run,
+            )
 
         return paths

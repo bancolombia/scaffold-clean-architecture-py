@@ -88,7 +88,11 @@ strict = true
 python_version = "3.13"
 
 [tool.pytest.ini_options]
-addopts = "--cov=scaffold_ca_python --cov-fail-under=80"
+markers = [
+    "e2e: end-to-end tests that require uv sync on generated projects (slow)",
+    "benchmark: performance tests (excluded from default runs)",
+]
+addopts = "-m 'not e2e and not benchmark' --cov=scaffold_ca_python --cov-fail-under=80"
 testpaths = ["tests"]
 
 [tool.coverage.run]

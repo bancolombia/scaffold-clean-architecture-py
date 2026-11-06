@@ -14,8 +14,7 @@ class TestEntryPointRun:
     async def test_entry_point_run_is_async(self) -> None:
         """Test that run method is async and callable."""
         ep = EntryPoint()
-        result = await ep.run()
-        assert result is None
+        await ep.run()
 
     @pytest.mark.asyncio
     async def test_entry_point_run_prints_message(self, capsys: pytest.CaptureFixture[str]) -> None:

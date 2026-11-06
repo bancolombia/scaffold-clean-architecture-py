@@ -6,7 +6,7 @@ import tomllib
 from collections.abc import Iterator
 from pathlib import Path
 
-from scaffold_ca_python.core.name_utils import ScaffoldError
+from scaffold_ca_python.core.errors import ScaffoldError
 from scaffold_ca_python.models.context import ProjectContext
 
 _CA_MARKERS: frozenset[str] = frozenset({"domain", "infrastructure", "application"})
@@ -72,7 +72,11 @@ def load_project_context(root: Path) -> ProjectContext:
         data = tomllib.load(fh)
     section = data.get("tool", {}).get("scaffold-ca-python", {})
     scaffold_version: str | None = section.get("scaffold_version")
-    return ProjectContext(name=section.get("name", root.name), scaffold_version=scaffold_version)
+    return ProjectContext(
+        name=section.get("name", root.name),
+        scaffold_version=scaffold_version,
+        project_root=root,
+    )
 
 
 def resolve_tests_root(project_root: Path) -> Path:

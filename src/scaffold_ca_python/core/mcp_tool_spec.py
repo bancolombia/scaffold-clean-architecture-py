@@ -11,7 +11,7 @@ import keyword
 
 from pydantic import BaseModel, field_validator, model_validator
 
-from scaffold_ca_python.core.name_utils import ScaffoldError, validate_module_name
+from scaffold_ca_python.core.name_utils import validate_snake_identifier
 
 
 class ParamSpec(BaseModel):
@@ -24,14 +24,22 @@ class ParamSpec(BaseModel):
     @classmethod
     def validate_name(cls, v: str) -> str:
         """Validate parameter name is snake_case and not a hard keyword."""
-        # Reuse validate_module_name for snake_case check
-        validate_module_name(v)
+        validate_snake_identifier(v, kind="parameter name")
 
         # Check for hard keywords
         if keyword.iskeyword(v):
             msg = f"'{v}' is a Python keyword and cannot be used as a parameter name."
             raise ValueError(msg)
 
+        return v
+
+    @field_validator("type")
+    @classmethod
+    def validate_type(cls, v: str) -> str:
+        """Validate type is a recognizable type expression."""
+        if not validate_type_expression(v):
+            msg = f"Invalid type '{v}'. Not a recognizable type-expression."
+            raise ValueError(msg)
         return v
 
 
@@ -47,7 +55,7 @@ class ToolSpec(BaseModel):
     @classmethod
     def validate_name(cls, v: str) -> str:
         """Validate tool name is snake_case and not a hard keyword."""
-        validate_module_name(v)
+        validate_snake_identifier(v, kind="tool name")
 
         if keyword.iskeyword(v):
             msg = f"'{v}' is a Python keyword and cannot be used as a tool name."
@@ -97,10 +105,9 @@ def parse_param(param_str: str) -> tuple[str, str]:
     # Split on first colon only
     name, type_str = param_str.split(":", 1)
 
-    # Validate name (snake_case)
     try:
-        validate_module_name(name)
-    except (ValueError, ScaffoldError) as e:
+        validate_snake_identifier(name, kind="parameter name")
+    except ValueError as e:
         msg = f"Invalid --param '{param_str}'. Parameter name must be snake_case (e.g., 'path:str')."
         raise ValueError(msg) from e
 
@@ -146,18 +153,14 @@ def _is_type_expression_node(node: ast.expr) -> bool:
     if isinstance(node, ast.Name):
         return True
     if isinstance(node, ast.Constant):
-        # Allow None and Ellipsis in type expressions
-        return node.value is None or node.value is ...
+        return node.value is None
     if isinstance(node, ast.Attribute):
-        return True
+        return isinstance(node.value, (ast.Name, ast.Attribute))
     if isinstance(node, ast.Subscript):
         # Allow Constant in subscript (for Literal["a", "b"])
         return _is_type_expression_node(node.value) and _is_subscript_arg_valid(node.slice)
     if isinstance(node, ast.BinOp) and isinstance(node.op, ast.BitOr):
         return _is_type_expression_node(node.left) and _is_type_expression_node(node.right)
-    if isinstance(node, ast.Tuple):
-        # For tuple[int, ...] syntax
-        return all(_is_type_expression_node(elt) if not isinstance(elt, ast.Constant) else True for elt in node.elts)
     return False
 
 

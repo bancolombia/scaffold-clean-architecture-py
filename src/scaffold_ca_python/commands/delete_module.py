@@ -8,18 +8,18 @@ from typing import Annotated
 import typer
 
 from scaffold_ca_python.commands._shared import (
+    DryRunDelete,
     console,
-    require_project_root,
-    require_wireup_project,
+    register_with_alias,
+    require_wireup_context,
+    show_help_if_missing,
     validate_name_or_exit,
 )
 from scaffold_ca_python.core.module_builder import ModuleBuilder
 from scaffold_ca_python.core.module_locator import find_module_targets
 from scaffold_ca_python.core.name_utils import to_snake_case, validate_module_name
-from scaffold_ca_python.core.project_detector import load_project_context
 from scaffold_ca_python.factory.simple.delete_module_factory import DeleteModuleFactory
 from scaffold_ca_python.models.context import ModuleContext
-from scaffold_ca_python.models.layer import Layer
 
 _DM_HELP = "Delete a previously generated module and its test mirror. Alias 'dm'."
 _DM_EPILOG = "Examples:\n\n  * scaffold dm --name order\n\n  * scaffold delete-module --name my_adapter\n\n"
@@ -34,21 +34,18 @@ def _display(path: Path, root: Path) -> Path:
 
 def _delete_module_impl(name: str, confirm: bool, dry_run: bool) -> None:
     validate_name_or_exit(name, validate_module_name)
-    project_root = require_project_root()
-    project_ctx = load_project_context(project_root)
-    require_wireup_project(project_ctx)
+    project_root, project_ctx = require_wireup_context()
 
-    # Create a placeholder ModuleContext for the factory (layer doesn't matter for delete)
-    module_ctx = ModuleContext(name=name, layer=Layer.HELPERS, project=project_ctx)
+    module_ctx = ModuleContext(name=name, project=project_ctx)
 
     # Find targets
     snake = to_snake_case(name)
-    targets = find_module_targets(project_root, project_ctx.python_package, snake)
+    targets = find_module_targets(project_root, project_ctx.src_pkg_root, snake)
 
     if not targets:
         console.print(
             f"[red]Error:[/red] No module named '{snake}' found in project.\n"
-            "[dim]Hint:[/dim] Check spelling with 'scaffold vs' to list modules."
+            "[dim]Hint:[/dim] Module names match directories under domain/model/ (snake_case)."
         )
         raise typer.Exit(code=1)
 
@@ -80,12 +77,6 @@ def _delete_module_impl(name: str, confirm: bool, dry_run: bool) -> None:
 def register(app: typer.Typer) -> None:
     """Register dm / delete-module command onto *app*."""
 
-    @app.command(
-        "delete-module",
-        help=_DM_HELP,
-        epilog=_DM_EPILOG,
-    )
-    @app.command("dm", hidden=True, help=_DM_HELP, epilog=_DM_EPILOG)
     def delete_module(
         ctx: typer.Context,
         name: Annotated[
@@ -95,22 +86,14 @@ def register(app: typer.Typer) -> None:
             bool,
             typer.Option(
                 "--confirm/--no-confirm",
-                help="Skip confirmation dialog and delete immediately.",
+                help="Delete the module and its tests immediately without showing a preview.",
                 rich_help_panel="Options",
             ),
         ] = False,
-        dry_run: Annotated[
-            bool,
-            typer.Option(
-                "--dry-run/--no-dry-run",
-                help="Preview deletion without removing files.",
-                rich_help_panel="Options",
-                show_default=True,
-            ),
-        ] = False,
+        dry_run: DryRunDelete = False,
     ) -> None:
         """Delete a module and its test mirror."""
-        if name is None:
-            typer.echo(ctx.get_help())
-            raise typer.Exit(0)
+        name = show_help_if_missing(ctx, name)
         _delete_module_impl(name, confirm, dry_run)
+
+    register_with_alias(app, "delete-module", "dm", delete_module, help=_DM_HELP, epilog=_DM_EPILOG)

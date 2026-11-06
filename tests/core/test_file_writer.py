@@ -1,4 +1,4 @@
-"""Tests for FileWriter: atomic writes, dry-run, delete, rollback (T019)."""
+"""Tests for FileWriter: atomic writes, dry-run, delete, rollback."""
 
 from pathlib import Path
 
@@ -7,13 +7,11 @@ import pytest
 from scaffold_ca_python.core.file_writer import FileWriter
 from scaffold_ca_python.models.file_operation import CreateFile, DeleteFile, GeneratedFile, InsertAfter
 
-# ---------------------------------------------------------------------------
 # Helpers
-# ---------------------------------------------------------------------------
 
 
 def _create_op(path: Path, content: str = "# generated") -> CreateFile:
-    gf = GeneratedFile(path=path, content=content, template_name="test.j2")
+    gf = GeneratedFile(path=path, content=content)
     return CreateFile(file=gf)
 
 
@@ -21,9 +19,7 @@ def _delete_op(path: Path) -> DeleteFile:
     return DeleteFile(path=path)
 
 
-# ---------------------------------------------------------------------------
 # Real-mode creation
-# ---------------------------------------------------------------------------
 
 
 def test_creates_file_on_disk(tmp_path: Path) -> None:
@@ -49,9 +45,7 @@ def test_creates_multiple_files_atomically(tmp_path: Path) -> None:
         assert (tmp_path / f"file{i}.py").exists()
 
 
-# ---------------------------------------------------------------------------
 # Dry-run mode
-# ---------------------------------------------------------------------------
 
 
 def test_dry_run_does_not_write_files(tmp_path: Path) -> None:
@@ -68,9 +62,7 @@ def test_dry_run_returns_preview_paths(tmp_path: Path) -> None:
     assert any(str(target) in str(r) for r in result)
 
 
-# ---------------------------------------------------------------------------
 # Delete operations
-# ---------------------------------------------------------------------------
 
 
 def test_delete_removes_existing_file(tmp_path: Path) -> None:
@@ -96,9 +88,7 @@ def test_delete_dry_run_does_not_remove_file(tmp_path: Path) -> None:
     assert target.exists()
 
 
-# ---------------------------------------------------------------------------
 # Rollback on error
-# ---------------------------------------------------------------------------
 
 
 def test_no_partial_files_on_failure(tmp_path: Path) -> None:
@@ -117,13 +107,11 @@ def test_no_partial_files_on_failure(tmp_path: Path) -> None:
     assert not good.exists()
 
 
-# ---------------------------------------------------------------------------
 # overwrite flag
-# ---------------------------------------------------------------------------
 
 
 def _create_op_overwrite(path: Path, content: str = "# new") -> CreateFile:
-    gf = GeneratedFile(path=path, content=content, template_name="test.j2", overwrite=True)
+    gf = GeneratedFile(path=path, content=content, overwrite=True)
     return CreateFile(file=gf)
 
 
@@ -170,9 +158,7 @@ def test_overwrite_dry_run_does_not_write(tmp_path: Path) -> None:
     assert target.read_text() == "# original"
 
 
-# ---------------------------------------------------------------------------
 # insert_after
-# ---------------------------------------------------------------------------
 
 
 def _insert_op(path: Path, anchor: str, content: str) -> InsertAfter:
@@ -230,9 +216,7 @@ def test_insert_after_inserts_at_first_occurrence_only(tmp_path: Path) -> None:
     assert lines.count("INSERTED = True") == 1
 
 
-# ---------------------------------------------------------------------------
-# AppendToFile tests (T013)
-# ---------------------------------------------------------------------------
+# AppendToFile tests
 
 
 def _append_op(path: Path, content: str) -> object:
@@ -277,9 +261,7 @@ def test_append_dry_run_returns_path_without_writing(tmp_path: Path) -> None:
     assert target.read_text() == original
 
 
-# ---------------------------------------------------------------------------
-# T038: delete ordering and mutation order
-# ---------------------------------------------------------------------------
+# : delete ordering and mutation order
 
 
 def test_deletes_happen_after_creates(tmp_path: Path) -> None:

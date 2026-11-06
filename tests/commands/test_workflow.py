@@ -1,4 +1,4 @@
-"""End-to-end workflow tests (T080 + T082).
+"""End-to-end workflow tests ( + ).
 
 Covers the full quickstart.md workflow:
   ca → gm → guc → gda → gep → gh → gpipe → vs → dm --confirm → up --dry-run
@@ -15,10 +15,7 @@ from scaffold_ca_python.cli import app
 
 runner = CliRunner()
 
-
-# ---------------------------------------------------------------------------
-# T080: quickstart.md workflow (ca → gm → guc → gda → gep → gpipe → vs)
-# ---------------------------------------------------------------------------
+# : quickstart.md workflow (ca → gm → guc → gda → gep → gpipe → vs)
 
 
 @pytest.fixture()
@@ -76,9 +73,7 @@ def test_workflow_vs_exits_0_on_clean_project(workflow_root: Path) -> None:
     assert result.exit_code == 0
 
 
-# ---------------------------------------------------------------------------
-# T082: Full walkthrough (adds gh, dm --confirm, up --dry-run)
-# ---------------------------------------------------------------------------
+# : Full walkthrough (adds gh, dm --confirm, up --dry-run)
 
 
 @pytest.fixture()

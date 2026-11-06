@@ -4,10 +4,27 @@ from __future__ import annotations
 
 import tomllib
 from pathlib import Path
+from typing import Any
 
 import tomli_w
 
 from scaffold_ca_python.models.context import ProjectContext
+
+
+def _pyproject_path(project_root: Path) -> Path:
+    return project_root / "pyproject.toml"
+
+
+def _load(project_root: Path) -> dict[str, Any]:
+    with _pyproject_path(project_root).open("rb") as fh:
+        return tomllib.load(fh)
+
+
+def _save(project_root: Path, data: dict[str, Any], *, dry_run: bool) -> None:
+    if dry_run:
+        return
+    with _pyproject_path(project_root).open("wb") as fh:
+        tomli_w.dump(data, fh)
 
 
 def _name_prefix(package: str) -> str:
@@ -31,80 +48,43 @@ def _missing(existing: list[str], packages: list[str]) -> list[str]:
     return [p for p in packages if _name_prefix(p) not in existing_names]
 
 
-def inject_dependencies(project_root: Path, packages: list[str]) -> list[str]:
+def inject_dependencies(project_root: Path, packages: list[str], *, dry_run: bool = False) -> list[str]:
     """Add *packages* to ``[project.dependencies]`` in ``pyproject.toml``.
 
     Idempotent: a package whose bare name is already present is skipped.
-    Does not reformat unrelated sections.
+    Persists via ``tomli_w`` (the on-disk file may be normalized/reordered).
 
-    Parameters
-    ----------
-    project_root:
-        Directory containing ``pyproject.toml``.
-    packages:
-        Packages to inject, e.g. ``["fastapi>=0.100", "uvicorn[standard]>=0.20"]``.
-
-    Returns
-    -------
-    list[str]
-        The packages that were actually added (empty when all were already present).
-
-    Raises
-    ------
-    FileNotFoundError
-        If ``pyproject.toml`` does not exist in *project_root*.
-    tomllib.TOMLDecodeError
-        If ``pyproject.toml`` is malformed.
+    When *dry_run* is ``True``, returns packages that would be added without writing.
     """
-    pyproject = project_root / "pyproject.toml"
-    with pyproject.open("rb") as fh:
-        data = tomllib.load(fh)
-
+    data = _load(project_root)
     deps: list[str] = data.setdefault("project", {}).setdefault("dependencies", [])
     to_add = _missing(deps, packages)
     if not to_add:
         return []
 
-    deps.extend(to_add)
-
-    with pyproject.open("wb") as fh:
-        tomli_w.dump(data, fh)
+    if not dry_run:
+        deps.extend(to_add)
+        _save(project_root, data, dry_run=False)
 
     return to_add
 
 
-def inject_group_dependencies(project_root: Path, group: str, packages: list[str]) -> list[str]:
+def inject_group_dependencies(
+    project_root: Path,
+    group: str,
+    packages: list[str],
+    *,
+    dry_run: bool = False,
+) -> list[str]:
     """Add *packages* to ``[dependency-groups.<group>]`` in ``pyproject.toml``.
 
     Idempotent: a package whose bare name is already present is skipped. The group
     is created when absent. Non-string entries (e.g. ``{include-group = ...}``) are
     preserved and ignored for duplicate detection.
 
-    Parameters
-    ----------
-    project_root:
-        Directory containing ``pyproject.toml``.
-    group:
-        Dependency-group name (e.g. ``"test"``).
-    packages:
-        Packages to inject, e.g. ``["respx>=0.22"]``.
-
-    Returns
-    -------
-    list[str]
-        The packages that were actually added (empty when all were already present).
-
-    Raises
-    ------
-    FileNotFoundError
-        If ``pyproject.toml`` does not exist in *project_root*.
-    tomllib.TOMLDecodeError
-        If ``pyproject.toml`` is malformed.
+    When *dry_run* is ``True``, returns packages that would be added without writing.
     """
-    pyproject = project_root / "pyproject.toml"
-    with pyproject.open("rb") as fh:
-        data = tomllib.load(fh)
-
+    data = _load(project_root)
     groups: dict[str, list[object]] = data.setdefault("dependency-groups", {})
     entries: list[object] = groups.setdefault(group, [])
     existing = [e for e in entries if isinstance(e, str)]
@@ -112,141 +92,50 @@ def inject_group_dependencies(project_root: Path, group: str, packages: list[str
     if not to_add:
         return []
 
-    entries.extend(to_add)
-
-    with pyproject.open("wb") as fh:
-        tomli_w.dump(data, fh)
+    if not dry_run:
+        entries.extend(to_add)
+        _save(project_root, data, dry_run=False)
 
     return to_add
 
 
 def dry_run_group_inject(project_root: Path, group: str, packages: list[str]) -> list[str]:
-    """Return packages that *would* be added to ``[dependency-groups.<group>]``.
-
-    Read-only: never modifies ``pyproject.toml``.
-
-    Parameters
-    ----------
-    project_root:
-        Directory containing ``pyproject.toml``.
-    group:
-        Dependency-group name (e.g. ``"test"``).
-    packages:
-        Packages to check.
-
-    Returns
-    -------
-    list[str]
-        The packages that would be added if :func:`inject_group_dependencies` were called.
-
-    Raises
-    ------
-    FileNotFoundError
-        If ``pyproject.toml`` does not exist in *project_root*.
-    tomllib.TOMLDecodeError
-        If ``pyproject.toml`` is malformed.
-    """
-    pyproject = project_root / "pyproject.toml"
-    with pyproject.open("rb") as fh:
-        data = tomllib.load(fh)
-
-    entries = data.get("dependency-groups", {}).get(group, [])
-    existing = [e for e in entries if isinstance(e, str)]
-    return _missing(existing, packages)
+    """Return packages that *would* be added to ``[dependency-groups.<group>]``."""
+    return inject_group_dependencies(project_root, group, packages, dry_run=True)
 
 
 def dry_run_inject(project_root: Path, packages: list[str]) -> list[str]:
-    """Return packages that *would* be added without writing to disk.
-
-    Parameters
-    ----------
-    project_root:
-        Directory containing ``pyproject.toml``.
-    packages:
-        Packages to check.
-
-    Returns
-    -------
-    list[str]
-        The packages that would be added if :func:`inject_dependencies` were called.
-
-    Raises
-    ------
-    FileNotFoundError
-        If ``pyproject.toml`` does not exist in *project_root*.
-    tomllib.TOMLDecodeError
-        If ``pyproject.toml`` is malformed.
-    """
-    pyproject = project_root / "pyproject.toml"
-    with pyproject.open("rb") as fh:
-        data = tomllib.load(fh)
-
-    deps: list[str] = data.get("project", {}).get("dependencies", [])
-    return _missing(deps, packages)
+    """Return packages that *would* be added without writing to disk."""
+    return inject_dependencies(project_root, packages, dry_run=True)
 
 
-def update_project_scripts(project_root: Path, pkg: ProjectContext, entry_fn: str = "start_server") -> bool:
+def update_project_scripts(
+    project_root: Path,
+    pkg: ProjectContext,
+    entry_fn: str = "start_server",
+    *,
+    dry_run: bool = False,
+) -> bool:
     """Rewrite ``[project.scripts]`` so the CLI entry calls *entry_fn*.
 
     Sets ``<pkg> = "<pkg>.server:<entry_fn>"`` in ``pyproject.toml``.
     Idempotent: returns ``False`` immediately when the entry already has the
     correct value, leaving the file unchanged.
 
-    Parameters
-    ----------
-    project_root:
-        Directory containing ``pyproject.toml``.
-    pkg:
-        The Python package name (e.g. ``"my_app"``).
-    entry_fn:
-        The function name in ``server.py`` to use as the entry point
-        (default ``"start_server"``).  Pass ``"main"`` for MCP projects.
-
-    Returns
-    -------
-    bool
-        ``True`` if the file was written, ``False`` if it was already correct.
+    When *dry_run* is ``True``, returns whether a write would occur without modifying the file.
     """
-    pyproject = project_root / "pyproject.toml"
-    with pyproject.open("rb") as fh:
-        data = tomllib.load(fh)
-
+    data = _load(project_root)
     new_value = f"{pkg.python_package}.server:{entry_fn}"
     scripts: dict[str, str] = data.setdefault("project", {}).setdefault("scripts", {})
     if scripts.get(pkg.python_package_script) == new_value:
         return False
 
-    scripts[pkg.python_package_script] = new_value
-    with pyproject.open("wb") as fh:
-        tomli_w.dump(data, fh)
+    if not dry_run:
+        scripts[pkg.python_package_script] = new_value
+        _save(project_root, data, dry_run=False)
     return True
 
 
 def dry_run_scripts_update(project_root: Path, pkg: ProjectContext, entry_fn: str = "start_server") -> bool:
-    """Return whether ``update_project_scripts`` *would* write to disk.
-
-    Read-only: never modifies ``pyproject.toml``.
-
-    Parameters
-    ----------
-    project_root:
-        Directory containing ``pyproject.toml``.
-    pkg:
-        The Python package name (e.g. ``"my_app"``).
-    entry_fn:
-        The function name in ``server.py`` to use as the entry point
-        (default ``"start_server"``).  Pass ``"main"`` for MCP projects.
-
-    Returns
-    -------
-    bool
-        ``True`` if the current entry differs from ``<pkg>.server:<entry_fn>``,
-        ``False`` if no change would be needed.
-    """
-    pyproject = project_root / "pyproject.toml"
-    with pyproject.open("rb") as fh:
-        data = tomllib.load(fh)
-
-    new_value = f"{pkg.python_package}.server:{entry_fn}"
-    scripts: dict[str, str] = data.get("project", {}).get("scripts", {})
-    return scripts.get(pkg.python_package_script) != new_value
+    """Return whether ``update_project_scripts`` *would* write to disk."""
+    return update_project_scripts(project_root, pkg, entry_fn, dry_run=True)

@@ -1,4 +1,4 @@
-"""Template rendering tests for Docker-related templates (T014)."""
+"""Template rendering tests for Docker-related templates."""
 
 import importlib.resources
 

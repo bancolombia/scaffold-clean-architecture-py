@@ -23,15 +23,9 @@ def _render(filename: str) -> str:
     )
 
 
-# --- __init__.py -----------------------------------------------------------
-
-
 def test_init_renders() -> None:
     out = _render("__init__.py")
     assert out is not None
-
-
-# --- config.py -------------------------------------------------------------
 
 
 def test_config_has_settings_class() -> None:
@@ -49,36 +43,33 @@ def test_config_has_settings_singleton() -> None:
     assert "settings = Settings()" in out
 
 
-# --- wiring.py (wireup) ---------------------------------------------------
-
-
 def test_wiring_has_injectables() -> None:
-    """FR-001: wiring.py must define INJECTABLES list."""
+    """: wiring.py must define INJECTABLES list."""
     out = _render("wiring.py")
     assert "INJECTABLES" in out
 
 
 def test_wiring_has_create_container() -> None:
-    """FR-001: wiring.py must define create_container() function."""
+    """: wiring.py must define create_container() function."""
     out = _render("wiring.py")
     assert "create_container" in out
 
 
 def test_wiring_calls_create_async_container() -> None:
-    """FR-001, D2: wiring.py must call wireup.create_async_container (async-first)."""
+    """, : wiring.py must call wireup.create_async_container (async-first)."""
     out = _render("wiring.py")
     assert "create_async_container" in out
 
 
 def test_wiring_no_dependency_injector_imports() -> None:
-    """FR-001: wiring.py must not import dependency-injector."""
+    """: wiring.py must not import dependency-injector."""
     out = _render("wiring.py")
     assert "dependency_injector" not in out
     assert "DependenciesContainer" not in out
 
 
 def test_wiring_imports_driven_adapters() -> None:
-    """FR-001: wiring.py must import driven_adapters package for scan."""
+    """: wiring.py must import driven_adapters package for scan."""
     ctx = _ctx()
     out = renderer.render_string(
         _tmpl("project/application/config/wiring.py.jinja2"),
@@ -89,22 +80,19 @@ def test_wiring_imports_driven_adapters() -> None:
 
 
 def test_wiring_imports_helpers() -> None:
-    """FR-001: wiring.py must import helpers package for scan."""
+    """: wiring.py must import helpers package for scan."""
     out = _render("wiring.py")
     assert "helpers" in out
 
 
 def test_wiring_imports_usecases() -> None:
-    """FR-004: wiring.py must import usecases package for scan."""
+    """: wiring.py must import usecases package for scan."""
     out = _render("wiring.py")
     assert "usecases" in out
 
 
-# --- usecases/__init__.py -------------------------------------------------
-
-
 def test_usecases_init_renders() -> None:
-    """FR-004: usecases/__init__.py must be generated (package marker for wireup)."""
+    """: usecases/__init__.py must be generated (package marker for wireup)."""
     out = renderer.render_string(
         _tmpl("project/application/config/usecases/__init__.py.jinja2"),
         _ctx().model_dump(),
@@ -112,11 +100,8 @@ def test_usecases_init_renders() -> None:
     assert out is not None
 
 
-# --- US3 (T042-T046): Fail-fast validation --------------------------------
-
-
 def test_restapi_app_lifespan_warms_container() -> None:
-    """T046: restapi app.py lifespan must create container before yielding."""
+    """: restapi app.py lifespan must create container before yielding."""
     content = (
         importlib.resources.files("scaffold_ca_python.templates")
         .joinpath("entry_point/restapi/app.py.jinja2")
@@ -131,7 +116,7 @@ def test_restapi_app_lifespan_warms_container() -> None:
 
 
 def test_mcp_app_lifespan_warms_container() -> None:
-    """T045: mcp app.py lifespan must warm up container before yielding."""
+    """: mcp app.py lifespan must warm up container before yielding."""
     content = (
         importlib.resources.files("scaffold_ca_python.templates")
         .joinpath("entry_point/mcp/app.py.jinja2")
@@ -146,7 +131,7 @@ def test_mcp_app_lifespan_warms_container() -> None:
 
 
 def test_agent_app_creates_container() -> None:
-    """T035: agent app.py must create container in composition root."""
+    """: agent app.py must create container in composition root."""
     content = (
         importlib.resources.files("scaffold_ca_python.templates")
         .joinpath("entry_point/agent/agent_app.py.jinja2")
@@ -158,7 +143,7 @@ def test_agent_app_creates_container() -> None:
 
 
 def test_generic_app_creates_container() -> None:
-    """T037: generic app.py must create container in composition root."""
+    """: generic app.py must create container in composition root."""
     content = (
         importlib.resources.files("scaffold_ca_python.templates")
         .joinpath("entry_point/generic/generic_app.py.jinja2")

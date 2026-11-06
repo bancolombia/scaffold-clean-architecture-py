@@ -1,4 +1,4 @@
-"""Tests for EntryPointMcp factory (T018 / T008 019-restructure)."""
+"""Tests for EntryPointMcp factory ( /  019-restructure)."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import pytest
 
 from scaffold_ca_python.core.module_builder import ModuleBuilder
 from scaffold_ca_python.models.context import ModuleContext, ProjectContext
-from scaffold_ca_python.models.layer import Layer
+from tests.helpers import write_minimal_pyproject
 
 
 def _project_ctx() -> ProjectContext:
@@ -16,24 +16,11 @@ def _project_ctx() -> ProjectContext:
 
 
 def _module_ctx(project: ProjectContext, subtype: str = "mcp") -> ModuleContext:
-    return ModuleContext(name="mcp_server", layer=Layer.ENTRY_POINTS, project=project, subtype=subtype)
-
-
-def _write_minimal_pyproject(root: Path) -> None:
-    (root / "pyproject.toml").write_text(
-        """
-[project]
-name = "demo"
-version = "0.1.0"
-dependencies = []
-""".strip()
-        + "\n",
-        encoding="utf-8",
-    )
+    return ModuleContext(name="mcp_server", project=project)
 
 
 def _make_builder(tmp_path: Path, *, dry_run: bool = True) -> ModuleBuilder:
-    _write_minimal_pyproject(tmp_path)
+    write_minimal_pyproject(tmp_path)
     project = _project_ctx()
     return ModuleBuilder(
         project_root=tmp_path,
@@ -44,7 +31,7 @@ def _make_builder(tmp_path: Path, *, dry_run: bool = True) -> ModuleBuilder:
 
 
 def test_mcp_files_queued_in_dry_run(tmp_path: Path) -> None:
-    """T008: tools.py present; no server.py inside mcp_server/."""
+    """: tools.py present; no server.py inside mcp_server/."""
     builder = _make_builder(tmp_path)
 
     from scaffold_ca_python.factory.entry_points.ep_mcp import EntryPointMcp
@@ -64,7 +51,7 @@ def test_mcp_files_queued_in_dry_run(tmp_path: Path) -> None:
 
 
 def test_mcp_with_resources_queues_resources_file(tmp_path: Path) -> None:
-    """T008: --with-resources adds resources.py and test_resources.py."""
+    """: --with-resources adds resources.py and test_resources.py."""
     builder = _make_builder(tmp_path)
     builder.add_param("with_resources", True)
 
@@ -81,7 +68,7 @@ def test_mcp_with_resources_queues_resources_file(tmp_path: Path) -> None:
 
 
 def test_mcp_without_resources_does_not_queue_resources_file(tmp_path: Path) -> None:
-    """T008: without --with-resources no resources.py is generated."""
+    """: without --with-resources no resources.py is generated."""
     builder = _make_builder(tmp_path)
 
     from scaffold_ca_python.factory.entry_points.ep_mcp import EntryPointMcp
@@ -94,7 +81,7 @@ def test_mcp_without_resources_does_not_queue_resources_file(tmp_path: Path) -> 
 
 
 def test_mcp_with_prompts_queues_prompts_file(tmp_path: Path) -> None:
-    """T008: --with-prompts adds prompts.py and test_prompts.py."""
+    """: --with-prompts adds prompts.py and test_prompts.py."""
     builder = _make_builder(tmp_path)
     builder.add_param("with_prompts", True)
 
@@ -111,7 +98,7 @@ def test_mcp_with_prompts_queues_prompts_file(tmp_path: Path) -> None:
 
 
 def test_mcp_without_prompts_does_not_queue_prompts_file(tmp_path: Path) -> None:
-    """T008: without --with-prompts no prompts.py is generated."""
+    """: without --with-prompts no prompts.py is generated."""
     builder = _make_builder(tmp_path)
 
     from scaffold_ca_python.factory.entry_points.ep_mcp import EntryPointMcp
@@ -124,7 +111,7 @@ def test_mcp_without_prompts_does_not_queue_prompts_file(tmp_path: Path) -> None
 
 
 def test_mcp_dependencies_injected(tmp_path: Path) -> None:
-    """T008 (H3): all five required deps are present after a live run."""
+    """(H3): all five required deps are present after a live run."""
     builder = _make_builder(tmp_path, dry_run=False)
 
     # Simulate the config.py that `scaffold ca` would have created first.
@@ -164,13 +151,13 @@ def test_mcp_scripts_entry_fn_param_is_main(tmp_path: Path) -> None:
 
 
 def test_mcp_main_py_overwritten(tmp_path: Path) -> None:
-    """Phase 4 / T022: server.py at package root replaces main.py.
+    """/ : server.py at package root replaces main.py.
 
-    This test is intentionally placed here to fail until T024+T025 (Phase 4)
+    This test is intentionally placed here to fail until +
     add server.py generation to ep_mcp.py.  It documents the expected
-    Phase 4 behaviour so the red/green boundary is explicit.
+     behaviour so the red/green boundary is explicit.
     """
-    _write_minimal_pyproject(tmp_path)
+    write_minimal_pyproject(tmp_path)
     project = _project_ctx()
     builder = ModuleBuilder(
         project_root=tmp_path,
@@ -188,18 +175,16 @@ def test_mcp_main_py_overwritten(tmp_path: Path) -> None:
     EntryPointMcp().build(builder)
     preview = builder.persist()
 
-    # server.py at package root must be queued (implemented in T025 / Phase 4)
+    # server.py at package root must be queued (implemented in  / )
     server_py = tmp_path / "src" / "ms_demo" / "server.py"
     assert server_py in preview, f"Expected {server_py.relative_to(tmp_path)} in preview"
 
 
-# ---------------------------------------------------------------------------
-# Phase 5 / T028 — application/app.py composition root
-# ---------------------------------------------------------------------------
+#  /  — application/app.py composition root
 
 
 def test_mcp_queues_app_py(tmp_path: Path) -> None:
-    """T028: application/app.py must be in the dry-run preview."""
+    """: application/app.py must be in the dry-run preview."""
     builder = _make_builder(tmp_path)
 
     from scaffold_ca_python.factory.entry_points.ep_mcp import EntryPointMcp
@@ -212,8 +197,8 @@ def test_mcp_queues_app_py(tmp_path: Path) -> None:
 
 
 def test_mcp_app_py_not_overwritten(tmp_path: Path) -> None:
-    """T028: existing application/app.py raises FileExistsError (no-overwrite guard)."""
-    _write_minimal_pyproject(tmp_path)
+    """: existing application/app.py raises FileExistsError (no-overwrite guard)."""
+    write_minimal_pyproject(tmp_path)
     project = _project_ctx()
 
     # Pre-create config.py (created by `scaffold ca` in real usage).

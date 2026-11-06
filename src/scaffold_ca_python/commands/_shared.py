@@ -5,15 +5,15 @@ from __future__ import annotations
 import subprocess
 from collections.abc import Callable, Iterable
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal, NoReturn
+from typing import TYPE_CHECKING, Annotated, Literal, NoReturn, overload
 
 import typer
 from rich.console import Console
 from rich.markup import escape
 from rich.tree import Tree
 
-from scaffold_ca_python.core.name_utils import ScaffoldError
-from scaffold_ca_python.core.project_detector import find_project_root
+from scaffold_ca_python.core.errors import ScaffoldError
+from scaffold_ca_python.core.project_detector import find_project_root, load_project_context
 
 if TYPE_CHECKING:
     from scaffold_ca_python.core.module_builder import ModuleBuilder
@@ -25,12 +25,63 @@ console = Console()
 PROJECT_NOT_FOUND = "No scaffold-ca-python project found. Run 'scaffold ca' first."
 
 
-def fail(message: str, hint: str | None = None) -> NoReturn:
-    """Print an error (and optional hint) then exit with code 1."""
+def fail(message: str, hint: str | None = None, *, code: int = 1) -> NoReturn:
+    """Print an error (and optional hint) then exit."""
     console.print(f"[red]Error:[/red] {message}")
     if hint is not None:
         console.print(f"[dim]Hint:[/dim] {hint}")
-    raise typer.Exit(code=1)
+    raise typer.Exit(code=code)
+
+
+DryRun = Annotated[
+    bool,
+    typer.Option(
+        "--dry-run/--no-dry-run",
+        help="Preview without writing.",
+        rich_help_panel="Options",
+        show_default=True,
+    ),
+]
+
+DryRunDelete = Annotated[
+    bool,
+    typer.Option(
+        "--dry-run/--no-dry-run",
+        help="Preview deletion without removing files.",
+        rich_help_panel="Options",
+        show_default=True,
+    ),
+]
+
+DryRunProject = Annotated[
+    bool,
+    typer.Option(
+        "--dry-run/--no-dry-run",
+        help="Preview files without writing.",
+        rich_help_panel="Options",
+        show_default=True,
+    ),
+]
+
+DryRunValidate = Annotated[
+    bool,
+    typer.Option(
+        "--dry-run/--no-dry-run",
+        help="Print results but always exit 0.",
+        rich_help_panel="Options",
+        show_default=True,
+    ),
+]
+
+DryRunUpdate = Annotated[
+    bool,
+    typer.Option(
+        "--dry-run/--no-dry-run",
+        help="Preview commands without running.",
+        rich_help_panel="Options",
+        show_default=True,
+    ),
+]
 
 
 def require_project_root(not_found_message: str | None = PROJECT_NOT_FOUND) -> Path:
@@ -97,11 +148,15 @@ def print_pending_dependencies(builder: ModuleBuilder) -> None:
 def auto_format_project(project_root: Path) -> None:
     """Run ruff check --fix (I rules) then ruff format on *project_root* (best-effort).
 
-    Silently skips when ruff is not on PATH.
+    Silently skips when ruff is not importable in the active interpreter.
     """
+    import sys
+
+    ruff = [sys.executable, "-m", "ruff"]
     for cmd in (
-        ["ruff", "check", "--fix", "--select", "I", "--quiet", "--no-cache", "."],
-        ["ruff", "format", "--quiet", "--no-cache", "."],
+        [*ruff, "check", "--fix", "--select", "I", "--quiet", "--no-cache", "."],
+        [*ruff, "format", "--quiet", "--no-cache", "."],
+        [*ruff, "check", "--fix", "--select", "I", "--quiet", "--no-cache", "."],
     ):
         try:
             subprocess.run(cmd, cwd=project_root, check=False, capture_output=True)
@@ -124,12 +179,46 @@ _LEGACY_MIGRATION_HINT = (
 )
 
 
-def warn_legacy_project(ctx: ProjectContext) -> None:
-    """Print a Rich-formatted warning for legacy projects (scaffold_version absent)."""
-    console.print(
-        f"[yellow]⚠ Warning:[/yellow] Project [bold]{ctx.name}[/bold] uses the legacy "
-        f"[bold]dependency-injector[/bold] DI framework.\n[dim]{_LEGACY_MIGRATION_HINT}[/dim]"
-    )
+def require_wireup_context(
+    project_root: Path | None = None,
+    *,
+    not_found_message: str | None = PROJECT_NOT_FOUND,
+) -> tuple[Path, ProjectContext]:
+    """Resolve project root, load context, and exit if the project is legacy."""
+    root = project_root or require_project_root(not_found_message)
+    ctx = load_project_context(root)
+    require_wireup_project(ctx)
+    return root, ctx
+
+
+@overload
+def show_help_if_missing(ctx: typer.Context, value: str) -> str: ...
+
+
+@overload
+def show_help_if_missing(ctx: typer.Context, value: None) -> NoReturn: ...
+
+
+def show_help_if_missing(ctx: typer.Context, value: str | None) -> str:
+    """Show help and exit when a required argument is missing."""
+    if value is None:
+        typer.echo(ctx.get_help())
+        raise typer.Exit()
+    return value
+
+
+def register_with_alias(
+    app: typer.Typer,
+    name: str,
+    alias: str,
+    fn: Callable[..., None],
+    *,
+    help: str,
+    epilog: str,
+) -> None:
+    """Register a command and its hidden alias."""
+    app.command(name, help=help, epilog=epilog)(fn)
+    app.command(alias, hidden=True, help=help, epilog=epilog)(fn)
 
 
 def require_wireup_project(ctx: ProjectContext) -> None:
@@ -141,12 +230,12 @@ def require_wireup_project(ctx: ProjectContext) -> None:
             "[dim]This scaffolder only modifies wireup projects (0.6.0+). "
             f"{_LEGACY_MIGRATION_HINT}[/dim]"
         )
-        raise SystemExit(1)
+        raise typer.Exit(code=1)
 
 
-def find_gateway(project_root: Path, pkg: str, gateway_name: str) -> str | None:
+def find_gateway(src_pkg_root: Path, gateway_name: str) -> str | None:
     """Walk domain/model/*/gateways/ and return the model directory name if the gateway file is found."""
-    gateways_base = project_root / "src" / pkg / "domain" / "model"
+    gateways_base = src_pkg_root / "domain" / "model"
     if not gateways_base.is_dir():
         return None
     for model_dir in gateways_base.iterdir():

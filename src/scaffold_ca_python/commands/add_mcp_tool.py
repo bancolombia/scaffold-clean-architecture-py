@@ -13,13 +13,13 @@ from rich.syntax import Syntax
 from scaffold_ca_python.commands._shared import (
     auto_format_project,
     console,
-    require_project_root,
-    require_wireup_project,
+    require_wireup_context,
 )
 from scaffold_ca_python.core import mcp_tool_spec
+from scaffold_ca_python.core.errors import ScaffoldError
 from scaffold_ca_python.core.module_builder import ModuleBuilder
-from scaffold_ca_python.core.name_utils import ScaffoldError
-from scaffold_ca_python.core.project_detector import load_project_context, resolve_tests_root
+from scaffold_ca_python.core.project_detector import resolve_tests_root
+from scaffold_ca_python.factory.entry_points.ep_mcp import EntryPointMcp
 from scaffold_ca_python.models.context import ProjectContext
 
 if TYPE_CHECKING:
@@ -59,10 +59,9 @@ def _build_spec(options: EntryPointOptions) -> mcp_tool_spec.ToolSpec:
 
 
 def _resolve_paths(project_root: Path, ctx: ProjectContext) -> tuple[Path, Path]:
-    tools_py = project_root / "src" / ctx.python_package / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
-    test_tools_py = (
-        resolve_tests_root(project_root) / "infrastructure" / "entry_points" / "mcp_server" / "test_tools.py"
-    )
+    ep_subdir = EntryPointMcp.subdir
+    tools_py = ctx.src_pkg_root / "infrastructure" / "entry_points" / ep_subdir / "tools.py"
+    test_tools_py = resolve_tests_root(project_root) / "infrastructure" / "entry_points" / ep_subdir / "test_tools.py"
     return tools_py, test_tools_py
 
 
@@ -130,15 +129,22 @@ def _persist_with_restore(
     try:
         return builder.persist()
     except OSError as e:
+        restore_ok = True
+        restore_msg = ""
         try:
             tools_py.write_text(tools_src, encoding="utf-8")
             test_tools_py.write_text(test_tools_src, encoding="utf-8")
-        except OSError:
-            pass
+        except OSError as restore_err:
+            restore_ok = False
+            restore_msg = str(restore_err)
         fname = Path(e.filename).name if e.filename else "tools.py"
+        if restore_ok:
+            detail = "tools.py was restored; no changes were made."
+        else:
+            detail = f"Restore also failed ({restore_msg}); tools.py may be in an inconsistent state."
         console.print(
             f"[red]Error:[/red] Failed to write {fname} ({e}). "
-            "tools.py was restored; no changes were made.\n"
+            f"{detail}\n"
             "[dim]Hint:[/dim] Fix the underlying problem (permissions, disk space) and re-run the command."
         )
         raise typer.Exit(code=1) from None
@@ -168,9 +174,7 @@ def add_mcp_tool(options: EntryPointOptions) -> None:
     """Add a tool stub to an existing MCP entry point."""
     _check_add_tool_flags(options)
     spec = _build_spec(options)
-    project_root = require_project_root(not_found_message=None)
-    project_ctx = load_project_context(project_root)
-    require_wireup_project(project_ctx)
+    project_root, project_ctx = require_wireup_context(not_found_message=None)
     paths = _resolve_paths(project_root, project_ctx)
     sources = _read_sources(paths)
     _check_structure(sources, spec)

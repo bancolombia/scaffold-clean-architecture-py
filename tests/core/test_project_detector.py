@@ -1,4 +1,4 @@
-"""Tests for project_detector: find_project_root (T018), resolve_tests_root (T002-T004)."""
+"""Tests for project_detector: find_project_root (), resolve_tests_root (-)."""
 
 from pathlib import Path
 
@@ -7,9 +7,7 @@ import pytest
 from scaffold_ca_python.core.name_utils import ScaffoldError
 from scaffold_ca_python.core.project_detector import find_project_root, resolve_tests_root
 
-# ---------------------------------------------------------------------------
 # Helpers
-# ---------------------------------------------------------------------------
 
 
 def _make_pyproject(directory: Path, *, with_section: bool) -> Path:
@@ -28,9 +26,7 @@ def _make_ca_layout(directory: Path) -> None:
         (directory / subdir).mkdir()
 
 
-# ---------------------------------------------------------------------------
 # Detection via [tool.scaffold-ca-python] section
-# ---------------------------------------------------------------------------
 
 
 def test_finds_root_in_cwd(tmp_path: Path) -> None:
@@ -53,9 +49,7 @@ def test_ignores_pyproject_without_section(tmp_path: Path) -> None:
         find_project_root(cwd=tmp_path)
 
 
-# ---------------------------------------------------------------------------
 # Fallback to CA directory layout
-# ---------------------------------------------------------------------------
 
 
 def test_fallback_to_ca_directories(tmp_path: Path) -> None:
@@ -71,9 +65,7 @@ def test_fallback_ca_directories_in_parent(tmp_path: Path) -> None:
     assert find_project_root(cwd=child) == tmp_path
 
 
-# ---------------------------------------------------------------------------
 # Error case
-# ---------------------------------------------------------------------------
 
 
 def test_raises_when_neither_found(tmp_path: Path) -> None:
@@ -91,9 +83,7 @@ def test_raises_at_filesystem_boundary(tmp_path: Path) -> None:
         find_project_root(cwd=empty)
 
 
-# ---------------------------------------------------------------------------
-# resolve_tests_root (T002-T004)
-# ---------------------------------------------------------------------------
+# resolve_tests_root (-)
 
 
 def test_resolve_tests_root_returns_src_tests_when_src_tests_exists(tmp_path: Path) -> None:

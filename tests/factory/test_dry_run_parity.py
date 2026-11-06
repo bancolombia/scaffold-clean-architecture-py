@@ -1,4 +1,4 @@
-"""Dry-run path parity against the captured baseline (T043 / SC-005).
+"""Dry-run path parity against the captured baseline ( / ).
 
 For each type of both entry-point (`gep`) and driven-adapter (`gda`) commands, the set
 of paths a dry-run would touch must match a golden baseline fixture. The baseline is
@@ -15,13 +15,11 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from scaffold_ca_python.cli import app
 from scaffold_ca_python.core.module_builder import ModuleBuilder
 from scaffold_ca_python.factory import ModuleFactory
 from scaffold_ca_python.factory.driven_adapters import DRIVEN_ADAPTER_FACTORIES
 from scaffold_ca_python.factory.entry_points import ENTRY_POINT_FACTORIES
 from scaffold_ca_python.models.context import ModuleContext, ProjectContext
-from scaffold_ca_python.models.layer import Layer
 
 runner = CliRunner()
 
@@ -37,16 +35,6 @@ _GEP_PARAMS = {
     "with_resources": False,
     "with_prompts": False,
 }
-
-
-@pytest.fixture()
-def project_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Scaffold a real `my-app` project (package `my_app`) inside tmp_path."""
-    monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["ca", "--name", "my-app"], catch_exceptions=False)
-    project_dir = tmp_path / "my-app"
-    monkeypatch.chdir(project_dir)
-    return project_dir
 
 
 def _preview(
@@ -72,9 +60,7 @@ def _preview(
 def test_gep_dry_run_parity(project_root: Path, type_: str) -> None:
     module_ctx = ModuleContext(
         name=type_.replace("-", "_"),
-        layer=Layer.ENTRY_POINTS,
         project=ProjectContext(name="my-app"),
-        subtype=type_,
     )
     preview = _preview(project_root, module_ctx, ENTRY_POINT_FACTORIES[type_], _GEP_PARAMS)
     assert preview == _BASELINE[f"gep:{type_}"]
@@ -87,11 +73,11 @@ def test_gep_dry_run_parity(project_root: Path, type_: str) -> None:
 def test_gda_dry_run_parity(project_root: Path, type_: str, name: str | None) -> None:
     proj = ProjectContext(name="my-app")
     if type_ == "rest-consumer":
-        module_ctx = ModuleContext(name="rest_consumer", layer=Layer.DRIVEN_ADAPTERS, project=proj)
+        module_ctx = ModuleContext(name="rest_consumer", project=proj)
     elif type_ == "secrets":
-        module_ctx = ModuleContext(name="secrets", layer=Layer.DRIVEN_ADAPTERS, project=proj)
+        module_ctx = ModuleContext(name="secrets", project=proj)
     else:
         assert name is not None
-        module_ctx = ModuleContext(name=name, layer=Layer.DRIVEN_ADAPTERS, project=proj)
+        module_ctx = ModuleContext(name=name, project=proj)
     preview = _preview(project_root, module_ctx, DRIVEN_ADAPTER_FACTORIES[type_])
     assert preview == _BASELINE[f"gda:{type_}"]

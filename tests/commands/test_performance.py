@@ -1,7 +1,7 @@
-"""Performance benchmark tests (T091 + T092).
+"""Performance benchmark tests ( + ).
 
-SC-002: All generation commands (gm, guc, gda, gep, gh) complete within 3 s.
-SC-003: `scaffold vs` completes in under 5 s on a project with 200 Python files.
+: All generation commands (gm, guc, gda, gep, gh) complete within 3 s.
+: `scaffold vs` completes in under 5 s on a project with 200 Python files.
 """
 
 from __future__ import annotations
@@ -16,27 +16,9 @@ from scaffold_ca_python.cli import app
 
 runner = CliRunner()
 
+pytestmark = pytest.mark.benchmark
 
-# ---------------------------------------------------------------------------
 # Fixtures
-# ---------------------------------------------------------------------------
-
-
-@pytest.fixture(scope="module")
-def project_root_bench(tmp_path_factory: pytest.TempPathFactory) -> Path:
-    """Bootstrap a CA project once for all benchmark tests in this module."""
-    tmp = tmp_path_factory.mktemp("bench")
-    runner.invoke(app, ["ca", "--name", "bench-app"], catch_exceptions=False)
-    # ca writes relative to cwd; we need to call from distinct cwd
-    import os
-
-    orig = os.getcwd()
-    os.chdir(tmp)
-    runner.invoke(app, ["ca", "--name", "bench-app"], catch_exceptions=False)
-    project_dir = tmp / "bench-app"
-    os.chdir(project_dir)
-    os.chdir(orig)
-    return project_dir
 
 
 @pytest.fixture()
@@ -48,9 +30,7 @@ def bench_project(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     return project_dir
 
 
-# ---------------------------------------------------------------------------
-# T091: Generation commands under 3 s (SC-002)
-# ---------------------------------------------------------------------------
+# : Generation commands under 3 s
 
 
 def test_gm_performance(benchmark: pytest.fixture, bench_project: Path) -> None:  # type: ignore[type-arg]
@@ -113,9 +93,7 @@ def test_gh_performance(benchmark: pytest.fixture, bench_project: Path) -> None:
         assert benchmark.stats["mean"] < 3.0  # type: ignore[index]
 
 
-# ---------------------------------------------------------------------------
-# T092: vs under 5 s on a project with 200 Python files (SC-003)
-# ---------------------------------------------------------------------------
+# : vs under 5 s on a project with 200 Python files
 
 
 @pytest.fixture()

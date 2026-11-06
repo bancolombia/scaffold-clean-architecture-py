@@ -19,4 +19,4 @@ def test_create_app_has_router_included() -> None:
 
 def test_create_app_registers_exception_handlers() -> None:
     app = create_app()
-    assert app.exception_handlers  # type: ignore[attr-defined]
+    assert app.exception_handlers

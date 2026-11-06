@@ -1,4 +1,4 @@
-"""Template rendering tests for project/ group (T083)."""
+"""Template rendering tests for project/ group."""
 
 import importlib.resources
 
@@ -98,11 +98,6 @@ def test_pyproject_template_no_respx_in_base() -> None:
     """respx must NOT appear in the base template (injected only on rest-consumer)."""
     out = renderer.render_string(_tmpl("project/pyproject_toml.jinja2"), _ctx().model_dump())
     assert "respx" not in out
-
-
-# ---------------------------------------------------------------------------
-# T037: package_init.py.jinja2 and empty.jinja2 (must fail until T047 creates them)
-# ---------------------------------------------------------------------------
 
 
 def test_package_init_template_renders_docstring() -> None:

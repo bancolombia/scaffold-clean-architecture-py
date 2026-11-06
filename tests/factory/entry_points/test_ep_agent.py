@@ -1,4 +1,4 @@
-"""Tests for EntryPointAgent factory (T016)."""
+"""Tests for EntryPointAgent factory."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from pathlib import Path
 
 from scaffold_ca_python.core.module_builder import ModuleBuilder
 from scaffold_ca_python.models.context import ModuleContext, ProjectContext
-from scaffold_ca_python.models.layer import Layer
+from tests.helpers import write_minimal_pyproject
 
 
 def _project_ctx() -> ProjectContext:
@@ -14,25 +14,12 @@ def _project_ctx() -> ProjectContext:
 
 
 def _module_ctx(project: ProjectContext, subtype: str = "agent") -> ModuleContext:
-    return ModuleContext(name="agent", layer=Layer.ENTRY_POINTS, project=project, subtype=subtype)
-
-
-def _write_minimal_pyproject(root: Path) -> None:
-    (root / "pyproject.toml").write_text(
-        """
-[project]
-name = "demo"
-version = "0.1.0"
-dependencies = []
-""".strip()
-        + "\n",
-        encoding="utf-8",
-    )
+    return ModuleContext(name="agent", project=project)
 
 
 def test_agent_files_queued_in_dry_run(tmp_path: Path) -> None:
-    """T016: Verify EntryPointAgent.build() queues expected files."""
-    _write_minimal_pyproject(tmp_path)
+    """: Verify EntryPointAgent.build() queues expected files."""
+    write_minimal_pyproject(tmp_path)
     project = _project_ctx()
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, module_ctx=_module_ctx(project), dry_run=True)
 
@@ -62,8 +49,8 @@ def test_agent_files_queued_in_dry_run(tmp_path: Path) -> None:
 
 
 def test_agent_dependencies_injected(tmp_path: Path) -> None:
-    """T016: Verify EntryPointAgent adds a2a-sdk dependency."""
-    _write_minimal_pyproject(tmp_path)
+    """: Verify EntryPointAgent adds a2a-sdk dependency."""
+    write_minimal_pyproject(tmp_path)
     project = _project_ctx()
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, module_ctx=_module_ctx(project), dry_run=False)
 
@@ -80,8 +67,8 @@ def test_agent_dependencies_injected(tmp_path: Path) -> None:
 
 
 def test_agent_main_py_overwritten(tmp_path: Path) -> None:
-    """T016: Verify EntryPointAgent marks main.py for overwrite."""
-    _write_minimal_pyproject(tmp_path)
+    """: Verify EntryPointAgent marks main.py for overwrite."""
+    write_minimal_pyproject(tmp_path)
     project = _project_ctx()
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, module_ctx=_module_ctx(project), dry_run=True)
 
@@ -102,8 +89,8 @@ def test_agent_main_py_overwritten(tmp_path: Path) -> None:
 
 
 def test_agent_kafka_flag_handling(tmp_path: Path) -> None:
-    """T016: Verify EntryPointAgent handles kafka flag in params."""
-    _write_minimal_pyproject(tmp_path)
+    """: Verify EntryPointAgent handles kafka flag in params."""
+    write_minimal_pyproject(tmp_path)
     project = _project_ctx()
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, module_ctx=_module_ctx(project), dry_run=True)
     builder.add_param("enable_kafka", True)

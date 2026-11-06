@@ -20,8 +20,8 @@ class PipelineFactory:
 
     def build(self, builder: ModuleBuilder) -> None:
         """Queue the pipeline file for creation via *builder*."""
-        builder.add_file(
+        builder.add_rendered(
             builder.project_root / self.output_path,
-            builder.render(self.template, builder.project_ctx.model_dump()),
-            template_name=self.template,
+            self.template,
+            builder.project_ctx.model_dump(),
         )

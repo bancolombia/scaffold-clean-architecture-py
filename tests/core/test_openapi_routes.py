@@ -1,4 +1,4 @@
-"""Tests for parse_routes (T034 / US4)."""
+"""Tests for parse_routes ( / )."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Tests for root CLI app behaviour (T005, T017)."""
+"""Tests for root CLI app behaviour (, )."""
 
 from typer.testing import CliRunner
 
@@ -6,10 +6,7 @@ from scaffold_ca_python.cli import app
 
 runner = CliRunner()
 
-
-# ---------------------------------------------------------------------------
-# US1: root --help listing (T005)
-# ---------------------------------------------------------------------------
+# : root --help listing
 
 
 def test_root_help_shows_clean_architecture() -> None:
@@ -25,15 +22,13 @@ def test_root_help_does_not_show_generate_project() -> None:
 
 
 def test_root_help_alias_visible_in_description() -> None:
-    """FR-013: clean-architecture description must mention the ca alias."""
+    """: clean-architecture description must mention the ca alias."""
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
     assert "ca" in result.output
 
 
-# ---------------------------------------------------------------------------
-# US3: root no-args behaviour (T017)
-# ---------------------------------------------------------------------------
+# : root no-args behaviour
 
 
 def test_root_no_args_exits_0() -> None:

@@ -10,38 +10,32 @@ import typer
 
 from scaffold_ca_python.commands._entry_point_rules import check_conflicts, check_flags
 from scaffold_ca_python.commands._shared import (
+    DryRun,
     auto_format_project,
     console,
     ensure_absent,
     fail,
     print_dry_run_tree,
     print_pending_dependencies,
-    require_project_root,
-    require_wireup_project,
+    register_with_alias,
+    require_wireup_context,
+    show_help_if_missing,
 )
 from scaffold_ca_python.commands.add_mcp_tool import add_mcp_tool
 from scaffold_ca_python.core.module_builder import ModuleBuilder
 from scaffold_ca_python.core.openapi_routes import parse_routes
-from scaffold_ca_python.core.project_detector import load_project_context
 from scaffold_ca_python.factory.entry_points import ENTRY_POINT_FACTORIES
 from scaffold_ca_python.factory.entry_points.base import EntryPointFactory, EntryPointFlag
 from scaffold_ca_python.models.context import ModuleContext, ProjectContext
-from scaffold_ca_python.models.layer import Layer
 from scaffold_ca_python.models.options import EntryPointOptions
 
-_REGISTRY = ENTRY_POINT_FACTORIES  # backwards-compat alias for tests that patch it
-
-_TYPE_HELP = "Entry-point type: restapi, agent, mcp, generic."
+_TYPE_HELP = "Entry-point type. Options: " + ", ".join(ENTRY_POINT_FACTORIES.keys()) + "."
 _SWAGGER_HELP = "Path to OpenAPI YAML/JSON (restapi only)."
 _KAFKA_HELP = "Add async Kafka consumer stub (agent type only)."
 _MCP_CLIENT_HELP = "Add MCP tool-call client stub (agent type only)."
 _GEP_HELP = "Scaffold an entry-point adapter and test stub. Alias 'gep'."
 _GEP_EPILOG = (
-    "Types:\n\n"
-    "  * restapi    FastAPI REST API entry point\n\n"
-    "  * agent      A2A agent entry point\n\n"
-    "  * mcp        MCP server entry point\n\n"
-    "  * generic    Plain entry point\n\n"
+    "Types: " + " | ".join(ENTRY_POINT_FACTORIES.keys()) + "\n\n"
     " ==================================================\n\n"
     "Examples:\n\n"
     "  * scaffold gep --type restapi\n\n"
@@ -96,13 +90,8 @@ def _build(
     routes: list[tuple[str, str]],
 ) -> _BuildResult:
     subdir = factory_class.subdir
-    module_ctx = ModuleContext(
-        name=options.type_.replace("-", "_"),
-        layer=Layer.ENTRY_POINTS,
-        project=project_ctx,
-        subtype=options.type_,
-    )
-    src_dir = project_root / "src" / project_ctx.python_package / "infrastructure" / "entry_points" / subdir
+    module_ctx = ModuleContext(name=options.type_.replace("-", "_"), project=project_ctx)
+    src_dir = project_ctx.src_pkg_root.joinpath("infrastructure", "entry_points", *subdir.split("/"))
     ensure_absent(
         src_dir,
         project_root,
@@ -121,17 +110,23 @@ def _build(
     return _BuildResult(factory=factory, builder=builder, subdir=subdir, created=created)
 
 
-def _report(result: _BuildResult, options: EntryPointOptions, project_root: Path, pkg: str) -> None:
+def _report(
+    result: _BuildResult,
+    options: EntryPointOptions,
+    project_root: Path,
+    src_pkg_root: Path,
+    pkg: str,
+) -> None:
     if options.dry_run:
         print_dry_run_tree(result.subdir, result.created, project_root)
         print_pending_dependencies(result.builder)
-        for note in result.factory.result_notes(project_root, pkg, options.type_, dry_run=True):
+        for note in result.factory.result_notes(src_pkg_root, pkg, options.type_, dry_run=True):
             console.print(note)
         return
     console.print(
         f"[green]✓[/green] Entry point [bold]{result.subdir}[/bold] created. Created {len(result.created)} file(s)."
     )
-    for note in result.factory.result_notes(project_root, pkg, options.type_, dry_run=False):
+    for note in result.factory.result_notes(src_pkg_root, pkg, options.type_, dry_run=False):
         console.print(note)
 
 
@@ -142,24 +137,16 @@ def _generate_entry_point(options: EntryPointOptions) -> None:
     factory_class = _resolve_factory(options)
     _check_flags_for(options, factory_class)
     routes = _load_routes(options.swagger)
-    project_root = require_project_root()
-    project_ctx = load_project_context(project_root)
-    require_wireup_project(project_ctx)
+    project_root, project_ctx = require_wireup_context()
     pkg = project_ctx.python_package
-    check_conflicts(project_root, pkg, options.type_, factory_class)
+    check_conflicts(project_root, project_ctx.src_pkg_root, options.type_, factory_class, ENTRY_POINT_FACTORIES)
     result = _build(options, factory_class, project_root, project_ctx, routes)
-    _report(result, options, project_root, pkg)
+    _report(result, options, project_root, project_ctx.src_pkg_root, pkg)
 
 
 def register(app: typer.Typer) -> None:
     """Register gep / generate-entry-point commands onto *app*."""
 
-    @app.command(
-        "generate-entry-point",
-        help=_GEP_HELP,
-        epilog=_GEP_EPILOG,
-    )
-    @app.command("gep", hidden=True, help=_GEP_HELP, epilog=_GEP_EPILOG)
     def generate_entry_point(
         ctx: typer.Context,
         type_: Annotated[str | None, typer.Option("--type", help=_TYPE_HELP, rich_help_panel="Required")] = None,
@@ -218,24 +205,14 @@ def register(app: typer.Typer) -> None:
         description: Annotated[
             str | None, typer.Option("--description", help="Tool description for docstring.")
         ] = None,
-        dry_run: Annotated[
-            bool,
-            typer.Option(
-                "--dry-run/--no-dry-run",
-                help="Preview without writing.",
-                rich_help_panel="Options",
-                show_default=True,
-            ),
-        ] = False,
+        dry_run: DryRun = False,
     ) -> None:
         """Scaffold an entry point inside infrastructure/entry_points/."""
         if add_tool and type_ is None:
             console.print("[red]Error:[/red] --add-tool is only valid with --type mcp.")
             raise typer.Exit(code=1)
 
-        if type_ is None:
-            typer.echo(ctx.get_help())
-            raise typer.Exit(0)
+        type_ = show_help_if_missing(ctx, type_)
 
         options = EntryPointOptions(
             type_=type_,
@@ -252,3 +229,5 @@ def register(app: typer.Typer) -> None:
             dry_run=dry_run,
         )
         _generate_entry_point(options)
+
+    register_with_alias(app, "generate-entry-point", "gep", generate_entry_point, help=_GEP_HELP, epilog=_GEP_EPILOG)

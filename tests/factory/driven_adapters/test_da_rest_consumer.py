@@ -1,4 +1,4 @@
-"""Tests for DrivenAdapterRestConsumer factory (T024)."""
+"""Tests for DrivenAdapterRestConsumer factory."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from pathlib import Path
 
 from scaffold_ca_python.core.module_builder import ModuleBuilder
 from scaffold_ca_python.models.context import ModuleContext, ProjectContext
-from scaffold_ca_python.models.layer import Layer
+from tests.helpers import write_minimal_pyproject
 
 
 def _project_ctx() -> ProjectContext:
@@ -14,34 +14,12 @@ def _project_ctx() -> ProjectContext:
 
 
 def _module_ctx(project: ProjectContext) -> ModuleContext:
-    return ModuleContext(name="rest-consumer", layer=Layer.DRIVEN_ADAPTERS, project=project)
-
-
-def _write_minimal_pyproject(root: Path) -> None:
-    (root / "pyproject.toml").write_text(
-        """
-[project]
-name = "demo"
-version = "0.1.0"
-dependencies = []
-
-[dependency-groups]
-test = [
-    "pytest==9.1.1",
-]
-dev = [
-    "ruff==0.16.8",
-    {include-group = "test"},
-]
-""".strip()
-        + "\n",
-        encoding="utf-8",
-    )
+    return ModuleContext(name="rest-consumer", project=project)
 
 
 def test_rest_consumer_files_queued_in_dry_run(tmp_path: Path) -> None:
-    """T024: Verify DrivenAdapterRestConsumer.build() queues expected files."""
-    _write_minimal_pyproject(tmp_path)
+    """: Verify DrivenAdapterRestConsumer.build() queues expected files."""
+    write_minimal_pyproject(tmp_path)
     project = _project_ctx()
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, module_ctx=_module_ctx(project), dry_run=True)
 
@@ -70,10 +48,10 @@ def test_rest_consumer_files_queued_in_dry_run(tmp_path: Path) -> None:
 
 
 def test_rest_consumer_dependencies_injected(tmp_path: Path) -> None:
-    """T024: Verify DrivenAdapterRestConsumer adds httpx (runtime) and respx (test group)."""
+    """: Verify DrivenAdapterRestConsumer adds httpx (runtime) and respx (test group)."""
     import tomllib
 
-    _write_minimal_pyproject(tmp_path)
+    write_minimal_pyproject(tmp_path, with_dependency_groups=True)
     project = _project_ctx()
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, module_ctx=_module_ctx(project), dry_run=False)
 
@@ -103,20 +81,14 @@ def test_rest_consumer_dependencies_injected(tmp_path: Path) -> None:
     )
 
 
-# ---------------------------------------------------------------------------
-# T026 (US1): RestConsumer wireup changes — must FAIL until T023-T024
-# ---------------------------------------------------------------------------
-
-
 def test_rest_consumer_template_has_injectable(tmp_path: Path) -> None:
-    """T023-T024: rest_consumer adapter must have @injectable from wireup."""
+    """-: rest_consumer adapter must have @injectable from wireup."""
     from scaffold_ca_python.core.module_builder import ModuleBuilder
     from scaffold_ca_python.models.context import ModuleContext, ProjectContext
-    from scaffold_ca_python.models.layer import Layer
 
-    _write_minimal_pyproject(tmp_path)
+    write_minimal_pyproject(tmp_path)
     project = ProjectContext(name="ms-demo")
-    module_ctx = ModuleContext(name="rest_consumer", layer=Layer.DRIVEN_ADAPTERS, project=project)
+    module_ctx = ModuleContext(name="rest_consumer", project=project)
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, module_ctx=module_ctx, dry_run=False)
 
     from scaffold_ca_python.factory.driven_adapters.da_rest_consumer import DrivenAdapterRestConsumer
@@ -132,14 +104,13 @@ def test_rest_consumer_template_has_injectable(tmp_path: Path) -> None:
 
 
 def test_rest_consumer_settings_file_generated(tmp_path: Path) -> None:
-    """T023-T024: rest_consumer must generate a RestConsumerSettings file."""
+    """-: rest_consumer must generate a RestConsumerSettings file."""
     from scaffold_ca_python.core.module_builder import ModuleBuilder
     from scaffold_ca_python.models.context import ModuleContext, ProjectContext
-    from scaffold_ca_python.models.layer import Layer
 
-    _write_minimal_pyproject(tmp_path)
+    write_minimal_pyproject(tmp_path)
     project = ProjectContext(name="ms-demo")
-    module_ctx = ModuleContext(name="rest_consumer", layer=Layer.DRIVEN_ADAPTERS, project=project)
+    module_ctx = ModuleContext(name="rest_consumer", project=project)
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, module_ctx=module_ctx, dry_run=False)
 
     from scaffold_ca_python.factory.driven_adapters.da_rest_consumer import DrivenAdapterRestConsumer
@@ -155,16 +126,14 @@ def test_rest_consumer_settings_file_generated(tmp_path: Path) -> None:
     assert "base_url" in combined.lower(), "Settings must have a base_url field"
 
 
-# ---------------------------------------------------------------------------
-# T106 (Phase 3.3): Template quality — imports, conftest, no **kwargs
-# ---------------------------------------------------------------------------
+#  (.3): Template quality — imports, conftest, no **kwargs
 
 
 def _render_adapter(tmp_path: Path, gateway: object | None = None) -> str:
     """Render rest_consumer.py.jinja2 and return its content."""
-    _write_minimal_pyproject(tmp_path)
+    write_minimal_pyproject(tmp_path)
     project = ProjectContext(name="ms-demo")
-    module_ctx = ModuleContext(name="rest_consumer", layer=Layer.DRIVEN_ADAPTERS, project=project)
+    module_ctx = ModuleContext(name="rest_consumer", project=project)
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, module_ctx=module_ctx, dry_run=False)
 
     from scaffold_ca_python.factory.driven_adapters.da_rest_consumer import DrivenAdapterRestConsumer
@@ -181,7 +150,7 @@ def _render_adapter(tmp_path: Path, gateway: object | None = None) -> str:
 
 
 def test_rest_consumer_no_double_blank_lines_between_imports(tmp_path: Path) -> None:
-    """T106: Without gateway, import wireup must be directly followed by from-import (no stray blank)."""
+    """: Without gateway, import wireup must be directly followed by from-import (no stray blank)."""
     content = _render_adapter(tmp_path)
     lines = content.splitlines()
     wireup_idx = next(i for i, ln in enumerate(lines) if ln == "import wireup")
@@ -192,7 +161,7 @@ def test_rest_consumer_no_double_blank_lines_between_imports(tmp_path: Path) -> 
 
 
 def test_rest_consumer_gateway_no_double_blank_lines_between_imports(tmp_path: Path) -> None:
-    """T106: With gateway, gateway import must directly follow wireup import (no stray blank from {%- if %})."""
+    """: With gateway, gateway import must directly follow wireup import (no stray blank from {%- if %})."""
     from types import SimpleNamespace
 
     gw = SimpleNamespace(
@@ -210,16 +179,16 @@ def test_rest_consumer_gateway_no_double_blank_lines_between_imports(tmp_path: P
 
 
 def test_rest_consumer_no_kwargs_object(tmp_path: Path) -> None:
-    """T106: Generated rest_consumer.py must not contain **kwargs: object."""
+    """: Generated rest_consumer.py must not contain **kwargs: object."""
     content = _render_adapter(tmp_path)
     assert "**kwargs" not in content, "rest_consumer.py.jinja2 must not render **kwargs"
 
 
 def test_rest_consumer_conftest_fixture_appended(tmp_path: Path) -> None:
-    """T106: gda rest-consumer must create/append REST_CONSUMER_BASE_URL fixture in conftest.py."""
-    _write_minimal_pyproject(tmp_path)
+    """: gda rest-consumer must create/append REST_CONSUMER_BASE_URL fixture in conftest.py."""
+    write_minimal_pyproject(tmp_path)
     project = ProjectContext(name="ms-demo")
-    module_ctx = ModuleContext(name="rest_consumer", layer=Layer.DRIVEN_ADAPTERS, project=project)
+    module_ctx = ModuleContext(name="rest_consumer", project=project)
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, module_ctx=module_ctx, dry_run=False)
 
     from scaffold_ca_python.factory.driven_adapters.da_rest_consumer import DrivenAdapterRestConsumer
@@ -236,17 +205,19 @@ def test_rest_consumer_conftest_fixture_appended(tmp_path: Path) -> None:
 
 
 def test_rest_consumer_conftest_fixture_is_idempotent(tmp_path: Path) -> None:
-    """T106: Calling _append_rest_consumer_conftest twice must not duplicate the fixture."""
+    """: Calling _append_rest_consumer_conftest twice must not duplicate the fixture."""
     from scaffold_ca_python.factory.driven_adapters.da_rest_consumer import _append_rest_consumer_conftest
 
-    _write_minimal_pyproject(tmp_path)
+    write_minimal_pyproject(tmp_path)
     project = ProjectContext(name="ms-demo")
-    module_ctx = ModuleContext(name="rest_consumer", layer=Layer.DRIVEN_ADAPTERS, project=project)
+    module_ctx = ModuleContext(name="rest_consumer", project=project)
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, module_ctx=module_ctx, dry_run=False)
 
     conftest_path = tmp_path / "src" / "tests" / "conftest.py"
     _append_rest_consumer_conftest(builder, conftest_path)
+    builder.persist()
     _append_rest_consumer_conftest(builder, conftest_path)
+    builder.persist()
 
     content = conftest_path.read_text(encoding="utf-8")
     assert content.count("rest_consumer_env") == 1, "conftest.py fixture must not be duplicated"

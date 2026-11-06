@@ -1,9 +1,8 @@
-"""Tests for commands/_shared.py (T006)."""
+"""Tests for commands/_shared.py."""
 
 from __future__ import annotations
 
 import contextlib
-import os
 from collections.abc import Iterable
 from pathlib import Path
 
@@ -18,11 +17,9 @@ from scaffold_ca_python.commands._shared import (
     require_project_root,
 )
 from scaffold_ca_python.core.module_builder import ModuleBuilder
-from scaffold_ca_python.models.context import Layer, ModuleContext, ProjectContext
+from scaffold_ca_python.models.context import ModuleContext, ProjectContext
 
-# ---------------------------------------------------------------------------
 # fail()
-# ---------------------------------------------------------------------------
 
 
 def test_fail_exit_code_is_1() -> None:
@@ -43,38 +40,32 @@ def test_fail_without_hint_exits_1() -> None:
     assert exc_info.value.exit_code == 1
 
 
-# ---------------------------------------------------------------------------
+def test_fail_custom_exit_code() -> None:
+    with pytest.raises(typer.Exit) as exc_info:
+        fail("dependency step failed", code=2)
+    assert exc_info.value.exit_code == 2
+
+
 # require_project_root()
-# ---------------------------------------------------------------------------
 
 
-def test_require_project_root_outside_project(tmp_path: Path) -> None:
+def test_require_project_root_outside_project(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Outside a project, prints the standard message and exits 1."""
-    original = os.getcwd()
-    try:
-        os.chdir(tmp_path)
-        with pytest.raises(typer.Exit) as exc_info:
-            require_project_root()
-        assert exc_info.value.exit_code == 1
-    finally:
-        os.chdir(original)
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(typer.Exit) as exc_info:
+        require_project_root()
+    assert exc_info.value.exit_code == 1
 
 
-def test_require_project_root_none_message_outside_project(tmp_path: Path) -> None:
+def test_require_project_root_none_message_outside_project(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """With not_found_message=None, prints ScaffoldError text and exits 1."""
-    original = os.getcwd()
-    try:
-        os.chdir(tmp_path)
-        with pytest.raises(typer.Exit) as exc_info:
-            require_project_root(not_found_message=None)
-        assert exc_info.value.exit_code == 1
-    finally:
-        os.chdir(original)
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(typer.Exit) as exc_info:
+        require_project_root(not_found_message=None)
+    assert exc_info.value.exit_code == 1
 
 
-# ---------------------------------------------------------------------------
 # ensure_absent()
-# ---------------------------------------------------------------------------
 
 
 def test_ensure_absent_file_already_exists(tmp_path: Path) -> None:
@@ -101,9 +92,7 @@ def test_ensure_absent_does_nothing_when_path_missing(tmp_path: Path) -> None:
     ensure_absent(missing, tmp_path, kind="File", hint="hint")
 
 
-# ---------------------------------------------------------------------------
 # print_dry_run_tree()
-# ---------------------------------------------------------------------------
 
 
 def test_print_dry_run_tree(tmp_path: Path) -> None:
@@ -113,15 +102,13 @@ def test_print_dry_run_tree(tmp_path: Path) -> None:
     print_dry_run_tree("my module", paths, base)
 
 
-# ---------------------------------------------------------------------------
 # print_pending_dependencies()
-# ---------------------------------------------------------------------------
 
 
 def test_print_pending_dependencies(tmp_path: Path) -> None:
     """Should print Would add lines for pending deps and group deps."""
     ctx = ProjectContext(name="test-app")
-    mod = ModuleContext(name="thing", layer=Layer.DOMAIN_MODEL, project=ctx)
+    mod = ModuleContext(name="thing", project=ctx)
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=ctx, module_ctx=mod, dry_run=True)
     builder.add_dependency("httpx>=0.27")
     builder.add_dependency("respx>=0.22", group="test")
@@ -130,52 +117,27 @@ def test_print_pending_dependencies(tmp_path: Path) -> None:
     print_pending_dependencies(builder)
 
 
-# ---------------------------------------------------------------------------
-# T004 (028): warn_legacy_project (must FAIL before T003)
-# ---------------------------------------------------------------------------
-
-
-def test_warn_legacy_project_prints_warning(capsys: pytest.CaptureFixture[str]) -> None:
-    """warn_legacy_project must tell the user to migrate manually (FR-020)."""
-    from scaffold_ca_python.commands._shared import warn_legacy_project
-
-    ctx = ProjectContext(name="old-app")  # scaffold_version=None → is_legacy=True
-    warn_legacy_project(ctx)
-    # Rich outputs to stderr; check combined output
-    captured = capsys.readouterr()
-    output = captured.out + captured.err
-    assert "manually" in output.lower()
-    assert "scaffold_version" in output
-
-
-def test_warn_legacy_project_imported() -> None:
-    """warn_legacy_project must be importable from _shared (T003 gate)."""
-    from scaffold_ca_python.commands._shared import warn_legacy_project  # noqa: F401
-
-
-# ---------------------------------------------------------------------------
-# T086 (028): require_wireup_project guard
-# ---------------------------------------------------------------------------
+# require_wireup_project guard
 
 
 def test_require_wireup_project_exits_1_for_legacy(tmp_path: Path) -> None:
-    """require_wireup_project must raise SystemExit(1) for legacy projects (T086, FR-020)."""
+    """require_wireup_project must raise typer.Exit(1) for legacy projects."""
     from scaffold_ca_python.commands._shared import require_wireup_project
 
     ctx = ProjectContext(name="old-app")  # scaffold_version=None → is_legacy=True
-    with pytest.raises(SystemExit) as exc_info:
+    with pytest.raises(typer.Exit) as exc_info:
         require_wireup_project(ctx)
-    assert exc_info.value.code == 1
+    assert exc_info.value.exit_code == 1
 
 
 def test_require_wireup_project_message_mentions_manual_migration(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """require_wireup_project exit message must explain manual wireup migration (T086)."""
+    """require_wireup_project exit message must explain manual wireup migration."""
     from scaffold_ca_python.commands._shared import require_wireup_project
 
     ctx = ProjectContext(name="old-app")
-    with contextlib.suppress(SystemExit):
+    with contextlib.suppress(typer.Exit):
         require_wireup_project(ctx)
     captured = capsys.readouterr()
     output = captured.out + captured.err
@@ -185,7 +147,7 @@ def test_require_wireup_project_message_mentions_manual_migration(
 
 
 def test_require_wireup_project_passes_for_wireup_project(tmp_path: Path) -> None:
-    """require_wireup_project must not raise for a project with scaffold_version set (T086)."""
+    """require_wireup_project must not raise for a project with scaffold_version set."""
     from scaffold_ca_python.commands._shared import require_wireup_project
 
     ctx = ProjectContext(name="my-app", scaffold_version="0.6.0")

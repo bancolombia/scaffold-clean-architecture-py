@@ -5,7 +5,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from {{ project.python_package }}.application.config.wiring import create_container
-from {{ project.python_package }}.infrastructure.entry_points.generic.handler import EntryPoint
+from {{ project.python_package }}.infrastructure.entry_points.generic.entry_point import EntryPoint
 
 
 @asynccontextmanager

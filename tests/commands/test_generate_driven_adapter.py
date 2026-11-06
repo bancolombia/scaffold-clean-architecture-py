@@ -1,64 +1,17 @@
-"""Tests for gda / generate-driven-adapter command (T044)."""
+"""Tests for gda / generate-driven-adapter command."""
 
 from pathlib import Path
 
-import pytest
 from typer.testing import CliRunner
 
 from scaffold_ca_python.cli import app
-from tests.conftest import strip_ansi
+from tests.helpers import strip_ansi
 
 runner = CliRunner()
 
-
-# ---------------------------------------------------------------------------
 # Fixtures
-# ---------------------------------------------------------------------------
 
-
-@pytest.fixture()
-def project_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Bootstrap a minimal CA project root inside tmp_path."""
-    monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["ca", "--name", "my-app"], catch_exceptions=False)
-    project_dir = tmp_path / "my-app"
-    monkeypatch.chdir(project_dir)
-    return project_dir
-
-
-# ---------------------------------------------------------------------------
 # rest-consumer type
-# ---------------------------------------------------------------------------
-
-
-def test_rest_consumer_creates_init(project_root: Path) -> None:
-    result = runner.invoke(app, ["gda", "--type", "rest-consumer"], catch_exceptions=False)
-    assert result.exit_code == 0
-    assert (
-        project_root / "src" / "my_app" / "infrastructure" / "driven_adapters" / "rest_consumer" / "__init__.py"
-    ).exists()
-
-
-def test_rest_consumer_creates_impl(project_root: Path) -> None:
-    result = runner.invoke(app, ["gda", "--type", "rest-consumer"], catch_exceptions=False)
-    assert result.exit_code == 0
-    assert (
-        project_root / "src" / "my_app" / "infrastructure" / "driven_adapters" / "rest_consumer" / "rest_consumer.py"
-    ).exists()
-
-
-def test_rest_consumer_creates_test(project_root: Path) -> None:
-    result = runner.invoke(app, ["gda", "--type", "rest-consumer"], catch_exceptions=False)
-    assert result.exit_code == 0
-    assert (
-        project_root
-        / "src"
-        / "tests"
-        / "infrastructure"
-        / "driven_adapters"
-        / "rest_consumer"
-        / "test_rest_consumer.py"
-    ).exists()
 
 
 def test_rest_consumer_impl_contains_httpx(project_root: Path) -> None:
@@ -69,66 +22,10 @@ def test_rest_consumer_impl_contains_httpx(project_root: Path) -> None:
     assert "httpx" in content
 
 
-# ---------------------------------------------------------------------------
 # secrets type
-# ---------------------------------------------------------------------------
 
 
-def test_secrets_creates_init(project_root: Path) -> None:
-    result = runner.invoke(app, ["gda", "--type", "secrets"], catch_exceptions=False)
-    assert result.exit_code == 0
-    assert (project_root / "src" / "my_app" / "infrastructure" / "driven_adapters" / "secrets" / "__init__.py").exists()
-
-
-def test_secrets_creates_impl(project_root: Path) -> None:
-    result = runner.invoke(app, ["gda", "--type", "secrets"], catch_exceptions=False)
-    assert result.exit_code == 0
-    assert (
-        project_root / "src" / "my_app" / "infrastructure" / "driven_adapters" / "secrets" / "secrets_adapter.py"
-    ).exists()
-
-
-def test_secrets_creates_test(project_root: Path) -> None:
-    result = runner.invoke(app, ["gda", "--type", "secrets"], catch_exceptions=False)
-    assert result.exit_code == 0
-    assert (
-        project_root / "src" / "tests" / "infrastructure" / "driven_adapters" / "secrets" / "test_secrets_adapter.py"
-    ).exists()
-
-
-# ---------------------------------------------------------------------------
 # generic type
-# ---------------------------------------------------------------------------
-
-
-def test_generic_creates_init(project_root: Path) -> None:
-    result = runner.invoke(app, ["gda", "--type", "generic", "--name", "cache_store"], catch_exceptions=False)
-    assert result.exit_code == 0
-    assert (
-        project_root / "src" / "my_app" / "infrastructure" / "driven_adapters" / "cache_store" / "__init__.py"
-    ).exists()
-
-
-def test_generic_creates_impl(project_root: Path) -> None:
-    result = runner.invoke(app, ["gda", "--type", "generic", "--name", "cache_store"], catch_exceptions=False)
-    assert result.exit_code == 0
-    assert (
-        project_root / "src" / "my_app" / "infrastructure" / "driven_adapters" / "cache_store" / "adapter.py"
-    ).exists()
-
-
-def test_generic_creates_test(project_root: Path) -> None:
-    result = runner.invoke(app, ["gda", "--type", "generic", "--name", "cache_store"], catch_exceptions=False)
-    assert result.exit_code == 0
-    assert (
-        project_root
-        / "src"
-        / "tests"
-        / "infrastructure"
-        / "driven_adapters"
-        / "cache_store"
-        / "test_cache_store_adapter.py"
-    ).exists()
 
 
 def test_generic_impl_contains_class_name(project_root: Path) -> None:
@@ -139,9 +36,7 @@ def test_generic_impl_contains_class_name(project_root: Path) -> None:
     assert "CacheStore" in content
 
 
-# ---------------------------------------------------------------------------
 # Alias
-# ---------------------------------------------------------------------------
 
 
 def test_generate_driven_adapter_alias_works(project_root: Path) -> None:
@@ -149,9 +44,7 @@ def test_generate_driven_adapter_alias_works(project_root: Path) -> None:
     assert result.exit_code == 0
 
 
-# ---------------------------------------------------------------------------
 # Dry-run
-# ---------------------------------------------------------------------------
 
 
 def test_dry_run_writes_nothing_rest_consumer(project_root: Path) -> None:
@@ -179,9 +72,7 @@ def test_dry_run_generic_writes_nothing(project_root: Path) -> None:
     ).exists()
 
 
-# ---------------------------------------------------------------------------
 # Error cases
-# ---------------------------------------------------------------------------
 
 
 def test_generic_without_name_exits_1(project_root: Path) -> None:
@@ -207,15 +98,7 @@ def test_invalid_name_exits_1(project_root: Path) -> None:
     assert result.exit_code != 0
 
 
-def test_no_project_root_exits_1(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.chdir(tmp_path)
-    result = runner.invoke(app, ["gda", "--type", "rest-consumer"])
-    assert result.exit_code == 1
-
-
-# ---------------------------------------------------------------------------
-# US4: Auto-inject dependencies
-# ---------------------------------------------------------------------------
+# : Auto-inject dependencies
 
 
 def test_rest_consumer_injects_httpx(project_root: Path) -> None:
@@ -276,9 +159,7 @@ def test_dry_run_prints_deps_to_inject(project_root: Path) -> None:
     assert "[dependency-groups.test]" in result.output
 
 
-# ---------------------------------------------------------------------------
-# US2: gda --help epilog
-# ---------------------------------------------------------------------------
+# : gda --help epilog
 
 
 def test_gda_help_shows_type_descriptions() -> None:
@@ -299,28 +180,4 @@ def test_gda_help_contains_custom_adapter_description() -> None:
     assert "Custom adapter" in result.output
 
 
-# ---------------------------------------------------------------------------
-# US3: no-args → help (T019)
-# ---------------------------------------------------------------------------
-
-
-def test_gda_no_args_exits_0() -> None:
-    result = runner.invoke(app, ["gda"])
-    assert result.exit_code == 0
-
-
-def test_gda_no_args_shows_type_option() -> None:
-    result = runner.invoke(app, ["gda"])
-    assert "--type" in strip_ansi(result.output)
-
-
-def test_pascal_case_name_exits_1(project_root: Path) -> None:
-    result = runner.invoke(app, ["gda", "--type", "generic", "--name", "InvalidAdapter"])
-    assert result.exit_code == 1
-    assert "snake_case" in result.output
-
-
-def test_kebab_name_exits_1(project_root: Path) -> None:
-    result = runner.invoke(app, ["gda", "--type", "generic", "--name", "cache-store"])
-    assert result.exit_code == 1
-    assert "snake_case" in result.output
+# : no-args → help

@@ -1,9 +1,9 @@
-"""Tests for name_utils: snake_case, PascalCase, validate_name (T017)."""
+"""Tests for name_utils: snake_case, PascalCase, validate_name."""
 
 import pytest
 
+from scaffold_ca_python.core.errors import ScaffoldError
 from scaffold_ca_python.core.name_utils import (
-    ScaffoldError,
     strip_usecase_suffix,
     to_kebab_case,
     to_pascal_case,
@@ -12,9 +12,7 @@ from scaffold_ca_python.core.name_utils import (
     validate_name,
 )
 
-# ---------------------------------------------------------------------------
 # to_snake_case
-# ---------------------------------------------------------------------------
 
 
 def test_snake_case_from_pascal() -> None:
@@ -37,7 +35,7 @@ def test_snake_case_single_word() -> None:
     assert to_snake_case("Order") == "order"
 
 
-# T009: US2 — to_snake_case normalises hyphens
+# :  — to_snake_case normalises hyphens
 def test_to_snake_case_from_kebab() -> None:
     assert to_snake_case("my-project") == "my_project"
 
@@ -46,9 +44,7 @@ def test_to_snake_case_multi_word_kebab() -> None:
     assert to_snake_case("my-order-service") == "my_order_service"
 
 
-# ---------------------------------------------------------------------------
 # to_kebab_case
-# ---------------------------------------------------------------------------
 
 
 def test_kebab_case_from_snake() -> None:
@@ -71,9 +67,7 @@ def test_kebab_case_single_word() -> None:
     assert to_kebab_case("order") == "order"
 
 
-# ---------------------------------------------------------------------------
 # to_pascal_case
-# ---------------------------------------------------------------------------
 
 
 def test_pascal_case_from_snake() -> None:
@@ -92,15 +86,13 @@ def test_pascal_case_multiple_underscores() -> None:
     assert to_pascal_case("create_order_use_case") == "CreateOrderUseCase"
 
 
-# T013: US3 — to_pascal_case works correctly after kebab normalisation
+# :  — to_pascal_case works correctly after kebab normalisation
 def test_to_pascal_case_from_snake_after_kebab_normalisation() -> None:
     assert to_pascal_case(to_snake_case("my-model")) == "MyModel"
     assert to_pascal_case(to_snake_case("my-order-service")) == "MyOrderService"
 
 
-# ---------------------------------------------------------------------------
 # validate_name
-# ---------------------------------------------------------------------------
 
 
 def test_validate_name_rejects_pascal_case() -> None:
@@ -140,7 +132,7 @@ def test_validate_name_rejects_path_traversal() -> None:
         validate_name("../etc/passwd")
 
 
-# T003: additional US1 edge cases
+# : additional  edge cases
 def test_validate_name_accepts_multi_word_kebab() -> None:
     assert validate_name("my-order-service") == "my-order-service"
 
@@ -170,9 +162,7 @@ def test_validate_name_rejects_trailing_underscore() -> None:
         validate_name("myproject_")
 
 
-# ---------------------------------------------------------------------------
 # validate_module_name (snake_case only)
-# ---------------------------------------------------------------------------
 
 
 def test_validate_module_name_accepts_snake_case() -> None:
@@ -198,9 +188,7 @@ def test_validate_module_name_rejects_camel_case() -> None:
         validate_module_name("createOrder")
 
 
-# ---------------------------------------------------------------------------
 # strip_usecase_suffix
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize(

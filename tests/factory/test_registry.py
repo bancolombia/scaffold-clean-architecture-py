@@ -17,7 +17,7 @@ from scaffold_ca_python.commands import (
 )
 from scaffold_ca_python.factory.driven_adapters import DRIVEN_ADAPTER_FACTORIES
 from scaffold_ca_python.factory.entry_points import ENTRY_POINT_FACTORIES
-from tests.conftest import strip_ansi
+from tests.helpers import strip_ansi
 
 runner = CliRunner()
 
@@ -54,9 +54,7 @@ def test_gda_unknown_type_lists_valid_keys() -> None:
         assert key in out, f"Expected valid key '{key}' listed in error output"
 
 
-# ---------------------------------------------------------------------------
-# T013: factory ClassVar descriptors and PIPELINE_PROVIDERS
-# ---------------------------------------------------------------------------
+# : factory ClassVar descriptors and PIPELINE_PROVIDERS
 
 
 def test_factory_descriptors() -> None:
@@ -68,31 +66,27 @@ def test_factory_descriptors() -> None:
 
     # restapi
     assert ep["restapi"].subdir == "api/v1"
-    assert EntryPointFlag.SWAGGER in ep["restapi"].supported_flags
-    assert EntryPointFlag.ENABLE_MCP_CLIENT in ep["restapi"].supported_flags
-    assert EntryPointFlag.ENABLE_KAFKA in ep["restapi"].supported_flags
-    conflict_labels = {c.label for c in ep["restapi"].conflicts}
-    assert "mcp_server" in conflict_labels
-    assert "agent" in conflict_labels
+    assert ep["restapi"].supported_flags == frozenset({EntryPointFlag.SWAGGER})
+    conflict_types = {c.type_key for c in ep["restapi"].conflicts}
+    assert "mcp" in conflict_types
+    assert "agent" in conflict_types
 
     # mcp
     assert ep["mcp"].subdir == "mcp_server"
-    assert EntryPointFlag.MCP_PRIMITIVES in ep["mcp"].supported_flags
-    assert EntryPointFlag.ENABLE_KAFKA in ep["mcp"].supported_flags
-    mcp_conflict_subdirs = {c.subdir for c in ep["mcp"].conflicts}
-    assert "api" in mcp_conflict_subdirs
+    assert ep["mcp"].supported_flags == frozenset({EntryPointFlag.MCP_PRIMITIVES})
+    mcp_conflict_types = {c.type_key for c in ep["mcp"].conflicts}
+    assert "restapi" in mcp_conflict_types
 
     # agent
     assert ep["agent"].subdir == "agent"
     assert EntryPointFlag.ENABLE_MCP_CLIENT in ep["agent"].supported_flags
     assert EntryPointFlag.ENABLE_KAFKA in ep["agent"].supported_flags
-    agent_conflict_subdirs = {c.subdir for c in ep["agent"].conflicts}
-    assert "api" in agent_conflict_subdirs
+    agent_conflict_types = {c.type_key for c in ep["agent"].conflicts}
+    assert "restapi" in agent_conflict_types
 
     # generic
     assert ep["generic"].subdir == "generic"
-    assert EntryPointFlag.ENABLE_MCP_CLIENT in ep["generic"].supported_flags
-    assert EntryPointFlag.ENABLE_KAFKA in ep["generic"].supported_flags
+    assert ep["generic"].supported_flags == frozenset()
     assert ep["generic"].conflicts == ()
 
 

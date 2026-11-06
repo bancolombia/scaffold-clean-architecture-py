@@ -7,6 +7,7 @@ from typing import Annotated
 import typer
 
 from scaffold_ca_python.commands._shared import (
+    DryRun,
     build_and_persist,
     console,
     ensure_absent,
@@ -14,17 +15,17 @@ from scaffold_ca_python.commands._shared import (
     find_gateway,
     print_dry_run_tree,
     print_pending_dependencies,
-    require_project_root,
-    require_wireup_project,
+    register_with_alias,
+    require_wireup_context,
+    show_help_if_missing,
     validate_name_or_exit,
 )
 from scaffold_ca_python.core.module_builder import ModuleBuilder
 from scaffold_ca_python.core.name_utils import to_pascal_case, to_snake_case, validate_module_name
-from scaffold_ca_python.core.project_detector import load_project_context, resolve_tests_root
+from scaffold_ca_python.core.project_detector import resolve_tests_root
 from scaffold_ca_python.core.wiring_utils import sync_wiring_marker
 from scaffold_ca_python.factory.driven_adapters import DRIVEN_ADAPTER_FACTORIES
 from scaffold_ca_python.models.context import ModuleContext
-from scaffold_ca_python.models.layer import Layer
 
 _GDA_HELP = "Scaffold a driven adapter and test stub. Alias 'gda'."
 _GDA_EPILOG = (
@@ -59,13 +60,11 @@ def _generate_driven_adapter_impl(
     if name:
         validate_name_or_exit(name, validate_module_name)
 
-    project_root = require_project_root()
-    project_ctx = load_project_context(project_root)
-    require_wireup_project(project_ctx)
+    project_root, project_ctx = require_wireup_context()
     subdir = to_snake_case(mod_name)
-    module_ctx = ModuleContext(name=mod_name, layer=Layer.DRIVEN_ADAPTERS, project=project_ctx)
+    module_ctx = ModuleContext(name=mod_name, project=project_ctx)
 
-    src_dir = project_root / "src" / project_ctx.python_package / "infrastructure" / "driven_adapters" / subdir
+    src_dir = project_ctx.src_pkg_root / "infrastructure" / "driven_adapters" / subdir
     ensure_absent(
         src_dir,
         project_root,
@@ -81,7 +80,7 @@ def _generate_driven_adapter_impl(
     )
 
     if gateway:
-        model_module = find_gateway(project_root, project_ctx.python_package, gateway)
+        model_module = find_gateway(project_ctx.src_pkg_root, gateway)
         if model_module is None:
             fail(
                 f"Gateway '{gateway}' not found in domain/model/*/gateways/.",
@@ -104,7 +103,7 @@ def _generate_driven_adapter_impl(
         return
 
     if gateway:
-        sync_wiring_marker(project_root, project_ctx.python_package, resolve_tests_root(project_root))
+        sync_wiring_marker(project_ctx.src_pkg_root, resolve_tests_root(project_root))
 
     console.print(f"[green]✓[/green] Driven adapter [bold]{subdir}[/bold] created. Created {len(created)} file(s).")
 
@@ -112,12 +111,6 @@ def _generate_driven_adapter_impl(
 def register(app: typer.Typer) -> None:
     """Register gda / generate-driven-adapter commands onto *app*."""
 
-    @app.command(
-        "generate-driven-adapter",
-        help=_GDA_HELP,
-        epilog=_GDA_EPILOG,
-    )
-    @app.command("gda", hidden=True, help=_GDA_HELP, epilog=_GDA_EPILOG)
     def generate_driven_adapter(
         ctx: typer.Context,
         type_: Annotated[
@@ -136,15 +129,7 @@ def register(app: typer.Typer) -> None:
                 rich_help_panel="Options",
             ),
         ] = None,
-        dry_run: Annotated[
-            bool,
-            typer.Option(
-                "--dry-run/--no-dry-run",
-                help="Preview without writing.",
-                rich_help_panel="Options",
-                show_default=True,
-            ),
-        ] = False,
+        dry_run: DryRun = False,
         gateway: Annotated[
             str | None,
             typer.Option(
@@ -155,7 +140,9 @@ def register(app: typer.Typer) -> None:
         ] = None,
     ) -> None:
         """Scaffold a driven adapter inside infrastructure/driven_adapters/."""
-        if type_ is None:
-            typer.echo(ctx.get_help())
-            raise typer.Exit(0)
+        type_ = show_help_if_missing(ctx, type_)
         _generate_driven_adapter_impl(type_, name, dry_run, gateway)
+
+    register_with_alias(
+        app, "generate-driven-adapter", "gda", generate_driven_adapter, help=_GDA_HELP, epilog=_GDA_EPILOG
+    )

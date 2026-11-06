@@ -9,8 +9,6 @@ from pydantic import BaseModel
 class GeneratedFile(BaseModel):
     path: Path
     content: str
-    template_name: str
-    is_test: bool = False
     overwrite: bool = False
 
 
@@ -60,6 +58,7 @@ class AppendToFile(BaseModel):
     kind: Literal["append_to_file"] = "append_to_file"
     path: Path
     content: str
+    marker: str | None = None
 
 
 FileOperation = Annotated[CreateFile | DeleteFile | InsertAfter | AppendToFile, "FileOperation"]

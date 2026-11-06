@@ -41,11 +41,7 @@ class FileWriter:
 
     def write(self, path: Path, content: str) -> None:
         """Write a single file to *path* with *content*."""
-        self._commit([CreateFile(file=GeneratedFile(path=path, content=content, template_name=""))])
-
-    def delete(self, path: Path) -> None:
-        """Delete the file at *path*."""
-        self._commit([DeleteFile(path=path)])
+        self._commit([CreateFile(file=GeneratedFile(path=path, content=content))])
 
     def _dry_run(self, operations: list[FileOperation]) -> list[Path]:
         result: list[Path] = []
@@ -130,6 +126,8 @@ class FileWriter:
         """
         if op.path.exists():
             original = op.path.read_text(encoding="utf-8")
+            if op.marker and op.marker in original:
+                return
             normalized = original.rstrip("\n") + "\n"
             op.path.write_text(normalized + op.content, encoding="utf-8")
         else:

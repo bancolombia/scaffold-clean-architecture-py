@@ -1,4 +1,4 @@
-"""Template rendering tests for pipeline/ group — both providers (T089)."""
+"""Template rendering tests for pipeline/ group — both providers."""
 
 import importlib.resources
 
@@ -16,9 +16,7 @@ def _tmpl(name: str) -> str:
     return importlib.resources.files("scaffold_ca_python.templates").joinpath(name).read_text(encoding="utf-8")
 
 
-# ---------------------------------------------------------------------------
 # github
-# ---------------------------------------------------------------------------
 
 
 def test_github_has_ruff_step() -> None:
@@ -39,12 +37,10 @@ def test_github_has_pytest_with_coverage() -> None:
 
 def test_github_has_coverage_gate_80() -> None:
     out = renderer.render_string(_tmpl("pipeline/github/ci.yml.jinja2"), _project().model_dump())
-    assert "80" in out
+    assert "--cov-fail-under=80" in out
 
 
-# ---------------------------------------------------------------------------
 # azure
-# ---------------------------------------------------------------------------
 
 
 def test_azure_has_ruff_step() -> None:
@@ -65,4 +61,4 @@ def test_azure_has_pytest_with_coverage() -> None:
 
 def test_azure_has_coverage_gate_80() -> None:
     out = renderer.render_string(_tmpl("pipeline/azure/azure_pipelines.yml.jinja2"), _project().model_dump())
-    assert "80" in out
+    assert "--cov-fail-under=80" in out

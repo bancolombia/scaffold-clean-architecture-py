@@ -1,4 +1,4 @@
-"""Tests for UseCaseFactory (T034)."""
+"""Tests for UseCaseFactory."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from pathlib import Path
 
 from scaffold_ca_python.core.module_builder import ModuleBuilder
 from scaffold_ca_python.models.context import ModuleContext, ProjectContext
-from scaffold_ca_python.models.layer import Layer
+from tests.helpers import write_minimal_pyproject
 
 
 def _project_ctx() -> ProjectContext:
@@ -14,25 +14,12 @@ def _project_ctx() -> ProjectContext:
 
 
 def _module_ctx(project: ProjectContext) -> ModuleContext:
-    return ModuleContext(name="create-order", layer=Layer.DOMAIN_USECASE, project=project)
-
-
-def _write_minimal_pyproject(root: Path) -> None:
-    (root / "pyproject.toml").write_text(
-        """
-[project]
-name = "demo"
-version = "0.1.0"
-dependencies = []
-""".strip()
-        + "\n",
-        encoding="utf-8",
-    )
+    return ModuleContext(name="create-order", project=project)
 
 
 def test_use_case_files_queued_in_dry_run(tmp_path: Path) -> None:
-    """T034: Verify UseCaseFactory.build() queues expected files."""
-    _write_minimal_pyproject(tmp_path)
+    """: Verify UseCaseFactory.build() queues expected files."""
+    write_minimal_pyproject(tmp_path)
     project = _project_ctx()
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, module_ctx=_module_ctx(project), dry_run=True)
 
@@ -60,8 +47,8 @@ def test_use_case_files_queued_in_dry_run(tmp_path: Path) -> None:
 
 
 def test_use_case_no_dependencies_injected(tmp_path: Path) -> None:
-    """T034: Verify UseCaseFactory does not add dependencies."""
-    _write_minimal_pyproject(tmp_path)
+    """: Verify UseCaseFactory does not add dependencies."""
+    write_minimal_pyproject(tmp_path)
     project = _project_ctx()
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, module_ctx=_module_ctx(project), dry_run=False)
 

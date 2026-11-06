@@ -7,13 +7,14 @@ from typing import TYPE_CHECKING, Annotated
 import typer
 
 from scaffold_ca_python.commands._shared import (
+    DryRun,
     console,
     print_dry_run_tree,
-    require_project_root,
-    require_wireup_project,
+    register_with_alias,
+    require_wireup_context,
+    show_help_if_missing,
 )
 from scaffold_ca_python.core.module_builder import ModuleBuilder
-from scaffold_ca_python.core.project_detector import load_project_context
 from scaffold_ca_python.factory.pipelines import PIPELINE_PROVIDERS
 
 if TYPE_CHECKING:
@@ -51,9 +52,7 @@ def _generate_pipeline_impl(
         raise typer.Exit(code=1)
 
     pipeline = PIPELINE_PROVIDERS[provider]
-    project_root = require_project_root()
-    project_ctx = load_project_context(project_root)
-    require_wireup_project(project_ctx)
+    project_root, project_ctx = require_wireup_context()
     out_path = project_root / pipeline.output_path
 
     if out_path.exists():
@@ -87,12 +86,6 @@ def _generate_pipeline_impl(
 def register(app: typer.Typer) -> None:
     """Register gpipe / generate-pipeline commands onto *app*."""
 
-    @app.command(
-        "generate-pipeline",
-        help=_GPIPE_HELP,
-        epilog=_GPIPE_EPILOG,
-    )
-    @app.command("gpipe", hidden=True, help=_GPIPE_HELP, epilog=_GPIPE_EPILOG)
     def generate_pipeline(
         ctx: typer.Context,
         provider: Annotated[
@@ -103,18 +96,10 @@ def register(app: typer.Typer) -> None:
                 rich_help_panel="Required",
             ),
         ] = None,
-        dry_run: Annotated[
-            bool,
-            typer.Option(
-                "--dry-run/--no-dry-run",
-                help="Preview without writing.",
-                rich_help_panel="Options",
-                show_default=True,
-            ),
-        ] = False,
+        dry_run: DryRun = False,
     ) -> None:
         """Scaffold a CI/CD pipeline file for the specified provider."""
-        if provider is None:
-            typer.echo(ctx.get_help())
-            raise typer.Exit(0)
+        provider = show_help_if_missing(ctx, provider)
         _generate_pipeline_impl(provider, dry_run)
+
+    register_with_alias(app, "generate-pipeline", "gpipe", generate_pipeline, help=_GPIPE_HELP, epilog=_GPIPE_EPILOG)

@@ -1,4 +1,4 @@
-"""Tests for mcp_tool_spec module (T011).
+"""Tests for mcp_tool_spec module.
 
 Tests for parsing and validating --add-tool CLI arguments.
 """
@@ -19,9 +19,7 @@ from scaffold_ca_python.core.mcp_tool_spec import (
     validate_type_expression,
 )
 
-# ---------------------------------------------------------------------------
 # parse_param tests
-# ---------------------------------------------------------------------------
 
 
 def test_parse_param_valid_simple() -> None:
@@ -58,9 +56,7 @@ def test_parse_param_rejects_bad_type() -> None:
         parse_param("path:print('x')")
 
 
-# ---------------------------------------------------------------------------
 # validate_type_expression tests
-# ---------------------------------------------------------------------------
 
 
 def test_validate_type_expression_accepts_builtins() -> None:
@@ -115,9 +111,7 @@ def test_validate_type_expression_rejects_comprehension() -> None:
     assert validate_type_expression("[x for x in range(10)]") is False
 
 
-# ---------------------------------------------------------------------------
 # find_existing_tool_names tests
-# ---------------------------------------------------------------------------
 
 
 def test_find_existing_tool_names_returns_registered_names() -> None:
@@ -165,9 +159,7 @@ async def bind_tools(mcp):
     assert "another_fake" not in names
 
 
-# ---------------------------------------------------------------------------
 # has_bind_tools_function tests
-# ---------------------------------------------------------------------------
 
 
 def test_has_bind_tools_function_returns_true_when_last() -> None:
@@ -236,9 +228,7 @@ __all__ = ["bind_tools"]
     assert has_bind_tools_function(source) is False
 
 
-# ---------------------------------------------------------------------------
 # has_test_registration_structure tests
-# ---------------------------------------------------------------------------
 
 
 def test_has_test_registration_structure_returns_true_with_all_requirements() -> None:
@@ -290,9 +280,7 @@ def _make_mock_mcp():
     assert has_test_registration_structure(source) is False
 
 
-# ---------------------------------------------------------------------------
 # validate_description tests
-# ---------------------------------------------------------------------------
 
 
 def test_validate_description_accepts_normal_text() -> None:
@@ -324,9 +312,7 @@ def test_validate_description_rejects_triple_single_quote() -> None:
         validate_description("breaks ''' here")
 
 
-# ---------------------------------------------------------------------------
 # ToolSpec and ParamSpec tests
-# ---------------------------------------------------------------------------
 
 
 def test_tool_spec_accepts_valid_input() -> None:
@@ -369,6 +355,12 @@ def test_param_spec_rejects_hard_keyword_name() -> None:
     """ParamSpec rejects hard Python keywords as parameter names."""
     with pytest.raises(ValueError, match="'import' is a Python keyword"):
         ParamSpec(name="import", type="str")
+
+
+@pytest.mark.parametrize("bad_type", ["int, str", "...", "foo().bar"])
+def test_invalid_type_expressions_rejected(bad_type: str) -> None:
+    with pytest.raises(ValueError):
+        ParamSpec(name="x", type=bad_type)
 
 
 def test_build_tool_spec_applies_defaults() -> None:

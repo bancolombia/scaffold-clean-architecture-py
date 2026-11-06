@@ -7,6 +7,8 @@ from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar, NamedTuple
 
+from scaffold_ca_python.core.project_detector import resolve_tests_root
+
 if TYPE_CHECKING:
     from scaffold_ca_python.core.module_builder import ModuleBuilder
 
@@ -25,10 +27,9 @@ class EntryPointFlag(Enum):
 
 
 class EntryPointConflict(NamedTuple):
-    """A directory under infrastructure/entry_points/ whose presence blocks creation."""
+    """Another entry-point type whose presence blocks creation of this one."""
 
-    label: str
-    subdir: str
+    type_key: str
 
 
 class EntryPointFactory(ABC):
@@ -42,13 +43,29 @@ class EntryPointFactory(ABC):
     supported_flags: ClassVar[frozenset[EntryPointFlag]] = frozenset()
     conflicts: ClassVar[tuple[EntryPointConflict, ...]] = ()
 
+    @classmethod
+    def entry_points_src(cls, builder: ModuleBuilder) -> Path:
+        """Source tree path for this entry-point type under infrastructure/entry_points/."""
+        return builder.project_ctx.src_pkg_root.joinpath("infrastructure", "entry_points", *cls.subdir.split("/"))
+
+    @classmethod
+    def entry_points_tests(cls, builder: ModuleBuilder) -> Path:
+        """Test mirror path for this entry-point type."""
+        rel = Path("infrastructure", "entry_points", *cls.subdir.split("/"))
+        return resolve_tests_root(builder.project_root) / rel
+
+    @classmethod
+    def pkg_file(cls, builder: ModuleBuilder, *parts: str) -> Path:
+        """Path under the project package root (src/<pkg>/...)."""
+        return builder.project_ctx.src_pkg_root.joinpath(*parts)
+
     @abstractmethod
     def build(self, builder: ModuleBuilder) -> None:
         """Populate *builder* with file and dependency operations."""
 
     def result_notes(
         self,
-        project_root: Path,
+        src_pkg_root: Path,
         pkg: str,
         type_key: str,
         *,

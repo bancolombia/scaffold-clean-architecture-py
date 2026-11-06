@@ -1,4 +1,4 @@
-"""Unit tests for StructureValidator (T057)."""
+"""Unit tests for StructureValidator."""
 
 from __future__ import annotations
 
@@ -9,9 +9,7 @@ import pytest
 from scaffold_ca_python.core.structure_validator import StructureValidator
 from scaffold_ca_python.models.layer import Layer
 
-# ---------------------------------------------------------------------------
 # Helpers
-# ---------------------------------------------------------------------------
 
 
 def _write(path: Path, content: str) -> None:
@@ -19,9 +17,7 @@ def _write(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8")
 
 
-# ---------------------------------------------------------------------------
 # Clean project — no violations
-# ---------------------------------------------------------------------------
 
 
 def test_clean_project_returns_empty_violations(tmp_path: Path) -> None:
@@ -75,9 +71,7 @@ def test_intra_layer_import_is_allowed(tmp_path: Path) -> None:
     assert report.passed
 
 
-# ---------------------------------------------------------------------------
 # Violations — domain/model importing outward
-# ---------------------------------------------------------------------------
 
 
 def test_domain_model_importing_driven_adapter_is_violation(tmp_path: Path) -> None:
@@ -166,9 +160,7 @@ def test_multiple_violations_collected(tmp_path: Path) -> None:
     assert len(report.violations) == 2
 
 
-# ---------------------------------------------------------------------------
 # ast.Import (bare import) form
-# ---------------------------------------------------------------------------
 
 
 def test_bare_import_form_detected(tmp_path: Path) -> None:
@@ -184,9 +176,7 @@ def test_bare_import_form_detected(tmp_path: Path) -> None:
     assert "import my_app.infrastructure.driven_adapters" in report.violations[0].import_statement
 
 
-# ---------------------------------------------------------------------------
 # Edge cases
-# ---------------------------------------------------------------------------
 
 
 def test_no_src_raises_scaffold_error(tmp_path: Path) -> None:

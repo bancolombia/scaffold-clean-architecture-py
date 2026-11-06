@@ -1,9 +1,29 @@
-"""Utilities for managing the test_wiring.py file."""
+"""Idempotent wiring test stubs and MISSING_ADAPTERS sync in test_wiring.py."""
 
 from __future__ import annotations
 
 import ast
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
+
+from pydantic import BaseModel
+
+if TYPE_CHECKING:
+    from scaffold_ca_python.core.module_builder import ModuleBuilder
+
+
+def append_test_once(
+    builder: ModuleBuilder,
+    path: Path,
+    fn_name: str,
+    template: str,
+    ctx: BaseModel | dict[str, Any],
+) -> None:
+    """Append a rendered test stub to *path* only when *fn_name* is not already defined."""
+    existing = path.read_text(encoding="utf-8") if path.exists() else ""
+    if fn_name in find_existing_test_function_names(existing):
+        return
+    builder.append_to_file(path, builder.render(template, ctx))
 
 
 def find_existing_test_function_names(source: str) -> set[str]:
@@ -46,7 +66,7 @@ def remove_test_function(source: str, fn_name: str) -> str | None:
     if target is None:
         return None
 
-    start = target.lineno - 1  # 0-indexed
+    start = (target.decorator_list[0].lineno - 1) if target.decorator_list else (target.lineno - 1)
     end = target.end_lineno  # exclusive (1-indexed end → 0-indexed exclusive)
 
     # Include leading blank lines that precede the function
@@ -61,14 +81,14 @@ def remove_test_function(source: str, fn_name: str) -> str | None:
 MISSING_ADAPTERS_VAR = "MISSING_ADAPTERS"
 
 
-def find_missing_adapters(project_root: Path, pkg: str) -> list[str]:
+def find_missing_adapters(src_pkg_root: Path) -> list[str]:
     """Return gateway class names used by use-case factories with no ``as_type=`` adapter.
 
     Gateways are the names imported from ``...gateways.<module>`` in
     ``application/config/usecases/*.py``; implemented gateways are the ``as_type=<Name>``
     keyword values of decorators found under ``infrastructure/driven_adapters/``.
     """
-    base = project_root / "src" / pkg
+    base = src_pkg_root
     used: set[str] = set()
     for path in _py_files(base / "application" / "config" / "usecases"):
         for node in ast.walk(_parse(path)):
@@ -120,11 +140,11 @@ def sync_missing_adapters_marker(wiring_test_path: Path, missing: list[str]) -> 
     return True
 
 
-def sync_wiring_marker(project_root: Path, pkg: str, tests_root: Path) -> None:
+def sync_wiring_marker(src_pkg_root: Path, tests_root: Path) -> None:
     """Recompute missing adapters and update ``test_wiring.py`` accordingly."""
     sync_missing_adapters_marker(
         tests_root / "application" / "config" / "test_wiring.py",
-        find_missing_adapters(project_root, pkg),
+        find_missing_adapters(src_pkg_root),
     )
 
 

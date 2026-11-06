@@ -1,4 +1,4 @@
-"""Template rendering tests for entry_point/ group — all 4 types (T087)."""
+"""Template rendering tests for entry_point/ group — all 4 types."""
 
 import ast
 import importlib.resources
@@ -7,7 +7,6 @@ import pytest
 
 from scaffold_ca_python.core.template_renderer import TemplateRenderer
 from scaffold_ca_python.models.context import ModuleContext, ProjectContext
-from scaffold_ca_python.models.layer import Layer
 
 renderer = TemplateRenderer()
 
@@ -17,16 +16,14 @@ def _project() -> ProjectContext:
 
 
 def _ctx(name: str = "my-app", subtype: str | None = None) -> ModuleContext:
-    return ModuleContext(name=name, layer=Layer.ENTRY_POINTS, project=_project(), subtype=subtype)
+    return ModuleContext(name=name, project=_project())
 
 
 def _tmpl(name: str) -> str:
     return importlib.resources.files("scaffold_ca_python.templates").joinpath(name).read_text(encoding="utf-8")
 
 
-# ---------------------------------------------------------------------------
 # restapi
-# ---------------------------------------------------------------------------
 
 
 def test_entry_point_restapi_rest_controller_has_apirouter() -> None:
@@ -47,9 +44,7 @@ def test_entry_point_restapi_server_has_start_server() -> None:
     assert "start_server" in out
 
 
-# ---------------------------------------------------------------------------
-# restapi — server.py thin wrapper (US2 / T011–T012)
-# ---------------------------------------------------------------------------
+# restapi — server.py thin wrapper ( / –)
 
 
 def test_entry_point_restapi_server_is_thin_wrapper() -> None:
@@ -63,9 +58,7 @@ def test_entry_point_restapi_server_imports_start_server() -> None:
     assert "application.app import start_server" in out
 
 
-# ---------------------------------------------------------------------------
-# restapi — app.py template (US1 / T003–T006)
-# ---------------------------------------------------------------------------
+# restapi — app.py template ( / –)
 
 
 def test_entry_point_restapi_app_has_create_app_factory() -> None:
@@ -80,7 +73,7 @@ def test_entry_point_restapi_app_has_lifespan() -> None:
 
 
 def test_entry_point_restapi_app_has_wireup_setup() -> None:
-    """T029: restapi app.py must use wireup.integration.fastapi.setup (not dependency-injector Container)."""
+    """: restapi app.py must use wireup.integration.fastapi.setup (not dependency-injector Container)."""
     out = renderer.render_string(_tmpl("entry_point/restapi/app.py.jinja2"), _ctx().model_dump())
     assert "wireup.integration.fastapi" in out
     assert "create_container" in out
@@ -93,9 +86,7 @@ def test_entry_point_restapi_app_factory_path_uses_application_app() -> None:
     assert "application.app:create_app" in out
 
 
-# ---------------------------------------------------------------------------
-# restapi — test file templates (US4 / T022–T025)
-# ---------------------------------------------------------------------------
+# restapi — test file templates ( / –)
 
 
 def test_entry_point_restapi_test_app_template_has_create_app_assertion() -> None:
@@ -114,9 +105,7 @@ def test_entry_point_restapi_test_exception_handler_template_has_status_codes() 
     assert "422" in out or "HTTPException" in out
 
 
-# ---------------------------------------------------------------------------
-# restapi — test_rest_controller.py template correctness (T004, T005)
-# ---------------------------------------------------------------------------
+# restapi — test_rest_controller.py template correctness (, )
 
 
 def test_generated_test_rest_controller_imports_application_app() -> None:
@@ -130,9 +119,7 @@ def test_generated_test_rest_controller_has_no_duplicate_docstring() -> None:
     assert out.count('"""Tests') == 1
 
 
-# ---------------------------------------------------------------------------
 # agent
-# ---------------------------------------------------------------------------
 
 
 def test_agent_has_class_name() -> None:
@@ -160,9 +147,7 @@ def test_agent_without_kafka_flag_excludes_stub() -> None:
     assert "AIOKafkaConsumer" not in out
 
 
-# ---------------------------------------------------------------------------
-# mcp — tools.py template (T006)
-# ---------------------------------------------------------------------------
+# mcp — tools.py template
 
 
 def test_mcp_tools_has_bind_tools() -> None:
@@ -171,7 +156,7 @@ def test_mcp_tools_has_bind_tools() -> None:
 
 
 def test_mcp_tools_has_wireup_injected_import() -> None:
-    """Wireup: tools.py must import Injected from wireup instead of @inject (FR-016)."""
+    """Wireup: tools.py must import Injected from wireup instead of @inject."""
     out = renderer.render_string(_tmpl("entry_point/mcp/tools.py.jinja2"), _ctx().model_dump())
     assert "wireup" in out
     assert "@inject" not in out
@@ -188,7 +173,7 @@ def test_mcp_tools_is_async() -> None:
 
 
 def test_mcp_tools_bind_tools_is_last_statement() -> None:
-    """T005: Regression guard — bind_tools must be the last top-level statement.
+    """: Regression guard — bind_tools must be the last top-level statement.
 
     The --add-tool feature relies on this invariant: appending to the end of
     tools.py effectively inserts inside bind_tools because bind_tools is always last.
@@ -202,7 +187,7 @@ def test_mcp_tools_bind_tools_is_last_statement() -> None:
 
 
 def test_mcp_tools_contains_nested_example_tool() -> None:
-    """T005: Regression guard — bind_tools contains nested @mcp.tool decorator.
+    """: Regression guard — bind_tools contains nested @mcp.tool decorator.
 
     The --add-tool feature appends new tool stubs in the same nested pattern.
     """
@@ -222,9 +207,7 @@ def test_mcp_tools_contains_nested_example_tool() -> None:
     assert '@mcp.tool("example_tool")' in out, "bind_tools must use @mcp.tool decorator"
 
 
-# ---------------------------------------------------------------------------
-# mcp — resources.py template (T007)
-# ---------------------------------------------------------------------------
+# mcp — resources.py template
 
 
 def test_mcp_resources_has_bind_resources() -> None:
@@ -233,7 +216,7 @@ def test_mcp_resources_has_bind_resources() -> None:
 
 
 def test_mcp_resources_has_wireup_injected_import() -> None:
-    """Wireup: resources.py must import Injected from wireup instead of @inject (FR-016)."""
+    """Wireup: resources.py must import Injected from wireup instead of @inject."""
     out = renderer.render_string(_tmpl("entry_point/mcp/resources.py.jinja2"), _ctx().model_dump())
     assert "wireup" in out
     assert "@inject" not in out
@@ -249,9 +232,7 @@ def test_mcp_resources_is_async() -> None:
     assert "async def bind_resources" in out
 
 
-# ---------------------------------------------------------------------------
-# mcp — prompts.py template (T007)
-# ---------------------------------------------------------------------------
+# mcp — prompts.py template
 
 
 def test_mcp_prompts_has_bind_prompts() -> None:
@@ -260,7 +241,7 @@ def test_mcp_prompts_has_bind_prompts() -> None:
 
 
 def test_mcp_prompts_has_wireup_injected_import() -> None:
-    """Wireup: prompts.py must import Injected from wireup instead of @inject (FR-016)."""
+    """Wireup: prompts.py must import Injected from wireup instead of @inject."""
     out = renderer.render_string(_tmpl("entry_point/mcp/prompts.py.jinja2"), _ctx().model_dump())
     assert "wireup" in out
     assert "@inject" not in out
@@ -271,15 +252,13 @@ def test_mcp_prompts_has_fastmcp_import() -> None:
     assert "from mcp.server.fastmcp import FastMCP" in out
 
 
-def test_mcp_prompts_is_sync_not_async() -> None:
+def test_mcp_prompts_module_is_synchronous() -> None:
     """bind_prompts is async (same as bind_tools and bind_resources)."""
     out = renderer.render_string(_tmpl("entry_point/mcp/prompts.py.jinja2"), _ctx().model_dump())
     assert "async def bind_prompts" in out
 
 
-# ---------------------------------------------------------------------------
-# mcp — server.py (uvicorn entrypoint) — Phase 4 / T021
-# ---------------------------------------------------------------------------
+# mcp — server.py (uvicorn entrypoint) —  /
 
 
 def test_mcp_server_has_main_function() -> None:
@@ -304,9 +283,7 @@ def test_mcp_server_main_guard_calls_main_without_sys_exit() -> None:
     assert "    main()" in out
 
 
-# ---------------------------------------------------------------------------
-# mcp — app.py (composition root) — Phase 5 / T026–T027
-# ---------------------------------------------------------------------------
+# mcp — app.py (composition root) —  / –
 
 
 def _routes_out() -> str:
@@ -383,9 +360,7 @@ def test_mcp_app_without_prompts_excludes_bind_prompts() -> None:
     assert "bind_prompts" not in out
 
 
-# ---------------------------------------------------------------------------
 # mcp — test_tools.py template
-# ---------------------------------------------------------------------------
 
 
 def test_mcp_test_tools_has_make_mock_mcp() -> None:
@@ -403,9 +378,7 @@ def test_mcp_test_tools_has_result_test() -> None:
     assert "test_example_tool_returns_expected_result" in out
 
 
-# ---------------------------------------------------------------------------
 # mcp — test_resources.py template
-# ---------------------------------------------------------------------------
 
 
 def test_mcp_test_resources_has_make_mock_mcp() -> None:
@@ -423,9 +396,7 @@ def test_mcp_test_resources_has_result_test() -> None:
     assert "test_example_resource_returns_dict" in out
 
 
-# ---------------------------------------------------------------------------
 # mcp — test_prompts.py template
-# ---------------------------------------------------------------------------
 
 
 def test_mcp_test_prompts_has_make_mock_mcp() -> None:
@@ -443,9 +414,7 @@ def test_mcp_test_prompts_has_result_test() -> None:
     assert "test_example_prompt_returns_expected_string" in out
 
 
-# ---------------------------------------------------------------------------
 # mcp — test_app.py template
-# ---------------------------------------------------------------------------
 
 
 def test_mcp_test_app_has_mcp_instance_test() -> None:
@@ -468,9 +437,7 @@ def test_mcp_test_app_imports_fastmcp() -> None:
     assert "FastMCP" in out
 
 
-# ---------------------------------------------------------------------------
 # generic
-# ---------------------------------------------------------------------------
 
 
 def test_generic_has_entry_point_class() -> None:
@@ -483,9 +450,7 @@ def test_generic_has_async_run() -> None:
     assert "async def run" in out
 
 
-# ---------------------------------------------------------------------------
-# restapi — test template (US2 / T019)
-# ---------------------------------------------------------------------------
+# restapi — test template ( / )
 
 
 def test_entry_point_restapi_test_rest_controller_has_testclient() -> None:
@@ -495,13 +460,11 @@ def test_entry_point_restapi_test_rest_controller_has_testclient() -> None:
     assert "assert response.status_code == 200" in out
 
 
-# ---------------------------------------------------------------------------
-# mcp — tool_stub.py.jinja2 template (T008)
-# ---------------------------------------------------------------------------
+# mcp — tool_stub.py.jinja2 template
 
 
 def test_tool_stub_template_renders_nested_function_with_decorator() -> None:
-    """T008: tool_stub.py.jinja2 renders 4-space-indented nested @mcp.tool function."""
+    """: tool_stub.py.jinja2 renders 4-space-indented nested @mcp.tool function."""
     context = {
         "name": "create_file",
         "params": [
@@ -521,7 +484,7 @@ def test_tool_stub_template_renders_nested_function_with_decorator() -> None:
 
 
 def test_tool_stub_template_with_no_params() -> None:
-    """T008: tool_stub.py.jinja2 renders correctly with zero parameters."""
+    """: tool_stub.py.jinja2 renders correctly with zero parameters."""
     context = {
         "name": "list_files",
         "params": [],
@@ -536,7 +499,7 @@ def test_tool_stub_template_with_no_params() -> None:
 
 
 def test_tool_stub_template_not_wrapped_in_registrar() -> None:
-    """T008: tool_stub.py.jinja2 must NOT use @_register_tool or def _bind_."""
+    """: tool_stub.py.jinja2 must NOT use @_register_tool or def _bind_."""
     context = {
         "name": "search",
         "params": [{"name": "query", "type": "str"}],
@@ -549,13 +512,11 @@ def test_tool_stub_template_not_wrapped_in_registrar() -> None:
     assert "def _bind_" not in out
 
 
-# ---------------------------------------------------------------------------
-# mcp — test_tool_stub.py.jinja2 template (T008)
-# ---------------------------------------------------------------------------
+# mcp — test_tool_stub.py.jinja2 template
 
 
 def test_test_tool_stub_template_renders_registration_test() -> None:
-    """T008: test_tool_stub.py.jinja2 renders registration assertion test."""
+    """: test_tool_stub.py.jinja2 renders registration assertion test."""
     context = {"name": "create_file"}
     out = renderer.render_string(_tmpl("entry_point/mcp/test_tool_stub.py.jinja2"), context)
 
@@ -566,18 +527,16 @@ def test_test_tool_stub_template_renders_registration_test() -> None:
 
 
 def test_test_tool_stub_template_does_not_call_tool() -> None:
-    """T008: test_tool_stub.py.jinja2 must NOT call/await the tool itself."""
+    """: test_tool_stub.py.jinja2 must NOT call/await the tool itself."""
     context = {"name": "do_action"}
     out = renderer.render_string(_tmpl("entry_point/mcp/test_tool_stub.py.jinja2"), context)
 
     # Should only check registration, not invoke the tool
-    assert "registered[" not in out or 'await registered["do_action"]' not in out
-    assert "do_action(" not in out or "await do_action(" not in out
+    assert 'await registered["do_action"]' not in out
+    assert "await do_action(" not in out
 
 
-# ---------------------------------------------------------------------------
 # mcp — health route wiring and tests (027)
-# ---------------------------------------------------------------------------
 
 _APP_COMBOS = [(r, p) for r in (False, True) for p in (False, True)]
 

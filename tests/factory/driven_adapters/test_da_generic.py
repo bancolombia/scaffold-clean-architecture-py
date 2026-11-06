@@ -1,4 +1,4 @@
-"""Tests for DrivenAdapterGeneric factory (T028)."""
+"""Tests for DrivenAdapterGeneric factory."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from pathlib import Path
 
 from scaffold_ca_python.core.module_builder import ModuleBuilder
 from scaffold_ca_python.models.context import ModuleContext, ProjectContext
-from scaffold_ca_python.models.layer import Layer
+from tests.helpers import write_minimal_pyproject
 
 
 def _project_ctx() -> ProjectContext:
@@ -14,25 +14,12 @@ def _project_ctx() -> ProjectContext:
 
 
 def _module_ctx(project: ProjectContext, name: str = "custom-adapter") -> ModuleContext:
-    return ModuleContext(name=name, layer=Layer.DRIVEN_ADAPTERS, project=project)
-
-
-def _write_minimal_pyproject(root: Path) -> None:
-    (root / "pyproject.toml").write_text(
-        """
-[project]
-name = "demo"
-version = "0.1.0"
-dependencies = []
-""".strip()
-        + "\n",
-        encoding="utf-8",
-    )
+    return ModuleContext(name=name, project=project)
 
 
 def test_generic_files_queued_in_dry_run(tmp_path: Path) -> None:
-    """T028: Verify DrivenAdapterGeneric.build() queues expected files."""
-    _write_minimal_pyproject(tmp_path)
+    """: Verify DrivenAdapterGeneric.build() queues expected files."""
+    write_minimal_pyproject(tmp_path)
     project = _project_ctx()
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, module_ctx=_module_ctx(project), dry_run=True)
 
@@ -61,8 +48,8 @@ def test_generic_files_queued_in_dry_run(tmp_path: Path) -> None:
 
 
 def test_generic_no_dependencies_injected(tmp_path: Path) -> None:
-    """T028: Verify DrivenAdapterGeneric does not add dependencies."""
-    _write_minimal_pyproject(tmp_path)
+    """: Verify DrivenAdapterGeneric does not add dependencies."""
+    write_minimal_pyproject(tmp_path)
     project = _project_ctx()
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, module_ctx=_module_ctx(project), dry_run=False)
 
@@ -78,14 +65,9 @@ def test_generic_no_dependencies_injected(tmp_path: Path) -> None:
     assert "dependencies = []" in pyproject, "Expected no new dependencies"
 
 
-# ---------------------------------------------------------------------------
-# T026 (US1): @injectable on adapters — must FAIL until T021 implements it
-# ---------------------------------------------------------------------------
-
-
 def test_generic_adapter_template_has_injectable(tmp_path: Path) -> None:
-    """T021: generic adapter template must include @wireup.injectable decorator."""
-    _write_minimal_pyproject(tmp_path)
+    """: generic adapter template must include @wireup.injectable decorator."""
+    write_minimal_pyproject(tmp_path)
     project = _project_ctx()
     builder = ModuleBuilder(
         project_root=tmp_path,
@@ -104,14 +86,12 @@ def test_generic_adapter_template_has_injectable(tmp_path: Path) -> None:
     assert "wireup" in content or "@injectable" in content, "Generic adapter must have @injectable"
 
 
-# ---------------------------------------------------------------------------
-# T077: gda --gateway binds adapter to gateway interface
-# ---------------------------------------------------------------------------
+# : gda --gateway binds adapter to gateway interface
 
 
 def test_generic_adapter_with_gateway_uses_as_type(tmp_path: Path) -> None:
-    """T077: gda --gateway must generate @wireup.injectable(as_type=<GatewayClass>)."""
-    _write_minimal_pyproject(tmp_path)
+    """: gda --gateway must generate @wireup.injectable(as_type=<GatewayClass>)."""
+    write_minimal_pyproject(tmp_path)
     project = _project_ctx()
     module = _module_ctx(project)
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, module_ctx=module, dry_run=False)

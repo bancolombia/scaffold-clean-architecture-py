@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib
 import importlib.util
 from pathlib import Path
 
@@ -25,8 +26,7 @@ def test_main_runs(capsys: pytest.CaptureFixture[str]) -> None:
     if "Hello, World!" not in Path(main_spec.origin).read_text(encoding="utf-8"):
         pytest.skip("main is not the default scaffold entrypoint")
 
-    from {{ python_package }}.main import main
-
-    main()
+    main_mod = importlib.import_module("{{ python_package }}.main")
+    main_mod.main()
     captured = capsys.readouterr()
     assert captured.out != "" or captured.err != ""

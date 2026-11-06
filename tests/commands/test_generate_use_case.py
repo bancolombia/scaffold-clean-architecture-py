@@ -1,4 +1,4 @@
-"""Tests for guc / generate-use-case command (T039)."""
+"""Tests for guc / generate-use-case command."""
 
 from pathlib import Path
 
@@ -6,29 +6,13 @@ import pytest
 from typer.testing import CliRunner
 
 from scaffold_ca_python.cli import app
-from tests.conftest import strip_ansi
+from tests.helpers import strip_ansi
 
 runner = CliRunner()
 
-
-# ---------------------------------------------------------------------------
 # Fixtures
-# ---------------------------------------------------------------------------
 
-
-@pytest.fixture()
-def project_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Bootstrap a minimal CA project root that generate-use-case can work inside."""
-    monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["ca", "--name", "my-app"], catch_exceptions=False)
-    project_dir = tmp_path / "my-app"
-    monkeypatch.chdir(project_dir)
-    return project_dir
-
-
-# ---------------------------------------------------------------------------
 # Success path
-# ---------------------------------------------------------------------------
 
 
 def test_creates_use_case_file(project_root: Path) -> None:
@@ -72,9 +56,7 @@ def test_generate_use_case_alias_works(project_root: Path) -> None:
     assert (project_root / "src" / "my_app" / "domain" / "usecase" / "cancel_order_usecase.py").exists()
 
 
-# ---------------------------------------------------------------------------
 # Dry-run
-# ---------------------------------------------------------------------------
 
 
 def test_dry_run_writes_nothing(project_root: Path) -> None:
@@ -88,9 +70,7 @@ def test_dry_run_prints_paths(project_root: Path) -> None:
     assert "create_order" in result.output.lower()
 
 
-# ---------------------------------------------------------------------------
 # Error cases
-# ---------------------------------------------------------------------------
 
 
 def test_duplicate_use_case_exits_1(project_root: Path) -> None:
@@ -104,42 +84,10 @@ def test_invalid_name_exits_nonzero(project_root: Path) -> None:
     assert result.exit_code != 0
 
 
-def test_pascal_case_name_exits_1(project_root: Path) -> None:
-    result = runner.invoke(app, ["guc", "--name", "CreateOrder"])
-    assert result.exit_code == 1
-    assert "snake_case" in result.output
+# : no-args → help
 
 
-def test_kebab_name_exits_1(project_root: Path) -> None:
-    result = runner.invoke(app, ["guc", "--name", "create-order"])
-    assert result.exit_code == 1
-    assert "snake_case" in result.output
-
-
-def test_no_project_root_exits_1(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.chdir(tmp_path)
-    result = runner.invoke(app, ["guc", "--name", "CreateOrder"])
-    assert result.exit_code == 1
-
-
-# ---------------------------------------------------------------------------
-# US3: no-args → help (T018)
-# ---------------------------------------------------------------------------
-
-
-def test_guc_no_args_exits_0() -> None:
-    result = runner.invoke(app, ["guc"])
-    assert result.exit_code == 0
-
-
-def test_guc_no_args_shows_name_option() -> None:
-    result = runner.invoke(app, ["guc"])
-    assert "--name" in strip_ansi(result.output)
-
-
-# ---------------------------------------------------------------------------
-# US2: suffix is never duplicated (T010)
-# ---------------------------------------------------------------------------
+# : suffix is never duplicated
 
 
 def test_all_spellings_produce_identical_output(project_root: Path) -> None:
@@ -182,9 +130,7 @@ def test_suffix_only_name_exits_1(project_root: Path, name: str) -> None:
     assert not list((project_root / "src" / "my_app" / "domain" / "usecase").glob("*_usecase.py"))
 
 
-# ---------------------------------------------------------------------------
-# US3: dry-run and conflict detection use the normalized name (T012)
-# ---------------------------------------------------------------------------
+# : dry-run and conflict detection use the normalized name
 
 
 def _usecase_dir(root: Path) -> Path:
@@ -245,37 +191,24 @@ def test_legacy_file_is_ignored(project_root: Path) -> None:
     assert legacy.read_text() == "# legacy\n"
 
 
-# ---------------------------------------------------------------------------
-# T013 (US1): guc --uses option (write first — must FAIL before T016–T019)
-# ---------------------------------------------------------------------------
+#  (): guc --uses option (write first — must FAIL before –)
 
 
-@pytest.fixture()
-def project_root_with_gateway(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Bootstrap a CA project with an 'order' model (creates order_repository gateway)."""
-    monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["ca", "--name", "my-app"], catch_exceptions=False)
-    project_dir = tmp_path / "my-app"
-    monkeypatch.chdir(project_dir)
-    runner.invoke(app, ["gm", "--name", "order"], catch_exceptions=False)
-    return project_dir
-
-
-def test_guc_uses_creates_factory_file(project_root_with_gateway: Path) -> None:
-    """FR-004: --uses should create application/config/usecases/<name>_usecase.py factory."""
+def test_guc_uses_creates_factory_file(project_with_order_model: Path) -> None:
+    """: --uses should create application/config/usecases/<name>_usecase.py factory."""
     result = runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
     assert result.exit_code == 0
     factory_path = (
-        project_root_with_gateway / "src" / "my_app" / "application" / "config" / "usecases" / "create_order_usecase.py"
+        project_with_order_model / "src" / "my_app" / "application" / "config" / "usecases" / "create_order_usecase.py"
     )
     assert factory_path.exists(), "Factory file must be created when --uses is provided"
 
 
-def test_guc_uses_factory_has_typed_params(project_root_with_gateway: Path) -> None:
-    """FR-004: factory file must inject the named gateways as typed parameters."""
+def test_guc_uses_factory_has_typed_params(project_with_order_model: Path) -> None:
+    """: factory file must inject the named gateways as typed parameters."""
     runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
     factory_path = (
-        project_root_with_gateway / "src" / "my_app" / "application" / "config" / "usecases" / "create_order_usecase.py"
+        project_with_order_model / "src" / "my_app" / "application" / "config" / "usecases" / "create_order_usecase.py"
     )
     content = factory_path.read_text()
     assert "OrderRepository" in content, "Factory must reference the typed gateway"
@@ -283,7 +216,7 @@ def test_guc_uses_factory_has_typed_params(project_root_with_gateway: Path) -> N
 
 
 def test_guc_without_uses_no_factory_file(project_root: Path) -> None:
-    """FR-007: without --uses, generate-use-case must NOT create a factory file."""
+    """: without --uses, generate-use-case must NOT create a factory file."""
     runner.invoke(app, ["guc", "--name", "create_order"], catch_exceptions=False)
     usecases_dir = project_root / "src" / "my_app" / "application" / "config" / "usecases"
     factory = usecases_dir / "create_order_usecase.py"
@@ -291,13 +224,13 @@ def test_guc_without_uses_no_factory_file(project_root: Path) -> None:
 
 
 def test_guc_uses_gateway_not_found_exits_nonzero(project_root: Path) -> None:
-    """FR-004: --uses with unknown gateway name must exit non-zero."""
+    """: --uses with unknown gateway name must exit non-zero."""
     result = runner.invoke(app, ["guc", "--name", "create_order", "--uses", "nonexistent_gateway"])
     assert result.exit_code != 0
 
 
 def test_guc_uses_helper_name_exits_with_infra_hint(project_root: Path, tmp_path: Path) -> None:
-    """D7: --uses with a helper name must exit non-zero with an infra-only hint."""
+    """: --uses with a helper name must exit non-zero with an infra-only hint."""
     runner.invoke(app, ["gh", "--name", "log_helper"], catch_exceptions=False)
     result = runner.invoke(app, ["guc", "--name", "create_order", "--uses", "log_helper"])
     assert result.exit_code != 0
@@ -305,16 +238,14 @@ def test_guc_uses_helper_name_exits_with_infra_hint(project_root: Path, tmp_path
     assert "infrastructure" in out or "helper" in out, "Must hint that helpers are infrastructure-only"
 
 
-# ---------------------------------------------------------------------------
-# T075: guc --uses factory test + wiring append
-# ---------------------------------------------------------------------------
+# : guc --uses factory test + wiring append
 
 
-def test_guc_uses_creates_factory_test_file(project_root_with_gateway: Path) -> None:
-    """T075: --uses must also create tests/application/config/usecases/test_<name>_usecase.py."""
+def test_guc_uses_creates_factory_test_file(project_with_order_model: Path) -> None:
+    """: --uses must also create tests/application/config/usecases/test_<name>_usecase.py."""
     runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
     test_path = (
-        project_root_with_gateway
+        project_with_order_model
         / "src"
         / "tests"
         / "application"
@@ -328,38 +259,35 @@ def test_guc_uses_creates_factory_test_file(project_root_with_gateway: Path) -> 
     assert "isinstance" in content
 
 
-def test_guc_uses_appends_wiring_test(project_root_with_gateway: Path) -> None:
-    """T075: --uses must append a test function to test_wiring.py."""
+def test_guc_uses_appends_wiring_test(project_with_order_model: Path) -> None:
+    """: --uses must append a test function to test_wiring.py."""
     runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
-    wiring_test = project_root_with_gateway / "src" / "tests" / "application" / "config" / "test_wiring.py"
+    wiring_test = project_with_order_model / "src" / "tests" / "application" / "config" / "test_wiring.py"
     assert wiring_test.exists()
     content = wiring_test.read_text()
     assert "test_container_resolves_create_order_usecase" in content
 
 
-def test_guc_uses_wiring_append_is_idempotent(project_root_with_gateway: Path) -> None:
-    """T075: running guc --uses twice must not duplicate the wiring test function."""
+def test_guc_uses_wiring_append_is_idempotent(project_with_order_model: Path) -> None:
+    """Running guc --uses twice must not duplicate the wiring test function."""
+    wiring_test = project_with_order_model / "src" / "tests" / "application" / "config" / "test_wiring.py"
     runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
-    runner.invoke(app, ["guc", "--name", "create_order_v2", "--uses", "order_repository"], catch_exceptions=False)
-    # Re-create first use case in same wiring file — same fn name
-    # Simulate re-run by calling wiring utils directly
-    wiring_test = project_root_with_gateway / "src" / "tests" / "application" / "config" / "test_wiring.py"
-    content = wiring_test.read_text()
-    count = content.count("test_container_resolves_create_order_usecase")
-    assert count == 1, f"Expected exactly one occurrence, got {count}"
+    after_first = wiring_test.read_text()
+    runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"])
+    after_second = wiring_test.read_text()
+    assert after_second == after_first
+    assert after_second.count("test_container_resolves_create_order_usecase") == 1
 
 
-def test_guc_uses_hint_when_no_adapter(project_root_with_gateway: Path) -> None:
-    """T085: guc --uses must warn when no adapter implements the gateway."""
+def test_guc_uses_hint_when_no_adapter(project_with_order_model: Path) -> None:
+    """: guc --uses must warn when no adapter implements the gateway."""
     result = runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
     assert result.exit_code == 0
     out = strip_ansi(result.output)
     assert "No adapter implements" in out or "OrderRepository" in out
 
 
-# ---------------------------------------------------------------------------
-# T092 / T097 / T098 / T099: Phase 3.2 — green suite before any adapter exists
-# ---------------------------------------------------------------------------
+#  /  /  / : .2 — green suite before any adapter exists
 
 
 def _wiring_test_path(root: Path) -> Path:
@@ -367,7 +295,7 @@ def _wiring_test_path(root: Path) -> Path:
 
 
 def test_ca_wiring_test_has_empty_marker_and_strict_xfail(project_root: Path) -> None:
-    """T093: ca generates MISSING_ADAPTERS (empty) and a strict module-level xfail."""
+    """: ca generates MISSING_ADAPTERS (empty) and a strict module-level xfail."""
     content = _wiring_test_path(project_root).read_text()
     assert "MISSING_ADAPTERS: list[str] = []" in content
     assert "pytestmark = pytest.mark.xfail(" in content
@@ -376,15 +304,15 @@ def test_ca_wiring_test_has_empty_marker_and_strict_xfail(project_root: Path) ->
     assert "no registered use cases yet" not in content
 
 
-def test_guc_uses_without_adapter_sets_missing_adapters(project_root_with_gateway: Path) -> None:
-    """T092: guc --uses with no adapter lists the gateway in MISSING_ADAPTERS."""
+def test_guc_uses_without_adapter_sets_missing_adapters(project_with_order_model: Path) -> None:
+    """: guc --uses with no adapter lists the gateway in MISSING_ADAPTERS."""
     runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
-    content = _wiring_test_path(project_root_with_gateway).read_text()
+    content = _wiring_test_path(project_with_order_model).read_text()
     assert 'MISSING_ADAPTERS: list[str] = ["OrderRepository"]' in content
 
 
-def test_gda_gateway_clears_missing_adapters_and_appends_awaited_stub(project_root_with_gateway: Path) -> None:
-    """T092/T096: gda --gateway empties the list and appends a stub that awaits the gateway."""
+def test_gda_gateway_clears_missing_adapters_and_appends_awaited_stub(project_with_order_model: Path) -> None:
+    """/: gda --gateway empties the list and appends a stub that awaits the gateway."""
     runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
     result = runner.invoke(
         app,
@@ -392,14 +320,14 @@ def test_gda_gateway_clears_missing_adapters_and_appends_awaited_stub(project_ro
         catch_exceptions=False,
     )
     assert result.exit_code == 0
-    content = _wiring_test_path(project_root_with_gateway).read_text()
+    content = _wiring_test_path(project_with_order_model).read_text()
     assert "MISSING_ADAPTERS: list[str] = []" in content
     assert "async def test_container_resolves_order_repository_adapter" in content
     assert "await container.get(OrderRepository)" in content
 
 
-def test_gda_gateway_wiring_stub_is_idempotent_and_dm_removes_it(project_root_with_gateway: Path) -> None:
-    """T100: dm on the adapter removes its wiring test and restores MISSING_ADAPTERS."""
+def test_gda_gateway_wiring_stub_is_idempotent_and_dm_removes_it(project_with_order_model: Path) -> None:
+    """: dm on the adapter removes its wiring test and restores MISSING_ADAPTERS."""
     runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
     runner.invoke(
         app,
@@ -407,15 +335,15 @@ def test_gda_gateway_wiring_stub_is_idempotent_and_dm_removes_it(project_root_wi
         catch_exceptions=False,
     )
     runner.invoke(app, ["dm", "--name", "order_repository_adapter", "--confirm"], catch_exceptions=False)
-    content = _wiring_test_path(project_root_with_gateway).read_text()
+    content = _wiring_test_path(project_with_order_model).read_text()
     assert "test_container_resolves_order_repository_adapter" not in content
     assert 'MISSING_ADAPTERS: list[str] = ["OrderRepository"]' in content
 
 
-def test_generated_use_case_tests_have_no_type_ignore(project_root_with_gateway: Path) -> None:
-    """T097: generated tests must not carry unused `type: ignore` comments."""
+def test_generated_use_case_tests_have_no_type_ignore(project_with_order_model: Path) -> None:
+    """: generated tests must not carry unused `type: ignore` comments."""
     runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
-    root = project_root_with_gateway / "src" / "tests"
+    root = project_with_order_model / "src" / "tests"
     for path in (
         root / "domain" / "usecase" / "test_create_order_usecase.py",
         root / "application" / "config" / "usecases" / "test_create_order_usecase.py",
@@ -423,17 +351,17 @@ def test_generated_use_case_tests_have_no_type_ignore(project_root_with_gateway:
         assert "type: ignore" not in path.read_text(), path
 
 
-def test_generated_config_and_factory_pass_ruff_format(project_root_with_gateway: Path) -> None:
-    """T098: blank line after module docstring in config.py and the factory."""
+def test_generated_config_and_factory_pass_ruff_format(project_with_order_model: Path) -> None:
+    """: blank line after module docstring in config.py and the factory."""
     runner.invoke(app, ["guc", "--name", "create_order", "--uses", "order_repository"], catch_exceptions=False)
-    src = project_root_with_gateway / "src" / "my_app" / "application" / "config"
+    src = project_with_order_model / "src" / "my_app" / "application" / "config"
     for path in (src / "config.py", src / "usecases" / "create_order_usecase.py"):
         lines = path.read_text().splitlines()
         assert lines[0].startswith('"""') and lines[1] == "", path
 
 
 def test_ca_gm_guc_then_gda_full_quality_flow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """T099: pytest/ruff/mypy are green before and after the adapter exists."""
+    """: pytest/ruff/mypy are green before and after the adapter exists."""
     import subprocess
 
     monkeypatch.chdir(tmp_path)
@@ -472,9 +400,7 @@ def test_ca_gm_guc_then_gda_full_quality_flow(tmp_path: Path, monkeypatch: pytes
     assert "xfailed" not in after.stdout
 
 
-# ---------------------------------------------------------------------------
-# T105 (Phase 3.3): E2E rest-consumer quality — three QA scenarios
-# ---------------------------------------------------------------------------
+#  (.3): E2E rest-consumer quality — three QA scenarios
 
 
 @pytest.mark.parametrize(
@@ -486,7 +412,7 @@ def test_ca_gm_guc_then_gda_full_quality_flow(tmp_path: Path, monkeypatch: pytes
     ],
 )
 def test_rest_consumer_quality_flow(scenario: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """T105: pytest/ruff/ruff-format/mypy pass for all rest-consumer scaffolding orders."""
+    """: pytest/ruff/ruff-format/mypy pass for all rest-consumer scaffolding orders."""
     import subprocess
 
     monkeypatch.chdir(tmp_path)
@@ -532,9 +458,7 @@ def test_rest_consumer_quality_flow(scenario: str, tmp_path: Path, monkeypatch: 
     assert result.returncode == 0, f"[{scenario}] pytest failed:\n{result.stdout}\n{result.stderr}"
 
 
-# ---------------------------------------------------------------------------
-# MCP QA scenarios (DEF-MCP-001/002): ca → gm → guc → gda rest-consumer → gep mcp
-# ---------------------------------------------------------------------------
+# MCP QA scenarios (/002): ca → gm → guc → gda rest-consumer → gep mcp
 
 
 @pytest.mark.parametrize(

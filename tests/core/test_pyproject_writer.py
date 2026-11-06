@@ -1,4 +1,4 @@
-"""Tests for pyproject_writer: inject_dependencies and dry_run_inject (T005)."""
+"""Tests for pyproject_writer: inject_dependencies and dry_run_inject."""
 
 import tomllib
 from pathlib import Path
@@ -15,9 +15,7 @@ from scaffold_ca_python.core.pyproject_writer import (
 )
 from scaffold_ca_python.models.context import ProjectContext
 
-# ---------------------------------------------------------------------------
 # Fixtures
-# ---------------------------------------------------------------------------
 
 
 def _make_pyproject(tmp_path: Path, deps: list[str] | None = None) -> Path:
@@ -59,9 +57,7 @@ def _read_deps(pyproject: Path) -> list[str]:
     return data.get("project", {}).get("dependencies", [])
 
 
-# ---------------------------------------------------------------------------
 # inject_dependencies — writes
-# ---------------------------------------------------------------------------
 
 
 def test_inject_adds_new_package(tmp_path: Path) -> None:
@@ -134,9 +130,7 @@ def test_inject_preserves_existing_dependencies(tmp_path: Path) -> None:
     assert any("httpx" in d for d in deps)
 
 
-# ---------------------------------------------------------------------------
 # dry_run_inject — never writes
-# ---------------------------------------------------------------------------
 
 
 def test_dry_run_returns_packages_that_would_be_added(tmp_path: Path) -> None:
@@ -164,9 +158,7 @@ def test_dry_run_with_empty_packages_returns_empty(tmp_path: Path) -> None:
     assert would_add == []
 
 
-# ---------------------------------------------------------------------------
 # Error handling
-# ---------------------------------------------------------------------------
 
 
 def test_malformed_toml_raises_on_inject(tmp_path: Path) -> None:
@@ -181,9 +173,7 @@ def test_missing_pyproject_raises_on_inject(tmp_path: Path) -> None:
         inject_dependencies(tmp_path, ["fastapi>=0.100"])
 
 
-# ---------------------------------------------------------------------------
-# update_project_scripts — writes (T002–T004)
-# ---------------------------------------------------------------------------
+# update_project_scripts — writes (–)
 
 
 def _make_pyproject_with_scripts(tmp_path: Path, entry: str) -> Path:
@@ -226,7 +216,7 @@ def _read_scripts(pyproject: Path) -> dict[str, str]:
 
 
 def test_update_project_scripts_changes_entry(tmp_path: Path) -> None:
-    """T002: updates main:main → server:start_server and returns True."""
+    """: updates main:main → server:start_server and returns True."""
     pyproject = _make_pyproject_with_scripts(tmp_path, "my_app.main:main")
     result = update_project_scripts(tmp_path, ProjectContext(name="my-app"))
     assert result is True
@@ -234,7 +224,7 @@ def test_update_project_scripts_changes_entry(tmp_path: Path) -> None:
 
 
 def test_update_project_scripts_is_idempotent(tmp_path: Path) -> None:
-    """T003: second call returns False and leaves entry unchanged."""
+    """: second call returns False and leaves entry unchanged."""
     pyproject = _make_pyproject_with_scripts(tmp_path, "my_app.server:start_server")
     result = update_project_scripts(tmp_path, ProjectContext(name="my-app"), entry_fn="start_server")
     assert result is False
@@ -242,20 +232,18 @@ def test_update_project_scripts_is_idempotent(tmp_path: Path) -> None:
 
 
 def test_update_project_scripts_creates_section_when_absent(tmp_path: Path) -> None:
-    """T004: creates [project.scripts] when missing and writes correct entry."""
+    """: creates [project.scripts] when missing and writes correct entry."""
     pyproject = _make_pyproject_without_scripts(tmp_path)
     result = update_project_scripts(tmp_path, ProjectContext(name="my-app"))
     assert result is True
     assert _read_scripts(pyproject)["my-app"] == "my_app.server:start_server"
 
 
-# ---------------------------------------------------------------------------
-# dry_run_scripts_update — never writes (T005–T007)
-# ---------------------------------------------------------------------------
+# dry_run_scripts_update — never writes (–)
 
 
 def test_dry_run_scripts_update_returns_true_when_change_needed(tmp_path: Path) -> None:
-    """T005: returns True (change needed) but does NOT write to disk."""
+    """: returns True (change needed) but does NOT write to disk."""
     pyproject = _make_pyproject_with_scripts(tmp_path, "my_app.main:main")
     original = pyproject.read_bytes()
     result = dry_run_scripts_update(tmp_path, ProjectContext(name="my-app"))
@@ -264,23 +252,21 @@ def test_dry_run_scripts_update_returns_true_when_change_needed(tmp_path: Path) 
 
 
 def test_dry_run_scripts_update_returns_false_when_already_correct(tmp_path: Path) -> None:
-    """T006: returns False when entry already matches server:start_server."""
+    """: returns False when entry already matches server:start_server."""
     _make_pyproject_with_scripts(tmp_path, "my_app.server:start_server")
     result = dry_run_scripts_update(tmp_path, ProjectContext(name="my-app"), entry_fn="start_server")
     assert result is False
 
 
 def test_dry_run_scripts_update_never_writes_to_disk(tmp_path: Path) -> None:
-    """T007: raw file bytes are identical before and after the call."""
+    """: raw file bytes are identical before and after the call."""
     pyproject = _make_pyproject_with_scripts(tmp_path, "my_app.main:main")
     before = pyproject.read_bytes()
     dry_run_scripts_update(tmp_path, ProjectContext(name="my-app"))
     assert pyproject.read_bytes() == before
 
 
-# ---------------------------------------------------------------------------
 # inject_group_dependencies — writes
-# ---------------------------------------------------------------------------
 
 
 def _make_pyproject_with_dep_groups(tmp_path: Path, *, test: list[str] | None = None) -> Path:
@@ -364,9 +350,7 @@ def test_inject_group_multiple_packages(tmp_path: Path) -> None:
     assert "pytest-mock>=3.0" in group
 
 
-# ---------------------------------------------------------------------------
 # dry_run_group_inject — never writes
-# ---------------------------------------------------------------------------
 
 
 def test_dry_run_group_returns_packages_that_would_be_added(tmp_path: Path) -> None:
@@ -388,9 +372,7 @@ def test_dry_run_group_skips_already_present_packages(tmp_path: Path) -> None:
     assert would_add == []
 
 
-# ---------------------------------------------------------------------------
-# entry_fn parameter — custom entry function (T005 additions from 019 tasks)
-# ---------------------------------------------------------------------------
+# entry_fn parameter — custom entry function ( additions from 019 tasks)
 
 
 def test_update_project_scripts_default_uses_start_server(tmp_path: Path) -> None:

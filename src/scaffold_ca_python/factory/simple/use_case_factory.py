@@ -1,12 +1,10 @@
-"""UseCaseFactory implementation."""
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
 from scaffold_ca_python.core.name_utils import to_pascal_case, to_snake_case
 from scaffold_ca_python.core.project_detector import resolve_tests_root
-from scaffold_ca_python.core.wiring_utils import find_existing_test_function_names
+from scaffold_ca_python.core.wiring_utils import append_test_once
 from scaffold_ca_python.factory import ModuleFactory
 
 if TYPE_CHECKING:
@@ -26,22 +24,15 @@ class UseCaseFactory(ModuleFactory):
     """Factory for domain use case generation."""
 
     def build(self, builder: ModuleBuilder) -> None:
-        """Build domain use case files.
-
-        Queues files:
-        - src/domain/usecase/{snake_name}_usecase.py
-        - tests/domain/usecase/test_{snake_name}_usecase.py
-        - src/application/config/usecases/{snake_name}_usecase.py  (only when gateways provided)
-        """
-        project_root = builder.project_root
-        pkg = builder.project_ctx.python_package
-
-        usecase_name = builder.module_ctx.name if builder.module_ctx else "UseCase"
+        """Queue use case module, tests, and optional usecases wiring config."""
+        pkg_root = builder.project_ctx.src_pkg_root
+        assert builder.module_ctx is not None
+        usecase_name = builder.module_ctx.name
         snake_name = to_snake_case(usecase_name)
 
-        src_dir = project_root / "src" / pkg / "domain" / "usecase"
-        test_dir = resolve_tests_root(project_root) / "domain" / "usecase"
-        config_dir = project_root / "src" / pkg / "application" / "config" / "usecases"
+        src_dir = pkg_root / "domain" / "usecase"
+        test_dir = resolve_tests_root(builder.project_root) / "domain" / "usecase"
+        config_dir = pkg_root / "application" / "config" / "usecases"
 
         base = "use_case"
 
@@ -57,37 +48,26 @@ class UseCaseFactory(ModuleFactory):
         )
         ctx_dict["gateways"] = gateways
 
-        builder.add_file(
-            src_dir / f"{snake_name}_usecase.py",
-            builder.render(f"{base}/use_case.py.jinja2", ctx_dict),
-            template_name=f"{base}/use_case.py.jinja2",
-        )
+        builder.add_rendered(src_dir / f"{snake_name}_usecase.py", f"{base}/use_case.py.jinja2", ctx_dict)
 
-        builder.add_file(
-            test_dir / f"test_{snake_name}_usecase.py",
-            builder.render(f"{base}/test_use_case.py.jinja2", ctx_dict),
-            template_name=f"{base}/test_use_case.py.jinja2",
-            is_test=True,
-        )
+        builder.add_rendered(test_dir / f"test_{snake_name}_usecase.py", f"{base}/test_use_case.py.jinja2", ctx_dict)
 
         if gateways:
-            config_test_dir = resolve_tests_root(project_root) / "application" / "config" / "usecases"
-            wiring_test_path = resolve_tests_root(project_root) / "application" / "config" / "test_wiring.py"
+            config_test_dir = resolve_tests_root(builder.project_root) / "application" / "config" / "usecases"
+            wiring_test_path = resolve_tests_root(builder.project_root) / "application" / "config" / "test_wiring.py"
             fn_name = f"test_container_resolves_{snake_name}_usecase"
-            builder.add_file(
-                config_dir / f"{snake_name}_usecase.py",
-                builder.render(f"{base}/use_case_factory.py.jinja2", ctx_dict),
-                template_name=f"{base}/use_case_factory.py.jinja2",
+            builder.add_rendered(
+                config_dir / f"{snake_name}_usecase.py", f"{base}/use_case_factory.py.jinja2", ctx_dict
             )
-            builder.add_file(
+            builder.add_rendered(
                 config_test_dir / f"test_{snake_name}_usecase.py",
-                builder.render(f"{base}/test_use_case_factory.py.jinja2", ctx_dict),
-                template_name=f"{base}/test_use_case_factory.py.jinja2",
-                is_test=True,
+                f"{base}/test_use_case_factory.py.jinja2",
+                ctx_dict,
             )
-            existing_src = wiring_test_path.read_text(encoding="utf-8") if wiring_test_path.exists() else ""
-            if fn_name not in find_existing_test_function_names(existing_src):
-                builder.append_to_file(
-                    wiring_test_path,
-                    builder.render(f"{base}/wiring_test_stub.py.jinja2", ctx_dict),
-                )
+            append_test_once(
+                builder,
+                wiring_test_path,
+                fn_name,
+                f"{base}/wiring_test_stub.py.jinja2",
+                ctx_dict,
+            )

@@ -1,4 +1,4 @@
-"""Safety-net tests that pin the observable CLI behavior (T008/T009/T010).
+"""Safety-net tests that pin the observable CLI behavior (//).
 
 These tests must pass BEFORE and AFTER the refactor. The only assertions that
 may change are those for allowed changes C-1, C-2 and C-3. See
@@ -13,36 +13,13 @@ import pytest
 from typer.testing import CliRunner
 
 from scaffold_ca_python.cli import app
-from tests.conftest import strip_ansi
+from tests.helpers import strip_ansi
 
 runner = CliRunner()
 
-
-# ---------------------------------------------------------------------------
 # Shared fixture
-# ---------------------------------------------------------------------------
 
-
-@pytest.fixture()
-def project_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Bootstrap a minimal CA project inside tmp_path and chdir into it."""
-    monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["ca", "--name", "my-app"], catch_exceptions=False)
-    project_dir = tmp_path / "my-app"
-    monkeypatch.chdir(project_dir)
-    return project_dir
-
-
-@pytest.fixture()
-def mcp_project(project_root: Path) -> Path:
-    """Bootstrap an MCP entry-point on top of project_root."""
-    runner.invoke(app, ["gep", "--type", "mcp"], catch_exceptions=False)
-    return project_root
-
-
-# ---------------------------------------------------------------------------
-# T008 — gep error cases
-# ---------------------------------------------------------------------------
+#  — gep error cases
 
 
 @pytest.mark.parametrize(
@@ -58,7 +35,19 @@ def mcp_project(project_root: Path) -> Path:
         ),
         (
             ["gep", "--type", "mcp", "--enable-mcp-client"],
-            "--enable-mcp-client is not valid with --type mcp.",
+            "--enable-mcp-client is only valid with --type agent.",
+        ),
+        (
+            ["gep", "--type", "generic", "--enable-mcp-client"],
+            "--enable-mcp-client is only valid with --type agent.",
+        ),
+        (
+            ["gep", "--type", "restapi", "--enable-kafka"],
+            "--enable-kafka is only valid with --type agent.",
+        ),
+        (
+            ["gep", "--type", "mcp", "--enable-kafka"],
+            "--enable-kafka is only valid with --type agent.",
         ),
         (
             ["gep", "--type", "agent", "--with-prompts"],
@@ -88,7 +77,7 @@ def test_gep_restapi_after_mcp_conflicts(mcp_project: Path) -> None:
     result = runner.invoke(app, ["gep", "--type", "restapi"])
     assert result.exit_code == 1
     out = strip_ansi(result.output)
-    assert "Incompatible entry point 'mcp_server'" in out
+    assert "Incompatible entry point 'mcp'" in out
     assert "before adding restapi." in out
 
 
@@ -112,9 +101,7 @@ def test_gep_mcp_twice_shows_directory_exists(mcp_project: Path) -> None:
     assert "already" in out
 
 
-# ---------------------------------------------------------------------------
-# T009 — gda, gpipe, gm, guc, gh, dm error cases
-# ---------------------------------------------------------------------------
+#  — gda, gpipe, gm, guc, gh, dm error cases
 
 
 def test_gda_generic_requires_name(project_root: Path) -> None:
@@ -157,9 +144,7 @@ def test_dm_module_not_found(project_root: Path) -> None:
     assert "No module named 'nope' found in project." in strip_ansi(result.output)
 
 
-# ---------------------------------------------------------------------------
-# T010 — gep success and dry-run outputs
-# ---------------------------------------------------------------------------
+#  — gep success and dry-run outputs
 
 
 def test_gep_restapi_dry_run_shows_would_update(project_root: Path) -> None:
@@ -174,16 +159,20 @@ def test_gep_restapi_shows_updated(project_root: Path) -> None:
     assert 'Updated [project.scripts]: my_app = "my_app.server:start_server"' in strip_ansi(result.output)
 
 
-def test_gep_mcp_shows_replaced_message(mcp_project: Path) -> None:
-    # mcp was already created; this tests the success output stored in mcp_project fixture
-    # Re-run on a fresh project
-    pass
+def test_gep_mcp_shows_replaced_message(project_root: Path) -> None:
+    result = runner.invoke(app, ["gep", "--type", "mcp"])
+    assert result.exit_code == 0
+    out = strip_ansi(result.output)
+    assert "Deleted src/my_app/main.py" in out
+    assert 'Updated [project.scripts]: my_app = "my_app.server:start_server"' in out
 
 
 def test_gep_mcp_success_message(project_root: Path) -> None:
     result = runner.invoke(app, ["gep", "--type", "mcp"])
     assert result.exit_code == 0
-    assert "main.py replaced with mcp entrypoint." in strip_ansi(result.output)
+    out = strip_ansi(result.output)
+    assert "Deleted src/my_app/main.py" in out
+    assert 'Updated [project.scripts]: my_app = "my_app.server:start_server"' in out
 
 
 def test_gep_agent_dry_run_shows_will_be_replaced(project_root: Path) -> None:
@@ -196,3 +185,50 @@ def test_gep_mcp_writes_main_script(project_root: Path) -> None:
     runner.invoke(app, ["gep", "--type", "mcp"], catch_exceptions=False)
     pyproject = (project_root / "pyproject.toml").read_text()
     assert ":main" in pyproject
+
+
+@pytest.mark.parametrize(
+    ("command", "required_option"),
+    [
+        (["gm"], "--name"),
+        (["guc"], "--name"),
+        (["gh"], "--name"),
+        (["gep"], "--type"),
+        (["gda"], "--type"),
+        (["gpipe"], "--provider"),
+        (["dm"], "--name"),
+    ],
+)
+def test_command_no_args_shows_required_option(command: list[str], required_option: str) -> None:
+    result = runner.invoke(app, command)
+    assert result.exit_code == 0
+    assert required_option in strip_ansi(result.output)
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        ["gm", "--name", "MyOrder"],
+        ["gm", "--name", "my-order"],
+        ["guc", "--name", "MyOrder"],
+        ["guc", "--name", "my-order"],
+        ["gh", "--name", "MyHelper"],
+        ["gh", "--name", "my-helper"],
+        ["gda", "--type", "generic", "--name", "MyAdapter"],
+        ["gda", "--type", "generic", "--name", "my-adapter"],
+        ["dm", "--name", "MyModule"],
+        ["dm", "--name", "my-module"],
+    ],
+)
+def test_invalid_snake_name_rejected(project_root: Path, command: list[str]) -> None:
+    result = runner.invoke(app, command)
+    assert result.exit_code == 1
+    assert "snake_case" in strip_ansi(result.output)
+
+
+def test_commands_require_project_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    for command in (["gm", "--name", "x"], ["gda", "--type", "rest-consumer"], ["gep", "--type", "restapi"]):
+        result = runner.invoke(app, command)
+        assert result.exit_code == 1
+        assert "No scaffold-ca-python project found" in strip_ansi(result.output)

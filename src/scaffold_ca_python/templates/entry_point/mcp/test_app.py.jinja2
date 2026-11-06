@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from mcp.server.fastmcp import FastMCP
 from starlette.applications import Starlette
+from starlette.routing import Mount
 from starlette.testclient import TestClient
 
 from {{ project.python_package }}.application import app as app_module
@@ -35,7 +36,9 @@ def test_health_route_registered_once() -> None:
     """Repeated start_server() calls must not duplicate the health route."""
     app_module.start_server()
     server = app_module.start_server()
-    health = [r for r in server.routes[0].routes if getattr(r, "path", None) == "/api/v1/health"]
+    mount = server.routes[0]
+    assert isinstance(mount, Mount)
+    health = [r for r in mount.routes if getattr(r, "path", None) == "/api/v1/health"]
     assert len(health) == 1
 
 

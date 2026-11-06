@@ -1,10 +1,8 @@
-"""EntryPointAgent factory implementation."""
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar
 
-from scaffold_ca_python.core.project_detector import resolve_tests_root
+from scaffold_ca_python.factory.dependencies import A2A_SDK
 from scaffold_ca_python.factory.entry_points.base import (
     EntryPointConflict,
     EntryPointFactory,
@@ -16,92 +14,37 @@ if TYPE_CHECKING:
 
 
 class EntryPointAgent(EntryPointFactory):
+    """Factory for Agent entry-point type."""
+
     subdir: ClassVar[str] = "agent"
     supported_flags: ClassVar[frozenset[EntryPointFlag]] = frozenset(
         {EntryPointFlag.ENABLE_MCP_CLIENT, EntryPointFlag.ENABLE_KAFKA}
     )
-    conflicts: ClassVar[tuple[EntryPointConflict, ...]] = (EntryPointConflict(label="restapi", subdir="api"),)
-    """Factory for Agent entry-point type."""
+    conflicts: ClassVar[tuple[EntryPointConflict, ...]] = (EntryPointConflict(type_key="restapi"),)
 
     def build(self, builder: ModuleBuilder) -> None:
-        """Build Agent entry-point files and dependencies.
+        """Queue Agent entry-point files, overwrite main.py, and inject runtime deps."""
+        src_dir = type(self).entry_points_src(builder)
+        test_dir = type(self).entry_points_tests(builder)
+        main_py = type(self).pkg_file(builder, "main.py")
+        agent_app_py = type(self).pkg_file(builder, "application", "agent_app.py")
 
-        Queues files:
-        - src/application/agent_app.py (composition root)
-        - src/infrastructure/entry_points/agent/__init__.py
-        - src/infrastructure/entry_points/agent/agent.py
-        - src/infrastructure/entry_points/agent/card.py
-        - tests/infrastructure/entry_points/agent/test_agent.py
-
-        Overwrites:
-        - src/main.py (if exists)
-
-        Injects:
-        - a2a-sdk~=1.1.4
-        """
-        project_root = builder.project_root
-        pkg = builder.project_ctx.python_package
-
-        # Setup directory paths
-        src_dir = project_root / "src" / pkg / "infrastructure" / "entry_points" / "agent"
-        test_dir = resolve_tests_root(project_root) / "infrastructure" / "entry_points" / "agent"
-        main_py = project_root / "src" / pkg / "main.py"
-        agent_app_py = project_root / "src" / pkg / "application" / "agent_app.py"
-
-        # Template base path for entry_point/agent
         base = "entry_point/agent"
+        ctx_dict = dict(builder.base_context())
 
-        # Build context dict from module context and params
-        ctx_dict = {}
-        if builder.module_ctx:
-            ctx_dict.update(builder.module_ctx.model_dump())
-
-        # Add enable_kafka and enable_mcp_client if present in params
         if builder.get_param("enable_kafka"):
             ctx_dict["enable_kafka"] = True
         if builder.get_param("enable_mcp_client"):
             ctx_dict["enable_mcp_client"] = True
 
-        # Add source files
         def tpl(f: str) -> str:
             return f"{base}/{f}"
 
-        builder.add_file(
-            agent_app_py,
-            builder.render(f"{base}/agent_app.py.jinja2", ctx_dict),
-            template_name=tpl("agent_app.py.jinja2"),
-        )
-        builder.add_file(
-            src_dir / "__init__.py",
-            builder.render(f"{base}/__init__.py.jinja2", ctx_dict),
-            template_name=tpl("__init__.py.jinja2"),
-        )
-        builder.add_file(
-            src_dir / "agent.py",
-            builder.render(f"{base}/agent.py.jinja2", ctx_dict),
-            template_name=tpl("agent.py.jinja2"),
-        )
-        builder.add_file(
-            src_dir / "card.py",
-            builder.render(f"{base}/card.py.jinja2", ctx_dict),
-            template_name=tpl("card.py.jinja2"),
-        )
+        builder.add_rendered(agent_app_py, tpl("agent_app.py.jinja2"), ctx_dict)
+        builder.add_rendered(src_dir / "__init__.py", tpl("__init__.py.jinja2"), ctx_dict)
+        builder.add_rendered(src_dir / "agent.py", tpl("agent.py.jinja2"), ctx_dict)
+        builder.add_rendered(src_dir / "card.py", tpl("card.py.jinja2"), ctx_dict)
+        builder.add_rendered(test_dir / "test_agent.py", tpl("test_agent.py.jinja2"), ctx_dict)
+        builder.add_rendered(main_py, tpl("entrypoint_main.py.jinja2"), ctx_dict, overwrite=True)
 
-        # Add test files
-        builder.add_file(
-            test_dir / "test_agent.py",
-            builder.render(f"{base}/test_agent.py.jinja2", ctx_dict),
-            template_name=tpl("test_agent.py.jinja2"),
-            is_test=True,
-        )
-
-        # Overwrite main.py
-        builder.add_file(
-            main_py,
-            builder.render(f"{base}/entrypoint_main.py.jinja2", ctx_dict),
-            template_name=tpl("entrypoint_main.py.jinja2"),
-            overwrite=True,
-        )
-
-        # Add dependency
-        builder.add_dependency("a2a-sdk~=1.1.4")
+        builder.add_dependency(A2A_SDK)

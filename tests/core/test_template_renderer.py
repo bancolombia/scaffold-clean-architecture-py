@@ -1,4 +1,4 @@
-"""Tests for TemplateRenderer: Jinja2 template loading and rendering (T020)."""
+"""Tests for TemplateRenderer: Jinja2 template loading and rendering."""
 
 from pathlib import Path
 
@@ -7,11 +7,8 @@ import pytest
 from scaffold_ca_python.core.name_utils import ScaffoldError
 from scaffold_ca_python.core.template_renderer import TemplateRenderer
 from scaffold_ca_python.models.context import ModuleContext, ProjectContext
-from scaffold_ca_python.models.layer import Layer
 
-# ---------------------------------------------------------------------------
 # Fixtures
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture()
@@ -26,12 +23,10 @@ def project_ctx() -> ProjectContext:
 
 @pytest.fixture()
 def module_ctx(project_ctx: ProjectContext) -> ModuleContext:
-    return ModuleContext(name="order", layer=Layer.DOMAIN_MODEL, project=project_ctx)
+    return ModuleContext(name="order", project=project_ctx)
 
 
-# ---------------------------------------------------------------------------
 # Loading from importlib.resources
-# ---------------------------------------------------------------------------
 
 
 def test_renderer_instantiates(renderer: TemplateRenderer) -> None:
@@ -43,9 +38,7 @@ def test_raises_on_missing_template(renderer: TemplateRenderer, project_ctx: Pro
         renderer.render("nonexistent_template_xyz.j2", project_ctx)
 
 
-# ---------------------------------------------------------------------------
 # Rendering with context
-# ---------------------------------------------------------------------------
 
 
 def test_render_returns_string(renderer: TemplateRenderer, tmp_path: Path) -> None:
@@ -93,9 +86,7 @@ def test_render_string_exposes_computed_module_name(renderer: TemplateRenderer, 
     assert "order" in result
 
 
-# ---------------------------------------------------------------------------
 # Edge cases
-# ---------------------------------------------------------------------------
 
 
 def test_render_string_empty_template(renderer: TemplateRenderer) -> None:

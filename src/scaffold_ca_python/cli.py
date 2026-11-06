@@ -20,16 +20,21 @@ app = typer.Typer(
     rich_markup_mode="rich",
 )
 
-generate_project.register(app)
-generate_model.register(app)
-generate_use_case.register(app)
-generate_driven_adapter.register(app)
-generate_entry_point.register(app)
-generate_helper.register(app)
-generate_pipeline.register(app)
-delete_module.register(app)
-update_project.register(app)
-validate_structure.register(app)
+_COMMAND_MODULES = (
+    generate_project,
+    generate_model,
+    generate_use_case,
+    generate_driven_adapter,
+    generate_entry_point,
+    generate_helper,
+    generate_pipeline,
+    update_project,
+    delete_module,
+    validate_structure,
+)
+
+for _mod in _COMMAND_MODULES:
+    _mod.register(app)
 
 
 @app.callback(invoke_without_command=True)

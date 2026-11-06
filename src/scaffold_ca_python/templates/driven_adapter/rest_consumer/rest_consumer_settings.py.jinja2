@@ -9,7 +9,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class RestConsumerSettings(BaseSettings):
     """Environment-sourced settings for {{ class_name }} REST consumer.
 
-    All fields are required (no defaults) so a missing env var fails at startup (D5/SC-003).
+    All fields are required (no defaults) so a missing env var fails at startup.
     """
 
     base_url: str

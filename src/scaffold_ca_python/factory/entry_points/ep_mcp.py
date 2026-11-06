@@ -1,10 +1,11 @@
-"""EntryPointMcp factory implementation."""
-
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar
 
-from scaffold_ca_python.core.project_detector import resolve_tests_root
+from rich.markup import escape
+
+from scaffold_ca_python.factory.dependencies import MCP_RUNTIME
 from scaffold_ca_python.factory.entry_points.base import (
     EntryPointConflict,
     EntryPointFactory,
@@ -16,117 +17,65 @@ if TYPE_CHECKING:
 
 
 class EntryPointMcp(EntryPointFactory):
-    subdir: ClassVar[str] = "mcp_server"
-    supported_flags: ClassVar[frozenset[EntryPointFlag]] = frozenset(
-        {EntryPointFlag.MCP_PRIMITIVES, EntryPointFlag.ENABLE_KAFKA}
-    )
-    conflicts: ClassVar[tuple[EntryPointConflict, ...]] = (EntryPointConflict(label="restapi", subdir="api"),)
     """Factory for MCP entry-point type."""
 
+    subdir: ClassVar[str] = "mcp_server"
+    supported_flags: ClassVar[frozenset[EntryPointFlag]] = frozenset({EntryPointFlag.MCP_PRIMITIVES})
+    conflicts: ClassVar[tuple[EntryPointConflict, ...]] = (EntryPointConflict(type_key="restapi"),)
+
+    def result_notes(
+        self,
+        src_pkg_root: Path,
+        pkg: str,
+        type_key: str,
+        *,
+        dry_run: bool,
+    ) -> list[str]:
+        notes: list[str] = []
+        main_py = src_pkg_root / "main.py"
+        if dry_run:
+            if main_py.exists():
+                notes.append(f"[dim]Would delete: src/{pkg}/main.py[/dim]")
+            notes.append(f'[dim]Would update {escape("[project.scripts]")}: {pkg} = "{pkg}.server:start_server"[/dim]')
+        else:
+            notes.append(f"[green]✓[/green] Deleted src/{pkg}/main.py")
+            notes.append(f'[green]✓[/green] Updated {escape("[project.scripts]")}: {pkg} = "{pkg}.server:start_server"')
+        return notes
+
     def build(self, builder: ModuleBuilder) -> None:
-        """Build MCP entry-point files and dependencies.
-
-        Always queues:
-        - src/infrastructure/entry_points/mcp_server/__init__.py
-        - src/infrastructure/entry_points/mcp_server/tools.py
-        - src/infrastructure/entry_points/mcp_server/routes.py
-        - tests/infrastructure/entry_points/mcp_server/test_tools.py
-        - tests/infrastructure/entry_points/mcp_server/test_routes.py
-
-        Conditionally queues (when builder params are True):
-        - resources.py + test_resources.py  (with_resources=True)
-        - prompts.py   + test_prompts.py    (with_prompts=True)
-
-        Injects: mcp~=1.30.0, uvicorn[standard]~=0.53.0, starlette~=1.6.0,
-                 wireup~=2.13.0, pydantic-settings~=2.15.0
-
-        Sets builder params: scripts_entry_fn="main"
-        """
-        project_root = builder.project_root
-        pkg = builder.project_ctx.python_package
-
+        """Queue MCP entry-point files, optional resources/prompts, and runtime deps."""
         with_resources: bool = bool(builder.get_param("with_resources", False))
         with_prompts: bool = bool(builder.get_param("with_prompts", False))
 
-        src_dir = project_root / "src" / pkg / "infrastructure" / "entry_points" / "mcp_server"
-        test_dir = resolve_tests_root(project_root) / "infrastructure" / "entry_points" / "mcp_server"
+        src_dir = type(self).entry_points_src(builder)
+        test_dir = type(self).entry_points_tests(builder)
 
         base = "entry_point/mcp"
 
-        ctx_dict: dict[str, object] = {}
-        if builder.module_ctx:
-            ctx_dict.update(builder.module_ctx.model_dump())
+        ctx_dict = dict(builder.base_context())
 
-        # Always-generated files
-        builder.add_file(
-            src_dir / "__init__.py",
-            builder.render(f"{base}/__init__.py.jinja2", ctx_dict),
-            template_name=f"{base}/__init__.py.jinja2",
-        )
-        builder.add_file(
-            src_dir / "tools.py",
-            builder.render(f"{base}/tools.py.jinja2", ctx_dict),
-            template_name=f"{base}/tools.py.jinja2",
-        )
-        builder.add_file(
-            src_dir / "routes.py",
-            builder.render(f"{base}/routes.py.jinja2", ctx_dict),
-            template_name=f"{base}/routes.py.jinja2",
-        )
-        builder.add_file(
-            test_dir / "test_tools.py",
-            builder.render(f"{base}/test_tools.py.jinja2", ctx_dict),
-            template_name=f"{base}/test_tools.py.jinja2",
-            is_test=True,
-        )
-        builder.add_file(
-            test_dir / "test_routes.py",
-            builder.render(f"{base}/test_routes.py.jinja2", ctx_dict),
-            template_name=f"{base}/test_routes.py.jinja2",
-            is_test=True,
-        )
+        builder.add_rendered(src_dir / "__init__.py", f"{base}/__init__.py.jinja2", ctx_dict)
+        builder.add_rendered(src_dir / "tools.py", f"{base}/tools.py.jinja2", ctx_dict)
+        builder.add_rendered(src_dir / "routes.py", f"{base}/routes.py.jinja2", ctx_dict)
+        builder.add_rendered(test_dir / "test_tools.py", f"{base}/test_tools.py.jinja2", ctx_dict)
+        builder.add_rendered(test_dir / "test_routes.py", f"{base}/test_routes.py.jinja2", ctx_dict)
 
-        # Optional: resources
         if with_resources:
-            builder.add_file(
-                src_dir / "resources.py",
-                builder.render(f"{base}/resources.py.jinja2", ctx_dict),
-                template_name=f"{base}/resources.py.jinja2",
-            )
-            builder.add_file(
-                test_dir / "test_resources.py",
-                builder.render(f"{base}/test_resources.py.jinja2", ctx_dict),
-                template_name=f"{base}/test_resources.py.jinja2",
-                is_test=True,
-            )
+            builder.add_rendered(src_dir / "resources.py", f"{base}/resources.py.jinja2", ctx_dict)
+            builder.add_rendered(test_dir / "test_resources.py", f"{base}/test_resources.py.jinja2", ctx_dict)
 
-        # Optional: prompts
         if with_prompts:
-            builder.add_file(
-                src_dir / "prompts.py",
-                builder.render(f"{base}/prompts.py.jinja2", ctx_dict),
-                template_name=f"{base}/prompts.py.jinja2",
-            )
-            builder.add_file(
-                test_dir / "test_prompts.py",
-                builder.render(f"{base}/test_prompts.py.jinja2", ctx_dict),
-                template_name=f"{base}/test_prompts.py.jinja2",
-                is_test=True,
-            )
+            builder.add_rendered(src_dir / "prompts.py", f"{base}/prompts.py.jinja2", ctx_dict)
+            builder.add_rendered(test_dir / "test_prompts.py", f"{base}/test_prompts.py.jinja2", ctx_dict)
 
         # server.py at package root — replaces main.py
-        server_path = project_root / "src" / pkg / "server.py"
-        main_py = project_root / "src" / pkg / "main.py"
-        builder.add_file(
-            server_path,
-            builder.render(f"{base}/server.py.jinja2", ctx_dict),
-            template_name=f"{base}/server.py.jinja2",
-            overwrite=True,
-        )
+        server_path = type(self).pkg_file(builder, "server.py")
+        main_py = type(self).pkg_file(builder, "main.py")
+        builder.add_rendered(server_path, f"{base}/server.py.jinja2", ctx_dict, overwrite=True)
         builder.delete_file(main_py)
 
         # config.py — add HOST / PORT for uvicorn via insert_after
-        config_py_path = project_root / "src" / pkg / "application" / "config" / "config.py"
+        config_py_path = type(self).pkg_file(builder, "application", "config", "config.py")
         builder.insert_after(
             config_py_path,
             anchor="LOG_LEVEL",
@@ -134,25 +83,12 @@ class EntryPointMcp(EntryPointFactory):
         )
 
         # app.py composition root — no overwrite guard
-        app_py_path = project_root / "src" / pkg / "application" / "app.py"
+        app_py_path = type(self).pkg_file(builder, "application", "app.py")
         app_ctx: dict[str, object] = {**ctx_dict, "with_resources": with_resources, "with_prompts": with_prompts}
-        builder.add_file(
-            app_py_path,
-            builder.render(f"{base}/app.py.jinja2", app_ctx),
-            template_name=f"{base}/app.py.jinja2",
-        )
-        builder.add_file(
-            test_dir / "test_app.py",
-            builder.render(f"{base}/test_app.py.jinja2", app_ctx),
-            template_name=f"{base}/test_app.py.jinja2",
-            is_test=True,
-        )
+        builder.add_rendered(app_py_path, f"{base}/app.py.jinja2", app_ctx)
+        builder.add_rendered(test_dir / "test_app.py", f"{base}/test_app.py.jinja2", app_ctx)
 
-        # Dependencies
-        builder.add_dependency("mcp~=1.30.0")  # ~=1.30.0 caps below 2.0; templates target the 1.x FastMCP API
-        builder.add_dependency("uvicorn[standard]~=0.53.0")
-        builder.add_dependency("starlette~=1.6.0")
-        builder.add_dependency("wireup~=2.13.0")
-        builder.add_dependency("pydantic-settings~=2.15.0")
+        for dep in MCP_RUNTIME:
+            builder.add_dependency(dep)
 
         builder.set_project_script("main")

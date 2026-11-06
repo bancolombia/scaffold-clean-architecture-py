@@ -39,7 +39,7 @@ This project uses **wireup** with an async container (`application/config/wiring
 ### Async-first and resources
 
 - Prefer async I/O in adapters and entry points. The container validates the graph at startup.
-- Adapters that own a long-lived resource (HTTP client, pool, etc.) should expose an async factory module (`<adapter>_config.py`) with `yield` for setup/teardown. Settings without defaults fail fast when env vars are missing.
+- Adapters that own a long-lived resource (HTTP client, pool, etc.) should read configuration from generated `*Settings` modules (pydantic-settings) and register shared clients in `wiring.py` when needed. Settings without defaults fail fast when env vars are missing.
 - Calling blocking libraries from async code: use `asyncio.to_thread(...)` rather than blocking the event loop.
 
 ### Scoped (per-request) dependencies

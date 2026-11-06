@@ -1,4 +1,4 @@
-"""Tests for EntryPointOptions (T033 / US4)."""
+"""Tests for EntryPointOptions ( / )."""
 
 from __future__ import annotations
 

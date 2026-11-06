@@ -1,4 +1,4 @@
-"""Tests for ca / generate-project command (T025)."""
+"""Tests for ca / generate-project command."""
 
 from pathlib import Path
 
@@ -6,14 +6,11 @@ import pytest
 from typer.testing import CliRunner
 
 from scaffold_ca_python.cli import app
-from tests.conftest import strip_ansi
+from tests.helpers import strip_ansi
 
 runner = CliRunner()
 
-
-# ---------------------------------------------------------------------------
 # Success path
-# ---------------------------------------------------------------------------
 
 
 def test_creates_project_directory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -21,6 +18,14 @@ def test_creates_project_directory(tmp_path: Path, monkeypatch: pytest.MonkeyPat
     result = runner.invoke(app, ["ca", "--name", "my-project"], catch_exceptions=False)
     assert result.exit_code == 0
     assert (tmp_path / "my-project").is_dir()
+
+
+def test_success_message_uses_directory_name_not_snake_pkg(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    result = runner.invoke(app, ["ca", "--name", "my-project"], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert "my-project/" in result.output
+    assert "my_project/" not in result.output
 
 
 def test_creates_all_layer_directories(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -45,11 +50,11 @@ def test_creates_config_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
     assert (root / "README.md").exists()
     assert (root / ".gitignore").exists()
     assert (root / "mypy.ini").exists()
-    # US1: Docker and Python version files
+    # : Docker and Python version files
     assert (root / "Dockerfile").exists()
     assert (root / ".dockerignore").exists()
     assert (root / ".python-version").exists()
-    # US1: No .ruff.toml
+    # : No .ruff.toml
     assert not (root / ".ruff.toml").exists()
 
 
@@ -118,9 +123,7 @@ def test_package_flag_is_not_accepted(tmp_path: Path, monkeypatch: pytest.Monkey
     assert result.exit_code != 0
 
 
-# ---------------------------------------------------------------------------
-# US1: clean-architecture command (T003)
-# ---------------------------------------------------------------------------
+# : clean-architecture command
 
 
 def test_clean_architecture_creates_project(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -146,7 +149,7 @@ def test_clean_architecture_help_contains_options() -> None:
 
 
 def test_ca_help_identical_to_clean_architecture_help() -> None:
-    """SC-004: ca --help must match clean-architecture --help in all content.
+    """: ca --help must match clean-architecture --help in all content.
 
     The Usage line inherently shows the invoked command name (Typer behaviour),
     so we normalise that line before comparing.
@@ -168,9 +171,7 @@ def test_ca_help_identical_to_clean_architecture_help() -> None:
     assert _normalise(r_ca.output) == _normalise(r_clean.output)
 
 
-# ---------------------------------------------------------------------------
-# US1: ca alias and generate-project tombstone (T004)
-# ---------------------------------------------------------------------------
+# : ca alias and generate-project tombstone
 
 
 def test_ca_alias_creates_project(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -200,16 +201,15 @@ def test_ca_dry_run_shows_src_tests_init(tmp_path: Path, monkeypatch: pytest.Mon
     assert result.output.count("tests/__init__.py") == result.output.count("src/tests/__init__.py")
 
 
-# ---------------------------------------------------------------------------
 # Dry-run
-# ---------------------------------------------------------------------------
 
 
 def test_dry_run_writes_nothing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.chdir(tmp_path)
     result = runner.invoke(app, ["ca", "--name", "dry-project", "--dry-run"], catch_exceptions=False)
     assert result.exit_code == 0
-    assert not (tmp_path / "dry_project").exists()
+    assert not (tmp_path / "dry-project").exists()
+    assert not any(tmp_path.iterdir())
 
 
 def test_dry_run_prints_file_list(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -218,9 +218,7 @@ def test_dry_run_prints_file_list(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     assert "pyproject.toml" in result.output or "dry-project" in result.output
 
 
-# ---------------------------------------------------------------------------
 # Error cases
-# ---------------------------------------------------------------------------
 
 
 def test_duplicate_project_exits_1(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -254,18 +252,13 @@ def test_kebab_name_generates_snake_case_files(tmp_path: Path, monkeypatch: pyte
             assert stem == stem.lower() and "-" not in stem
 
 
-# ---------------------------------------------------------------------------
-# T036: injection test — renderer and writer are used when injected
-# ---------------------------------------------------------------------------
+# : injection test — renderer and writer are used when injected
 
-
-# ---------------------------------------------------------------------------
-# T011 (028): wireup project layout (must FAIL before T005-T010)
-# ---------------------------------------------------------------------------
+#  (028): wireup project layout (must FAIL before -)
 
 
 def test_ca_generates_wiring_py(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """FR-001: ca must generate wiring.py instead of *_container.py files."""
+    """: ca must generate wiring.py instead of *_container.py files."""
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["ca", "--name", "my-project"], catch_exceptions=False)
     cfg = tmp_path / "my-project" / "src" / "my_project" / "application" / "config"
@@ -273,7 +266,7 @@ def test_ca_generates_wiring_py(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
 
 
 def test_ca_generates_usecases_package(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """FR-004: ca must generate application/config/usecases/__init__.py."""
+    """: ca must generate application/config/usecases/__init__.py."""
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["ca", "--name", "my-project"], catch_exceptions=False)
     usecases_init = (
@@ -283,7 +276,7 @@ def test_ca_generates_usecases_package(tmp_path: Path, monkeypatch: pytest.Monke
 
 
 def test_ca_does_not_generate_container_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """FR-001: ca must NOT generate *_container.py files for wireup projects."""
+    """: ca must NOT generate *_container.py files for wireup projects."""
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["ca", "--name", "my-project"], catch_exceptions=False)
     cfg = tmp_path / "my-project" / "src" / "my_project" / "application" / "config"
@@ -292,7 +285,7 @@ def test_ca_does_not_generate_container_files(tmp_path: Path, monkeypatch: pytes
 
 
 def test_ca_pyproject_has_wireup_dependency(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """FR-002: generated pyproject.toml must declare wireup==2.13.0, not dependency-injector."""
+    """: generated pyproject.toml must declare wireup==2.13.0, not dependency-injector."""
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["ca", "--name", "my-project"], catch_exceptions=False)
     content = (tmp_path / "my-project" / "pyproject.toml").read_text()
@@ -301,7 +294,7 @@ def test_ca_pyproject_has_wireup_dependency(tmp_path: Path, monkeypatch: pytest.
 
 
 def test_ca_pyproject_has_scaffold_version_key(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """FR-002/T091: generated pyproject.toml must contain scaffold_version in [tool.scaffold-ca-python]."""
+    """/: generated pyproject.toml must contain scaffold_version in [tool.scaffold-ca-python]."""
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["ca", "--name", "my-project"], catch_exceptions=False)
     content = (tmp_path / "my-project" / "pyproject.toml").read_text()
@@ -310,7 +303,7 @@ def test_ca_pyproject_has_scaffold_version_key(tmp_path: Path, monkeypatch: pyte
 
 
 def test_ca_pyproject_has_ruff_async_rule(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """FR-003: generated pyproject.toml must enable ruff ASYNC rule."""
+    """: generated pyproject.toml must enable ruff ASYNC rule."""
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["ca", "--name", "my-project"], catch_exceptions=False)
     content = (tmp_path / "my-project" / "pyproject.toml").read_text()
@@ -318,7 +311,7 @@ def test_ca_pyproject_has_ruff_async_rule(tmp_path: Path, monkeypatch: pytest.Mo
 
 
 def test_ca_pyproject_has_asyncio_mode_auto(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """FR-003: generated pyproject.toml must set asyncio_mode = 'auto' in pytest config."""
+    """: generated pyproject.toml must set asyncio_mode = 'auto' in pytest config."""
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["ca", "--name", "my-project"], catch_exceptions=False)
     content = (tmp_path / "my-project" / "pyproject.toml").read_text()
@@ -326,20 +319,18 @@ def test_ca_pyproject_has_asyncio_mode_auto(tmp_path: Path, monkeypatch: pytest.
 
 
 def test_ca_pyproject_disables_tc_rule(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """FR-003: generated pyproject.toml must disable ruff TC rule to keep Injected/Inject at runtime."""
+    """: generated pyproject.toml must disable ruff TC rule to keep Injected/Inject at runtime."""
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["ca", "--name", "my-project"], catch_exceptions=False)
     content = (tmp_path / "my-project" / "pyproject.toml").read_text()
     assert "TC" in content, "TC rule ignore not found"
 
 
-# ---------------------------------------------------------------------------
-# T036: injection test — renderer and writer are used when injected
-# ---------------------------------------------------------------------------
+# : injection test — renderer and writer are used when injected
 
 
 def test_generate_project_uses_injected_renderer_and_writer(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """_generate_project_impl must pass renderer/writer to ModuleBuilder (FR-014)."""
+    """_generate_project_impl must pass renderer/writer to ModuleBuilder."""
     monkeypatch.chdir(tmp_path)
     from scaffold_ca_python.commands.generate_project import _generate_project_impl
 
@@ -365,13 +356,11 @@ def test_generate_project_uses_injected_renderer_and_writer(tmp_path: Path, monk
     assert FakeWriter.called, "Expected the injected writer to be called"
 
 
-# ---------------------------------------------------------------------------
-# T076: wiring.py uses injectables= (not deprecated service_modules=)
-# ---------------------------------------------------------------------------
+# : wiring.py uses injectables= (not deprecated service_modules=)
 
 
 def test_wiring_uses_injectables_param(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """T076: generated wiring.py must use create_async_container(injectables=...) not service_modules=."""
+    """: generated wiring.py must use create_async_container(injectables=...) not service_modules=."""
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["ca", "--name", "my-project"], catch_exceptions=False)
     wiring_path = tmp_path / "my-project" / "src" / "my_project" / "application" / "config" / "wiring.py"

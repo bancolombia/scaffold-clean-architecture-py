@@ -3,15 +3,11 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import typer
 
 from scaffold_ca_python.commands._shared import console
 from scaffold_ca_python.factory.entry_points.base import EntryPointFactory, EntryPointFlag
-
-if TYPE_CHECKING:
-    pass
 
 
 def check_flags(
@@ -34,18 +30,23 @@ def check_flags(
 
 def check_conflicts(
     project_root: Path,
-    pkg: str,
+    src_pkg_root: Path,
     type_key: str,
     factory: type[EntryPointFactory],
+    registry: dict[str, type[EntryPointFactory]],
 ) -> None:
     """Exit with an error if any conflicting entry-point directory already exists."""
-    pkg_ep = project_root / "src" / pkg / "infrastructure" / "entry_points"
+    pkg_ep = src_pkg_root / "infrastructure" / "entry_points"
     for conflict in factory.conflicts:
-        conflict_dir = pkg_ep / conflict.subdir
+        other = registry.get(conflict.type_key)
+        if other is None:
+            continue
+        conflict_subdir = other.subdir.split("/")[0]
+        conflict_dir = pkg_ep / conflict_subdir
         if conflict_dir.exists():
             rel = conflict_dir.relative_to(project_root)
             console.print(
-                f"[red]Error:[/red] Incompatible entry point '[bold]{conflict.label}[/bold]' "
+                f"[red]Error:[/red] Incompatible entry point '[bold]{conflict.type_key}[/bold]' "
                 f"already exists at: {rel}\n"
                 "[dim]Hint:[/dim] A project may have only one entry-point type. "
                 f"Remove '{rel}' before adding {type_key}."
