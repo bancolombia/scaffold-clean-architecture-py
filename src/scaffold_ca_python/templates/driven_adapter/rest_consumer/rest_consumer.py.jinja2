@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import httpx
-import wireup{%- if gateway %}
+import wireup
+{% if gateway -%}
 from {{ project.python_package }}.domain.model.{{ gateway.model_module }}.gateways.{{ gateway.name }} import {{ gateway.class_name }}
-
-{%- endif %}
+{% endif -%}
 from {{ project.python_package }}.infrastructure.driven_adapters.rest_consumer.rest_consumer_settings import (
     RestConsumerSettings,
 )

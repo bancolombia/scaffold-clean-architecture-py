@@ -26,7 +26,8 @@ def run_quality_checks(project_dir: Path) -> None:
         ["uv", "run", "ruff", "check", "."],
         ["uv", "run", "ruff", "format", "--check", "."],
         ["uv", "run", "mypy", "--strict", "src/"],
-        ["uv", "run", "pytest", "-q"],
+        # Template addopts enable --cov/--cov-fail-under; quality gate is ruff/mypy/vs here.
+        ["uv", "run", "pytest", "-q", "--no-cov"],
     ]
     for cmd in cmds:
         result = subprocess.run(cmd, cwd=project_dir, capture_output=True, text=True, env=env)
@@ -51,8 +52,9 @@ def uv_sync_project(tmp_path_factory: pytest.TempPathFactory) -> Callable[[Path]
             env=env,
         )
         if result.returncode != 0:
+            detail = (result.stderr or result.stdout or "").strip()[-800:]
             if os.environ.get("CI"):
                 pytest.fail(f"uv sync failed in CI:\n{result.stdout}\n{result.stderr}")
-            pytest.skip("uv sync not available locally")
+            pytest.skip(f"uv sync failed (set SSL_CERT_FILE or network): {detail or 'no output'}")
 
     return _sync

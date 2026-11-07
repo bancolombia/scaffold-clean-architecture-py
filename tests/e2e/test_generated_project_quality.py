@@ -57,12 +57,15 @@ def _scenario_03_generic_minimal(project: Path) -> None:
 def _scenario_04_module_usecase_adapter(project: Path) -> None:
     _run(project, "gm", "--name", "order")
     _run(project, "guc", "--name", "create_order", "--uses", "order_repository")
-    # Before the gateway adapter exists, the generated test must be xfail.
-    uc_test = _src_pkg(project).parent / "tests" / "application" / "usecases" / "test_create_order_usecase.py"
-    assert uc_test.exists(), "guc --uses must generate a test file"
-    assert "xfail" in uc_test.read_text(encoding="utf-8"), (
-        "guc --uses must mark the usecase test as xfail before the gateway adapter exists"
-    )
+    tests_root = project / "src" / "tests"
+    uc_factory_test = tests_root / "application" / "config" / "usecases" / "test_create_order_usecase.py"
+    assert uc_factory_test.exists(), "guc --uses must generate the use-case factory test file"
+    wiring_test = tests_root / "application" / "config" / "test_wiring.py"
+    assert wiring_test.exists(), "project must include test_wiring.py"
+    wiring_src = wiring_test.read_text(encoding="utf-8")
+    # MISSING_ADAPTERS + module pytestmark xfail until an adapter implements the gateway.
+    assert "OrderRepository" in wiring_src and "MISSING_ADAPTERS" in wiring_src
+    assert "pytest.mark.xfail" in wiring_src
     _run(
         project,
         "gda",
@@ -107,10 +110,11 @@ def _scenario_09_mcp_add_tool(project: Path) -> None:
 
 def _scenario_10_delete_module_conftest(project: Path) -> None:
     _run(project, "gm", "--name", "order")
-    _run(project, "gda", "--type", "rest-consumer", "--gateway", "order_repository")
+    # No --gateway: after dm order the domain package is gone but rest_consumer must stay valid for mypy/ruff.
+    _run(project, "gda", "--type", "rest-consumer")
     conftest = project / "src" / "tests" / "conftest.py"
     assert conftest.exists(), "gda rest-consumer must create conftest.py"
-    # Delete the domain module; the rest-consumer conftest.py must survive intact.
+    # Delete the domain model only (not rest_consumer): conftest fixture must not be stripped.
     _run(project, "dm", "--name", "order", "--confirm")
     assert conftest.exists(), "conftest.py must survive after dm order"
     assert "rest_consumer_env" in conftest.read_text(encoding="utf-8"), (

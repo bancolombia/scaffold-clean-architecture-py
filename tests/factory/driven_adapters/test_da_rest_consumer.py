@@ -154,19 +154,16 @@ def _render_adapter(tmp_path: Path, gateway: object | None = None) -> str:
     return adapter_file.read_text(encoding="utf-8")
 
 
-def test_rest_consumer_no_double_blank_lines_between_imports(tmp_path: Path) -> None:
-    """Without gateway, import wireup must be directly followed by from-import (no stray blank)."""
+def test_rest_consumer_import_block_is_ruff_compatible(tmp_path: Path) -> None:
+    """First-party import follows third-party block without a blank line (ruff I001)."""
     content = _render_adapter(tmp_path)
     lines = content.splitlines()
     wireup_idx = next(i for i, ln in enumerate(lines) if ln == "import wireup")
-    next_content = next(ln for ln in lines[wireup_idx + 1 :] if ln.strip())
-    assert next_content.startswith("from "), (
-        f"Expected 'from' import immediately after 'import wireup', got: {next_content!r}\n\n{content}"
-    )
+    assert lines[wireup_idx + 1].startswith("from "), content
 
 
-def test_rest_consumer_gateway_no_double_blank_lines_between_imports(tmp_path: Path) -> None:
-    """With gateway, gateway import must directly follow wireup import (no stray blank from {%- if %})."""
+def test_rest_consumer_gateway_import_block_is_ruff_compatible(tmp_path: Path) -> None:
+    """With gateway, domain import precedes settings import in the first-party block."""
     from types import SimpleNamespace
 
     gw = SimpleNamespace(
@@ -177,10 +174,8 @@ def test_rest_consumer_gateway_no_double_blank_lines_between_imports(tmp_path: P
     content = _render_adapter(tmp_path, gateway=gw)
     lines = content.splitlines()
     wireup_idx = next(i for i, ln in enumerate(lines) if ln == "import wireup")
-    next_content = next(ln for ln in lines[wireup_idx + 1 :] if ln.strip())
-    assert next_content.startswith("from "), (
-        f"Expected gateway 'from' import after 'import wireup', got: {next_content!r}\n\n{content}"
-    )
+    assert "gateways.book_repository" in lines[wireup_idx + 1]
+    assert "RestConsumerSettings" in "\n".join(lines[wireup_idx + 2 : wireup_idx + 8])
 
 
 def test_rest_consumer_no_kwargs_object(tmp_path: Path) -> None:

@@ -9,6 +9,7 @@ import typer
 
 from scaffold_ca_python.commands._shared import (
     DryRunDelete,
+    auto_format_project,
     console,
     fail,
     register_with_alias,
@@ -70,6 +71,7 @@ def _delete_module_impl(name: str, confirm: bool, dry_run: bool) -> None:
     DeleteModuleFactory().build(builder)
 
     builder.persist()
+    auto_format_project(project_root)
     console.print(f"[green]✓[/green] Deleted module(s) for [bold]{name}[/bold].")
 
 
