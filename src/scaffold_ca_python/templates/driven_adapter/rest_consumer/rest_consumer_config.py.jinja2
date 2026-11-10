@@ -1,0 +1,22 @@
+"""Shared httpx.AsyncClient resource for REST consumer."""
+
+from __future__ import annotations
+
+from collections.abc import AsyncIterator
+
+import httpx
+import wireup
+
+from {{ project.python_package }}.infrastructure.driven_adapters.rest_consumer.rest_consumer_settings import (
+    RestConsumerSettings,
+)
+
+
+@wireup.injectable
+async def rest_consumer_client(settings: RestConsumerSettings) -> AsyncIterator[httpx.AsyncClient]:
+    """Yield a shared async HTTP client; close it when the container shuts down."""
+    client = httpx.AsyncClient(base_url=settings.base_url)
+    try:
+        yield client
+    finally:
+        await client.aclose()

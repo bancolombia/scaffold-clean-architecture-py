@@ -48,6 +48,7 @@ class DrivenAdapterRestConsumer(DrivenAdapterFactory):
     src_files: ClassVar[tuple[tuple[str, str], ...]] = (
         ("__init__.py", "__init__.py.jinja2"),
         ("rest_consumer_settings.py", "rest_consumer_settings.py.jinja2"),
+        ("rest_consumer_config.py", "rest_consumer_config.py.jinja2"),
         ("rest_consumer.py", "rest_consumer.py.jinja2"),
     )
     test_files: ClassVar[tuple[tuple[str, str], ...]] = (("test_rest_consumer.py", "test_rest_consumer.py.jinja2"),)

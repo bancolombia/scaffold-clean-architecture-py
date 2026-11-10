@@ -7,6 +7,7 @@
   "gda:rest-consumer": [
     "src/my_app/infrastructure/driven_adapters/rest_consumer/__init__.py",
     "src/my_app/infrastructure/driven_adapters/rest_consumer/rest_consumer.py",
+    "src/my_app/infrastructure/driven_adapters/rest_consumer/rest_consumer_config.py",
     "src/my_app/infrastructure/driven_adapters/rest_consumer/rest_consumer_settings.py",
     "src/tests/conftest.py",
     "src/tests/infrastructure/driven_adapters/rest_consumer/test_rest_consumer.py"

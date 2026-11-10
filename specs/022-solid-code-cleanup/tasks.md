@@ -216,7 +216,9 @@ The suite must stay green (baseline: 739 passed, 1 skipped, 96.50%).
     ```python
     {
         "github": PipelineFactory(PurePosixPath(".github/workflows/ci.yml"), "pipeline/github/ci.yml.jinja2", "ci.yml"),
-        "azure": PipelineFactory(PurePosixPath("azure-pipelines.yml"), "pipeline/azure/azure_pipelines.yml.jinja2", "azure-pipelines.yml"),
+        "azure": PipelineFactory(
+            PurePosixPath("azure-pipelines.yml"), "pipeline/azure/azure_pipelines.yml.jinja2", "azure-pipelines.yml"
+        ),
     }
     ```
 - [X] T024 [US2] Rewrite `src/scaffold_ca_python/commands/generate_pipeline.py`:

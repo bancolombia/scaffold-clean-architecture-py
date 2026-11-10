@@ -138,16 +138,16 @@ with (project_root / "pyproject.toml").open("wb") as fh:
 # generate_entry_point.py
 _DEP_MAP: dict[str, list[str]] = {
     "restapi": ["fastapi>=0.100", "uvicorn[standard]>=0.20"],
-    "agent":   ["a2a-sdk>=0.1"],
-    "mcp":     ["mcp>=1.0"],
+    "agent": ["a2a-sdk>=0.1"],
+    "mcp": ["mcp>=1.0"],
     "generic": [],
 }
 
 # generate_driven_adapter.py
 _DEP_MAP: dict[str, list[str]] = {
     "rest-consumer": ["httpx>=0.27"],
-    "secrets":       ["boto3>=1.34"],
-    "generic":       [],
+    "secrets": ["boto3>=1.34"],
+    "generic": [],
 }
 ```
 
@@ -179,7 +179,7 @@ _DEP_MAP: dict[str, list[str]] = {
 
 ```python
 class ProjectContext(BaseModel):
-    name: str                          # unchanged — validated against _NAME_RE
+    name: str  # unchanged — validated against _NAME_RE
     # package: str  ← REMOVED
     # python_package: computed from name (unchanged)
     # created_at: injected at call site (unchanged)
@@ -209,7 +209,7 @@ class GeneratedFile(BaseModel):
     content: str
     template_name: str
     is_test: bool = False
-    overwrite: bool = False     # NEW — skips atomic-replace guard; for main.py lifecycle
+    overwrite: bool = False  # NEW — skips atomic-replace guard; for main.py lifecycle
 ```
 
 ### New: `core/pyproject_writer.py`
@@ -219,6 +219,7 @@ def inject_dependencies(project_root: Path, packages: list[str]) -> list[str]:
     """Add *packages* to [project.dependencies] in pyproject.toml if not already present.
     Returns the list of actually-added packages (empty if all already present)."""
     ...
+
 
 def dry_run_inject(project_root: Path, packages: list[str]) -> list[str]:
     """Return packages that *would* be added without writing."""

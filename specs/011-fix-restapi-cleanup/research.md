@@ -24,6 +24,7 @@ def update_project_scripts(project_root: Path, pkg: str) -> bool:
         tomli_w.dump(data, fh)
     return True
 
+
 def dry_run_scripts_update(project_root: Path, pkg: str) -> bool:
     """Return True if update_project_scripts would change the file."""
     pyproject = project_root / "pyproject.toml"
@@ -51,7 +52,7 @@ if type_ == "restapi":
     if (project_root / "src" / pkg / "main.py").exists():
         console.print("[dim]Would delete: src/{pkg}/main.py[/dim]")
     if dry_run_scripts_update(project_root, pkg):
-        console.print(f"[dim]Would update [project.scripts]: {pkg} = \"{pkg}.server:start_server\"[/dim]")
+        console.print(f'[dim]Would update [project.scripts]: {pkg} = "{pkg}.server:start_server"[/dim]')
 ```
 
 ---

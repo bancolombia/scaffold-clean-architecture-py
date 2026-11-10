@@ -90,11 +90,11 @@ No additional files (generic adapter; resource convention is documented, not gen
 ## `scaffold gda --type rest-consumer --name <name>`
 
 ```
-infrastructure/driven_adapters/<name>/<name>_adapter.py    # @injectable(as_type=<Gw> if provided)
-infrastructure/driven_adapters/<name>/<name>_settings.py   # RestConsumerSettings(BaseSettings)
-infrastructure/driven_adapters/<name>/<name>_config.py     # async yield: httpx.AsyncClient
-infrastructure/driven_adapters/<name>/__init__.py
-tests/.../test_<name>_adapter.py
+infrastructure/driven_adapters/rest_consumer/rest_consumer.py           # @injectable(as_type=<Gw> if provided)
+infrastructure/driven_adapters/rest_consumer/rest_consumer_settings.py   # RestConsumerSettings(BaseSettings)
+infrastructure/driven_adapters/rest_consumer/rest_consumer_config.py     # async yield: httpx.AsyncClient
+infrastructure/driven_adapters/rest_consumer/__init__.py
+tests/.../rest_consumer/test_rest_consumer.py
 src/tests/conftest.py                                       # autouse fixture REST_CONSUMER_BASE_URL (appended idempotently, FR-039)
 ```
 

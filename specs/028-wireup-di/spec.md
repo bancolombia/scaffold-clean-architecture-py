@@ -96,7 +96,7 @@ A developer forgets to implement a gateway, misspells a config field, or has an 
 #### Driven adapters and helpers
 
 - **FR-009**: `generate-driven-adapter` MUST decorate the generated adapter class with `@injectable`. When the `--gateway` option names a gateway ABC in the domain, the decorator MUST be `@injectable(as_type=<Gateway>)`.
-- **FR-010**: `generate-driven-adapter` for `rest_consumer` MUST generate a `RestConsumerSettings` class (subclass of `BaseSettings`) with `env_prefix` and no default on `base_url`; it MUST generate a `rest_consumer_config.py` with an async factory (`yield`) that creates and closes an `httpx.AsyncClient` resource, following the D6 convention.
+- **FR-010**: `generate-driven-adapter` for `rest_consumer` MUST generate a `RestConsumerSettings` class (subclass of `BaseSettings`) with `env_prefix` and no default on `base_url`; it MUST generate a `rest_consumer_config.py` with an async factory (`yield`) that creates and closes an `httpx.AsyncClient` resource, following the D6 convention. The generated `RestConsumerAdapter` MUST accept that shared `httpx.AsyncClient` via constructor injection (not open a new client per HTTP call).
 - **FR-011**: `generate-driven-adapter` for `secrets` MUST generate a `SecretsSettings` class with `env_prefix` and relevant fields without defaults.
 - **FR-012**: `generate-helper` MUST decorate the generated helper class with `@injectable`. The generated file MUST include a docstring clarifying that helpers are injectable only in driven adapters and entry points (never in use cases or domain).
 - **FR-013**: Adapter and helper dependencies added by `generate-*` commands MUST use the `~=` pinning operator.

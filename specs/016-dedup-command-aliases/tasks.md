@@ -31,13 +31,15 @@
 @app.command("generate-model", help="...", epilog="...")
 def generate_model(ctx, name, dry_run): ...
 
+
 @app.command("gm", hidden=True, help="Alias for generate-model.")
-def gm(ctx, name, dry_run): ...   # ← identical body, DELETE this
+def gm(ctx, name, dry_run): ...  # ← identical body, DELETE this
+
 
 # With this:
 @app.command("generate-model", help="...", epilog="...")
-@app.command("gm", hidden=True)           # ← stack alias here
-def generate_model(ctx, name, dry_run): ...   # ← single body
+@app.command("gm", hidden=True)  # ← stack alias here
+def generate_model(ctx, name, dry_run): ...  # ← single body
 ```
 
 **Independent Test**: `grep -c "def " <(grep -A100 "def register" <file.py> | head -50)` returns `1` for each module; existing test suite passes with no regressions.

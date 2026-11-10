@@ -20,10 +20,10 @@ The rendering context passed to every Jinja2 template when generating a new proj
 
 ```python
 class ProjectContext(BaseModel):
-    name: str                  # PascalCase project name, e.g. "MyProject"
-    package: str               # Dot-notation package identifier, e.g. "com.example"
-    python_package: str        # Snake-case import root, e.g. "my_project"
-    created_at: datetime       # ISO 8601 timestamp of project creation
+    name: str  # PascalCase project name, e.g. "MyProject"
+    package: str  # Dot-notation package identifier, e.g. "com.example"
+    python_package: str  # Snake-case import root, e.g. "my_project"
+    created_at: datetime  # ISO 8601 timestamp of project creation
 ```
 
 **Constraints**:
@@ -39,12 +39,12 @@ The rendering context for any single module generated inside an existing project
 
 ```python
 class ModuleContext(BaseModel):
-    name: str                  # User-supplied name, validated and normalised
-    class_name: str            # PascalCase class name, derived from name
-    module_name: str           # snake_case file name (no .py), derived from name
-    layer: Layer               # The layer where this module lives
-    subtype: str | None        # For typed commands: "rest-consumer", "mcp", etc.
-    project: ProjectContext    # Parent project context
+    name: str  # User-supplied name, validated and normalised
+    class_name: str  # PascalCase class name, derived from name
+    module_name: str  # snake_case file name (no .py), derived from name
+    layer: Layer  # The layer where this module lives
+    subtype: str | None  # For typed commands: "rest-consumer", "mcp", etc.
+    project: ProjectContext  # Parent project context
 ```
 
 ---
@@ -55,12 +55,12 @@ An enumeration of the six structural positions in a generated Clean Architecture
 
 ```python
 class Layer(str, Enum):
-    DOMAIN_MODEL    = "domain/model"
-    DOMAIN_USECASE  = "domain/usecase"
-    ENTRY_POINTS    = "infrastructure/entry-points"
+    DOMAIN_MODEL = "domain/model"
+    DOMAIN_USECASE = "domain/usecase"
+    ENTRY_POINTS = "infrastructure/entry-points"
     DRIVEN_ADAPTERS = "infrastructure/driven-adapters"
-    HELPERS         = "infrastructure/helpers"
-    APPLICATION     = "application"
+    HELPERS = "infrastructure/helpers"
+    APPLICATION = "application"
 ```
 
 **Dependency order (inner → outer)**:
@@ -78,10 +78,10 @@ Represents a single file that the tool intends to create or delete, used by both
 
 ```python
 class GeneratedFile(BaseModel):
-    path: Path                 # Absolute path on disk
-    content: str               # Rendered file content (empty string for directories)
-    is_test: bool = False      # True if this is a test mirror file
-    template_name: str         # The Jinja2 template that produced this file
+    path: Path  # Absolute path on disk
+    content: str  # Rendered file content (empty string for directories)
+    is_test: bool = False  # True if this is a test mirror file
+    template_name: str  # The Jinja2 template that produced this file
 ```
 
 **Used by**: `FileWriter`, dry-run formatter, rollback manifest.
@@ -97,9 +97,11 @@ class CreateFile(BaseModel):
     kind: Literal["create"] = "create"
     file: GeneratedFile
 
+
 class DeleteFile(BaseModel):
     kind: Literal["delete"] = "delete"
     path: Path
+
 
 FileOperation = CreateFile | DeleteFile
 ```
@@ -112,12 +114,12 @@ Produced by the `StructureValidator` when it finds a dependency-rule breach. Rep
 
 ```python
 class Violation(BaseModel):
-    source_file: Path          # The file containing the offending import
-    line_number: int           # 1-based line number of the import statement
-    import_statement: str      # The raw import string, e.g. "from infrastructure.driven_adapters..."
-    source_layer: Layer        # The layer the importing module belongs to
-    target_layer: Layer        # The (outer) layer being incorrectly imported
-    resolution_hint: str       # Human-readable fix suggestion
+    source_file: Path  # The file containing the offending import
+    line_number: int  # 1-based line number of the import statement
+    import_statement: str  # The raw import string, e.g. "from infrastructure.driven_adapters..."
+    source_layer: Layer  # The layer the importing module belongs to
+    target_layer: Layer  # The (outer) layer being incorrectly imported
+    resolution_hint: str  # Human-readable fix suggestion
 ```
 
 ---
@@ -145,9 +147,9 @@ Metadata about a Jinja2 template file used by the `TemplateRenderer` to locate a
 
 ```python
 class TemplateDescriptor(BaseModel):
-    name: str                  # Template file name relative to templates/, e.g. "domain/model.py.jinja2"
+    name: str  # Template file name relative to templates/, e.g. "domain/model.py.jinja2"
     output_path_template: str  # Jinja2 expression producing the output path, e.g. "domain/model/{{ module_name }}.py"
-    is_test: bool = False      # True if this template produces a test file
+    is_test: bool = False  # True if this template produces a test file
 ```
 
 ---

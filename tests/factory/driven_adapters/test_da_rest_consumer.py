@@ -39,6 +39,8 @@ def test_rest_consumer_files_queued_in_dry_run(tmp_path: Path) -> None:
 
     expected_files = [
         src_dir / "__init__.py",
+        src_dir / "rest_consumer_settings.py",
+        src_dir / "rest_consumer_config.py",
         src_dir / "rest_consumer.py",
         test_dir / "test_rest_consumer.py",
     ]
@@ -108,6 +110,37 @@ def test_rest_consumer_template_has_injectable(tmp_path: Path) -> None:
     assert "wireup" in content or "@injectable" in content, "RestConsumer adapter must have @injectable"
 
 
+def test_rest_consumer_has_config_file_with_yield(tmp_path: Path) -> None:
+    """rest_consumer_config.py must async-yield httpx.AsyncClient."""
+    from scaffold_ca_python.core.module_builder import ModuleBuilder
+    from scaffold_ca_python.models.context import ModuleContext, ProjectContext
+
+    write_minimal_pyproject(tmp_path)
+    project = ProjectContext(name="ms-demo")
+    module_ctx = ModuleContext(name="rest_consumer", project=project)
+    builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, module_ctx=module_ctx, dry_run=False)
+
+    from scaffold_ca_python.factory.driven_adapters.da_rest_consumer import DrivenAdapterRestConsumer
+
+    DrivenAdapterRestConsumer().build(builder)
+    builder.persist()
+
+    config_file = (
+        tmp_path
+        / "src"
+        / "ms_demo"
+        / "infrastructure"
+        / "driven_adapters"
+        / "rest_consumer"
+        / "rest_consumer_config.py"
+    )
+    assert config_file.exists(), "rest_consumer_config.py must be generated"
+    content = config_file.read_text(encoding="utf-8")
+    assert "AsyncIterator[httpx.AsyncClient]" in content
+    assert "yield client" in content
+    assert "await client.aclose()" in content
+
+
 def test_rest_consumer_settings_file_generated(tmp_path: Path) -> None:
     """rest_consumer must generate a RestConsumerSettings file."""
     from scaffold_ca_python.core.module_builder import ModuleBuilder
@@ -155,11 +188,12 @@ def _render_adapter(tmp_path: Path, gateway: object | None = None) -> str:
 
 
 def test_rest_consumer_import_block_is_ruff_compatible(tmp_path: Path) -> None:
-    """First-party import follows third-party block without a blank line (ruff I001)."""
+    """Without gateway, adapter has only third-party imports before the class (ruff I001)."""
     content = _render_adapter(tmp_path)
     lines = content.splitlines()
     wireup_idx = next(i for i, ln in enumerate(lines) if ln == "import wireup")
-    assert lines[wireup_idx + 1].startswith("from "), content
+    assert lines[wireup_idx + 1] == ""
+    assert lines[wireup_idx + 2].startswith("@wireup"), content
 
 
 def test_rest_consumer_gateway_import_block_is_ruff_compatible(tmp_path: Path) -> None:
@@ -175,13 +209,22 @@ def test_rest_consumer_gateway_import_block_is_ruff_compatible(tmp_path: Path) -
     lines = content.splitlines()
     wireup_idx = next(i for i, ln in enumerate(lines) if ln == "import wireup")
     assert "gateways.book_repository" in lines[wireup_idx + 1]
-    assert "RestConsumerSettings" in "\n".join(lines[wireup_idx + 2 : wireup_idx + 8])
+    assert "RestConsumerSettings" not in content
+    assert "client: httpx.AsyncClient" in content
 
 
 def test_rest_consumer_no_kwargs_object(tmp_path: Path) -> None:
     """Generated rest_consumer.py must not contain **kwargs: object."""
     content = _render_adapter(tmp_path)
     assert "**kwargs" not in content, "rest_consumer.py.jinja2 must not render **kwargs"
+
+
+def test_rest_consumer_uses_shared_client_not_per_call(tmp_path: Path) -> None:
+    """Adapter must use injected AsyncClient, not open a client per request."""
+    content = _render_adapter(tmp_path)
+    assert "async with httpx.AsyncClient" not in content
+    assert "self._client" in content
+    assert "client: httpx.AsyncClient" in content
 
 
 def test_rest_consumer_conftest_fixture_appended(tmp_path: Path) -> None:

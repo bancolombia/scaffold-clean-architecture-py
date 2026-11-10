@@ -31,6 +31,16 @@ def test_rest_consumer_has_async_get() -> None:
     assert "async def get" in out
 
 
+def test_rest_consumer_config_yields_async_client() -> None:
+    out = renderer.render_string(
+        _tmpl("driven_adapter/rest_consumer/rest_consumer_config.py.jinja2"),
+        _ctx().model_dump(),
+    )
+    assert "async def rest_consumer_client" in out
+    assert "yield client" in out
+    assert "await client.aclose()" in out
+
+
 # secrets
 
 

@@ -140,10 +140,7 @@ Inserted after the existing `if type_ == "restapi":` guard, before `if type_ == 
 
 ```python
 if type_ in ("mcp", "agent"):
-    restapi_dir = (
-        project_root / "src" / project_ctx.python_package
-        / "infrastructure" / "entry_points" / "api"
-    )
+    restapi_dir = project_root / "src" / project_ctx.python_package / "infrastructure" / "entry_points" / "api"
     if restapi_dir.exists():
         console.print(
             f"[red]Error:[/red] Incompatible entry point '[bold]restapi[/bold]' "

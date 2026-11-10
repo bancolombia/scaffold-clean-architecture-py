@@ -9,15 +9,12 @@ import respx
 from {{ project.python_package }}.infrastructure.driven_adapters.rest_consumer.rest_consumer import (
     RestConsumerAdapter,
 )
-from {{ project.python_package }}.infrastructure.driven_adapters.rest_consumer.rest_consumer_settings import (
-    RestConsumerSettings,
-)
 
 
 @pytest.fixture()
 def adapter() -> RestConsumerAdapter:
-    settings = RestConsumerSettings(base_url="https://example.com")
-    return RestConsumerAdapter(settings)
+    client = httpx.AsyncClient(base_url="https://example.com")
+    return RestConsumerAdapter(client)
 
 
 @respx.mock
