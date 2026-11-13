@@ -130,20 +130,6 @@ def test_swagger_injects_routes(project_root: Path, swagger_file: Path) -> None:
 # agent type
 
 
-def test_agent_with_enable_kafka(project_root: Path) -> None:
-    result = runner.invoke(app, ["gep", "--type", "agent", "--enable-kafka"], catch_exceptions=False)
-    assert result.exit_code == 0
-    content = (project_root / "src" / "my_app" / "infrastructure" / "entry_points" / "agent" / "agent.py").read_text()
-    assert "kafka" in content.lower() or "Kafka" in content
-
-
-def test_agent_with_enable_mcp_client(project_root: Path) -> None:
-    result = runner.invoke(app, ["gep", "--type", "agent", "--enable-mcp-client"], catch_exceptions=False)
-    assert result.exit_code == 0
-    content = (project_root / "src" / "my_app" / "infrastructure" / "entry_points" / "agent" / "agent.py").read_text()
-    assert "mcp" in content.lower() or "MCP" in content
-
-
 # mcp type
 
 
@@ -230,12 +216,6 @@ def test_swagger_missing_file_exits_1(project_root: Path) -> None:
     assert "not found" in result.output.lower() or "spec.yaml" in result.output
 
 
-def test_enable_mcp_client_with_mcp_type_exits_1(project_root: Path) -> None:
-    result = runner.invoke(app, ["gep", "--type", "mcp", "--enable-mcp-client"])
-    assert result.exit_code == 1
-    assert "--enable-mcp-client" in result.output
-
-
 def test_duplicate_entry_point_exits_1(project_root: Path) -> None:
     runner.invoke(app, ["gep", "--type", "restapi"], catch_exceptions=False)
     result = runner.invoke(app, ["gep", "--type", "restapi"])
@@ -245,12 +225,13 @@ def test_duplicate_entry_point_exits_1(project_root: Path) -> None:
 # : main.py overwritten (agent / mcp / generic only)
 
 
-def test_agent_overwrites_main_py(project_root: Path) -> None:
-    main_py = project_root / "src" / "my_app" / "main.py"
+def test_agent_replaces_main_py_with_server_py(project_root: Path) -> None:
+    pkg = project_root / "src" / "my_app"
     runner.invoke(app, ["gep", "--type", "agent"], catch_exceptions=False)
-    content = main_py.read_text()
+    assert not (pkg / "main.py").exists()
+    content = (pkg / "server.py").read_text()
     assert "def main" in content
-    assert "asyncio" in content
+    assert "uvicorn" in content
 
 
 def test_mcp_replaces_main_py_with_server(project_root: Path) -> None:
@@ -298,7 +279,7 @@ def test_restapi_injects_fastapi_and_uvicorn(project_root: Path) -> None:
 def test_agent_injects_a2a_sdk(project_root: Path) -> None:
     runner.invoke(app, ["gep", "--type", "agent"], catch_exceptions=False)
     content = (project_root / "pyproject.toml").read_text()
-    assert "a2a-sdk" in content
+    assert "a2a-sdk[http-server]" in content
 
 
 def test_mcp_injects_mcp(project_root: Path) -> None:
@@ -396,8 +377,8 @@ def test_gep_restapi_blocked_when_mcp_server_exists(
 def test_gep_restapi_blocked_when_agent_exists(
     project_root: Path,
 ) -> None:
-    """exit 1 when agent/ dir already exists; no api/v1/ created."""
-    conflict = project_root / "src" / "my_app" / "infrastructure" / "entry_points" / "agent"
+    """exit 1 when a2a_server/ dir already exists; no api/v1/ created."""
+    conflict = project_root / "src" / "my_app" / "infrastructure" / "entry_points" / "a2a_server"
     conflict.mkdir(parents=True)
 
     result = runner.invoke(app, ["gep", "--type", "restapi"])
@@ -493,14 +474,14 @@ def test_restapi_dry_run_reports_scripts_update(project_root: Path) -> None:
     assert data["project"]["scripts"]["my-app"] == "my_app.main:main"
 
 
-def test_agent_does_not_change_project_scripts(project_root: Path) -> None:
-    """gep --type agent must NOT modify [project.scripts]."""
+def test_agent_updates_project_scripts_to_server_main(project_root: Path) -> None:
+    """gep --type agent must point [project.scripts] at <pkg>.server:main."""
     import tomllib
 
     runner.invoke(app, ["gep", "--type", "agent"], catch_exceptions=False)
     with (project_root / "pyproject.toml").open("rb") as fh:
         data = tomllib.load(fh)
-    assert data["project"]["scripts"]["my-app"] == "my_app.main:main"
+    assert data["project"]["scripts"]["my-app"] == "my_app.server:main"
 
 
 def test_mcp_updates_pyproject_scripts_to_server_main(project_root: Path) -> None:
@@ -548,6 +529,15 @@ def test_gep_agent_blocked_when_restapi_exists(project_root: Path) -> None:
     result = runner.invoke(app, ["gep", "--type", "agent"])
     assert result.exit_code == 1
     assert "restapi" in result.output
+
+
+@pytest.mark.parametrize(("first", "second"), [("agent", "mcp"), ("mcp", "agent")])
+def test_gep_agent_and_mcp_conflict(project_root: Path, first: str, second: str) -> None:
+    """agent and mcp both own server.py and application/app.py, so they block each other."""
+    runner.invoke(app, ["gep", "--type", first], catch_exceptions=False)
+    result = runner.invoke(app, ["gep", "--type", second])
+    assert result.exit_code == 1
+    assert first in result.output
 
 
 def test_gep_generic_not_blocked_when_restapi_exists(project_root: Path) -> None:
@@ -816,8 +806,6 @@ def test_add_tool_fails_on_decorator_vs_function_name_duplicate(mcp_project: Pat
     "flag_name,flag_value",
     [
         ("--swagger", "spec.yaml"),
-        ("--enable-kafka", None),
-        ("--enable-mcp-client", None),
         ("--with-resources", None),
         ("--with-prompts", None),
     ],
@@ -1338,32 +1326,6 @@ def test_add_tool_dry_run_fails_on_missing_entry_point(project_root: Path) -> No
     assert "No MCP entry point found" in output
     assert "Dry run:" not in output
     assert "Would modify:" not in output
-
-
-def test_agent_class_name_has_no_hyphens(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """agent class name must be PascalCase even for hyphenated project names."""
-    monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["ca", "--name", "my-app"], catch_exceptions=False)
-    project_dir = tmp_path / "my-app"
-    monkeypatch.chdir(project_dir)
-    runner.invoke(app, ["gep", "--type", "agent"], catch_exceptions=False)
-    agent_file = project_dir / "src" / "my_app" / "infrastructure" / "entry_points" / "agent" / "agent.py"
-    content = agent_file.read_text()
-    assert "my-app" not in content, "Class name must not contain hyphens"
-    assert "MyApp" in content or "MyAppAgent" in content, "Class name must be PascalCase"
-
-
-def test_agent_main_does_not_import_run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """main.py must not import a bare module-level run() that does not exist."""
-    monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["ca", "--name", "my-app"], catch_exceptions=False)
-    project_dir = tmp_path / "my-app"
-    monkeypatch.chdir(project_dir)
-    runner.invoke(app, ["gep", "--type", "agent"], catch_exceptions=False)
-    main_file = project_dir / "src" / "my_app" / "main.py"
-    content = main_file.read_text()
-    # main must NOT import a bare `run` from agent module — agent.agent has no module-level run()
-    assert "entry_points.agent.agent import run" not in content
 
 
 def test_generic_main_does_not_import_run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

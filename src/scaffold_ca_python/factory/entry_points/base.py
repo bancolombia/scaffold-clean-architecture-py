@@ -7,6 +7,8 @@ from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar, NamedTuple
 
+from rich.markup import escape
+
 from scaffold_ca_python.core.project_detector import resolve_tests_root
 
 if TYPE_CHECKING:
@@ -17,9 +19,7 @@ class EntryPointFlag(Enum):
     """CLI flags that may be incompatible with certain entry-point types."""
 
     SWAGGER = ("--swagger", "is")
-    ENABLE_MCP_CLIENT = ("--enable-mcp-client", "is")
     MCP_PRIMITIVES = ("--with-resources and --with-prompts", "are")
-    ENABLE_KAFKA = ("--enable-kafka", "is")
 
     def __init__(self, label: str, verb: str) -> None:
         self.label = label
@@ -79,3 +79,13 @@ class EntryPointFactory(ABC):
         """
         verb = "will be replaced" if dry_run else "replaced"
         return [f"[yellow]⚠[/yellow] main.py {verb} with {type_key} entrypoint."]
+
+
+def server_entry_notes(src_pkg_root: Path, pkg: str, entry_fn: str, *, dry_run: bool) -> list[str]:
+    """Notes for types whose server.py replaces main.py and owns [project.scripts]."""
+    scripts = escape("[project.scripts]")
+    target = f'{pkg} = "{pkg}.server:{entry_fn}"'
+    if dry_run:
+        notes = [f"[dim]Would delete: src/{pkg}/main.py[/dim]"] if (src_pkg_root / "main.py").exists() else []
+        return [*notes, f"[dim]Would update {scripts}: {target}[/dim]"]
+    return [f"[green]✓[/green] Deleted src/{pkg}/main.py", f"[green]✓[/green] Updated {scripts}: {target}"]

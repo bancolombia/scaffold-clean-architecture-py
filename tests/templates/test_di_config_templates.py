@@ -116,10 +116,12 @@ def test_mcp_app_lifespan_warms_container() -> None:
     assert "yield" in content
 
 
-def test_agent_app_creates_container() -> None:
-    """agent app.py must create container in composition root."""
-    content = read_template("entry_point/agent/agent_app.py.jinja2")
-    assert "create_container()" in content
+def test_agent_app_builds_own_container() -> None:
+    """agent app.py extends INJECTABLES with a2a_server and hands the container to wireup."""
+    content = read_template("entry_point/agent/app.py.jinja2")
+    assert "def create_a2a_container()" in content
+    assert "injectables=[*INJECTABLES, a2a_server]" in content
+    assert "wireup.integration.starlette.setup(create_a2a_container(), app)" in content
     assert "asynccontextmanager" in content
     assert "yield" in content
 

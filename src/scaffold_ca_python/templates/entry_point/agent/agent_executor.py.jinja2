@@ -1,0 +1,64 @@
+"""A2A AgentExecutor — bridges A2A protocol to your use cases.
+
+Keep all A2A SDK imports here; the domain and use-case layers must stay free
+of protocol-specific types.
+"""
+
+from __future__ import annotations
+
+import logging
+
+from a2a.server.agent_execution import AgentExecutor, RequestContext
+from a2a.server.events import EventQueue
+from a2a.server.tasks import TaskUpdater
+from a2a.types.a2a_pb2 import Part
+from a2a.utils.errors import UnsupportedOperationError
+
+logger = logging.getLogger(__name__)
+
+
+class A2AExecutor(AgentExecutor):
+    """Bridges A2A requests to your use cases.
+
+    To wire a real use case:
+    1. Add the dependency to ``__init__`` (commented below).
+    2. Register it in ``infrastructure/entry_points/a2a_server/a2a_config.py``
+       (also commented).
+    """
+
+    def __init__(
+        self,
+        # Declare use-case dependencies here and pass them in a2a_config.py:
+        # some_usecase: SomeUseCase,
+    ) -> None:
+        # self._some_usecase = some_usecase
+        pass
+
+    async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
+        """Handle an incoming A2A task request.
+
+        Call ``add_artifact`` before any status event: it creates the task, and
+        ``complete``/``failed`` require the task to exist first.
+        """
+        if context.task_id is None or context.context_id is None:
+            raise ValueError("RequestContext must carry task_id and context_id")
+        updater = TaskUpdater(event_queue, context.task_id, context.context_id)
+
+        try:
+            query = context.get_user_input()
+            logger.info("A2AExecutor received query: %s (task=%s)", query, context.task_id)
+
+            # Replace with your use-case call, e.g.:
+            # result = await self._some_usecase.execute(query)
+            result = f"Hello, World! You said: {query}"
+
+            await updater.add_artifact(parts=[Part(text=result)], name="response")
+            await updater.complete()
+
+        except Exception as exc:
+            logger.exception("Agent execution failed")
+            await updater.failed(updater.new_agent_message([Part(text=f"Agent error: {exc}")]))
+
+    async def cancel(self, context: RequestContext, event_queue: EventQueue) -> None:
+        """Cancel is not supported by this agent."""
+        raise UnsupportedOperationError

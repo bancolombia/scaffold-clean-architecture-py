@@ -99,10 +99,10 @@ def print_pending_dependencies(builder: ModuleBuilder) -> None:
     """Print dry-run summaries for queued dependency injections."""
     if builder.pending_dependencies:
         target = escape("[project.dependencies]")
-        console.print(f"[dim]Would add to {target}: {', '.join(builder.pending_dependencies)}[/dim]")
+        console.print(f"[dim]Would add to {target}: {escape(', '.join(builder.pending_dependencies))}[/dim]")
     for grp, pkgs in builder.pending_group_dependencies.items():
         target = escape(f"[dependency-groups.{grp}]")
-        console.print(f"[dim]Would add to {target}: {', '.join(pkgs)}[/dim]")
+        console.print(f"[dim]Would add to {target}: {escape(', '.join(pkgs))}[/dim]")
 
 
 def auto_format_project(project_root: Path) -> None:

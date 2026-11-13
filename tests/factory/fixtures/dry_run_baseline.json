@@ -19,12 +19,20 @@
     "src/tests/infrastructure/driven_adapters/secrets/test_secrets_adapter.py"
   ],
   "gep:agent": [
-    "src/my_app/application/agent_app.py",
-    "src/my_app/infrastructure/entry_points/agent/__init__.py",
-    "src/my_app/infrastructure/entry_points/agent/agent.py",
-    "src/my_app/infrastructure/entry_points/agent/card.py",
+    "src/my_app/application/app.py",
+    "src/my_app/application/config/config.py",
+    "src/my_app/infrastructure/entry_points/a2a_server/__init__.py",
+    "src/my_app/infrastructure/entry_points/a2a_server/a2a_config.py",
+    "src/my_app/infrastructure/entry_points/a2a_server/agent_card.py",
+    "src/my_app/infrastructure/entry_points/a2a_server/agent_executor.py",
+    "src/my_app/infrastructure/entry_points/a2a_server/agent_settings.py",
+    "src/my_app/infrastructure/entry_points/a2a_server/routes.py",
     "src/my_app/main.py",
-    "src/tests/infrastructure/entry_points/agent/test_agent.py"
+    "src/my_app/server.py",
+    "src/tests/application/test_app.py",
+    "src/tests/infrastructure/entry_points/a2a_server/test_agent_card.py",
+    "src/tests/infrastructure/entry_points/a2a_server/test_agent_executor.py",
+    "src/tests/infrastructure/entry_points/a2a_server/test_routes.py"
   ],
   "gep:generic": [
     "src/my_app/application/generic_app.py",

@@ -46,8 +46,11 @@ def _scenario_01_restapi_swagger(project: Path, tmp_path: Path) -> None:
     assert '"/items"' in body and '"/health"' in body
 
 
-def _scenario_02_agent_kafka_mcp(project: Path) -> None:
-    _run(project, "gep", "--type", "agent", "--enable-kafka", "--enable-mcp-client")
+def _scenario_02_agent(project: Path) -> None:
+    _run(project, "gep", "--type", "agent")
+    pkg = _src_pkg(project)
+    assert not (pkg / "main.py").exists()
+    assert (pkg / "infrastructure" / "entry_points" / "a2a_server" / "agent_executor.py").exists()
 
 
 def _scenario_03_generic_minimal(project: Path) -> None:
@@ -124,7 +127,7 @@ def _scenario_10_delete_module_conftest(project: Path) -> None:
 
 _SCENARIOS: dict[str, Callable[..., None]] = {
     "01_restapi_swagger": _scenario_01_restapi_swagger,
-    "02_agent_kafka_mcp": _scenario_02_agent_kafka_mcp,
+    "02_agent": _scenario_02_agent,
     "03_generic_minimal": _scenario_03_generic_minimal,
     "04_module_usecase_adapter": _scenario_04_module_usecase_adapter,
     "05_rest_consumer_no_gateway": _scenario_05_rest_consumer_no_gateway,

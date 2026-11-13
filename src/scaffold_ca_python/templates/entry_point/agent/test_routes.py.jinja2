@@ -1,0 +1,23 @@
+"""Tests for {{ project.python_package }}.infrastructure.entry_points.a2a_server.routes."""
+
+from __future__ import annotations
+
+from starlette.applications import Starlette
+from starlette.testclient import TestClient
+
+from {{ project.python_package }}.infrastructure.entry_points.a2a_server.routes import routes
+
+
+def _client() -> TestClient:
+    return TestClient(Starlette(routes=list(routes)))
+
+
+def test_health_check_returns_ok() -> None:
+    response = _client().get("/api/v1/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+
+
+def test_health_check_rejects_post() -> None:
+    response = _client().post("/api/v1/health")
+    assert response.status_code == 405

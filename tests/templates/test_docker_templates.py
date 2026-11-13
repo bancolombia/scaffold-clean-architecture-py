@@ -14,10 +14,11 @@ def test_dockerfile_has_base_image() -> None:
     assert "FROM python:3.13-slim" in out
 
 
-def test_dockerfile_uses_python_package_in_cmd() -> None:
+def test_dockerfile_runs_project_script_from_venv() -> None:
     ctx = _ctx()
     out = renderer.render_string(_tmpl("project/dockerfile.jinja2"), ctx.model_dump())
-    assert ctx.python_package in out
+    assert 'ENV PATH="/app/.venv/bin:$PATH"' in out
+    assert f'CMD ["{ctx.python_package_script}"]' in out
 
 
 def test_dockerfile_installs_uv() -> None:

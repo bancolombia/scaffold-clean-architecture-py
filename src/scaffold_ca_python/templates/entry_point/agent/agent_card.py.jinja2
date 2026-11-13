@@ -1,0 +1,40 @@
+"""Build the A2A AgentCard proto from AgentSettings."""
+
+from __future__ import annotations
+
+from a2a.types.a2a_pb2 import (
+    AgentCapabilities,
+    AgentCard,
+    AgentInterface,
+    AgentSkill,
+)
+
+from {{ project.python_package }}.infrastructure.entry_points.a2a_server.agent_settings import AgentSettings
+
+
+def build_agent_card(agent_settings: AgentSettings) -> AgentCard:
+    """Return the AgentCard proto describing this agent."""
+    base_url = agent_settings.public_url.rstrip("/")
+
+    return AgentCard(
+        name=agent_settings.name,
+        description=agent_settings.description,
+        version=agent_settings.version,
+        supported_interfaces=[
+            AgentInterface(url=f"{base_url}/", protocol_binding="JSONRPC", protocol_version="1.0"),
+            AgentInterface(url=base_url, protocol_binding="HTTP+JSON", protocol_version="1.0"),
+        ],
+        capabilities=AgentCapabilities(streaming=True),
+        default_input_modes=["text/plain"],
+        default_output_modes=["text/plain"],
+        skills=[
+            AgentSkill(
+                id="hello_world",
+                name="Hello World",
+                # Describe your agent's skills here.
+                description="Echo the user's message back as a hello-world response.",
+                tags=["example"],
+                examples=["Say hello"],
+            ),
+        ],
+    )

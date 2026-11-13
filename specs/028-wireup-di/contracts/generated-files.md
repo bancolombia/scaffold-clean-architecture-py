@@ -154,12 +154,47 @@ tests/.../test_resources.py
 
 ## `scaffold gep --type agent`
 
+A2A server (US4, FR-040–FR-048). Paths are relative to `src/<pkg>/` unless they start with `src/tests/`.
+
 ```
-infrastructure/entry_points/agent/agent.py   # <PascalName>Agent class (no hyphens)
-application/agent_app.py                     # async with create_agent(); container.close()
-main.py                                      # asyncio.run + existing function import
-tests/.../test_agent.py
+server.py                                              # NEW — main(): uvicorn.run(start_server(), host, port)
+main.py                                                # DELETED
+application/app.py                                     # Starlette + lifespan (mounts A2A routes once) + create_a2a_container()
+application/config/config.py                           # MODIFIED — HOST / PORT inserted after LOG_LEVEL
+infrastructure/entry_points/a2a_server/__init__.py
+infrastructure/entry_points/a2a_server/agent_settings.py   # AgentSettings(env_prefix="AGENT_") + @wireup.injectable factory
+infrastructure/entry_points/a2a_server/a2a_config.py       # @wireup.injectable: TaskStore, AgentCard, AgentExecutor, RequestHandler
+infrastructure/entry_points/a2a_server/agent_executor.py   # A2AExecutor hello world + commented use-case hook
+infrastructure/entry_points/a2a_server/agent_card.py       # build_agent_card(settings) -> AgentCard (skill "hello_world")
+infrastructure/entry_points/a2a_server/routes.py           # GET /api/v1/health
+src/tests/application/test_app.py                          # health, agent card, JSON-RPC SendMessage, container resolution
+src/tests/infrastructure/entry_points/a2a_server/test_agent_executor.py
+src/tests/infrastructure/entry_points/a2a_server/test_agent_card.py
+src/tests/infrastructure/entry_points/a2a_server/test_routes.py
 ```
+
+**`pyproject.toml`**:
+- Dependencies added: `a2a-sdk[http-server]~=1.1.4`, `starlette~=1.6.0`, `uvicorn[standard]~=0.53.0`, `wireup~=2.13.0`, `pydantic-settings~=2.15.0` (skipped when already present by name).
+- `[project.scripts]`: `<script> = "<pkg>.server:main"`.
+
+**Not modified**: `application/config/wiring.py` (the A2A factories are added by `create_a2a_container()` in `app.py`).
+
+**Conflicts**: refused (exit 1, nothing written) when a `restapi` (`entry_points/api/`) or `mcp` (`entry_points/mcp_server/`) entry point exists; `restapi` and `mcp` are refused when `entry_points/a2a_server/` exists.
+
+**Removed flags**: `--enable-kafka`, `--enable-mcp-client` (Typer exits 2).
+
+**Runtime contract** (zero configuration):
+
+| Route | Method | Result |
+|-------|--------|--------|
+| `/api/v1/health` | GET | `200 {"status": "ok"}` |
+| `/.well-known/agent-card.json` | GET | Agent card: `name` from `AGENT_NAME` (default: project name), interfaces `JSONRPC` (`<public_url>/`) and `HTTP+JSON` (`<public_url>`), skill `hello_world` |
+| `/` | POST (JSON-RPC `SendMessage`) | Completed task with artifact `Hello, World! You said: <text>` |
+| `/message:send` | POST (REST `SendMessage`) | Same result as JSON-RPC; other REST routes come from `create_rest_routes` |
+
+Requests to `/` and the REST routes MUST carry the header `A2A-Version: 1.0`; without it a2a-sdk 1.1 answers with a version error.
+
+Environment variables: `HOST` (default `0.0.0.0`), `PORT` (default `8000`), `AGENT_NAME`, `AGENT_DESCRIPTION`, `AGENT_VERSION`, `AGENT_PUBLIC_URL` (default `http://localhost:8000`).
 
 ---
 

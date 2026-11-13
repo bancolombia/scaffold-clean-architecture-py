@@ -2,7 +2,7 @@
 
 **Feature**: 028-wireup-di
 
-This guide describes how to validate that the feature works end-to-end. Run these scenarios after implementing all blocks (A–H) and before merging.
+This guide describes how to validate that the feature works end-to-end. Run these scenarios after implementing all blocks (A–G) and before merging.
 
 ---
 
@@ -139,6 +139,54 @@ uv run python check.py
 ```
 
 **Expected**: `WireupError` naming `order_repository` / `OrderRepository` — raised at container creation, not deferred.
+
+---
+
+## Scenario 4: A2A agent entry point (SC-005)
+
+```bash
+cd /tmp && rm -rf demo-agent
+uv run --project <scaffold-repo> scaffold ca --name demo-agent
+cd demo-agent
+
+uv run --project <scaffold-repo> scaffold gep --type agent --dry-run
+uv run --project <scaffold-repo> scaffold gep --type agent
+
+SSL_CERT_FILE=/etc/ssl/cert.pem uv sync
+uv run ruff check . && uv run ruff format --check . && uv run mypy --strict src/ && uv run pytest
+uv run --project <scaffold-repo> scaffold validate-structure
+```
+
+**Expected (generation)**:
+- Dry-run lists the files of [contracts/generated-files.md](contracts/generated-files.md#scaffold-gep---type-agent) and prints "Would delete: src/demo_agent/main.py" and "Would update [project.scripts]: demo_agent = \"demo_agent.server:main\"" (the real key written to `pyproject.toml` is `demo-agent`); nothing is written.
+- After the real run, all quality gates pass with no manual edit (FR-048) and `validate-structure` reports zero violations.
+
+Start the server and call it:
+
+```bash
+uv run demo-agent &
+curl -s localhost:8000/api/v1/health
+curl -s localhost:8000/.well-known/agent-card.json
+curl -s -X POST localhost:8000/ -H 'Content-Type: application/json' -H 'A2A-Version: 1.0' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"SendMessage","params":{"message":{"messageId":"m1","role":"ROLE_USER","parts":[{"text":"hola"}]}}}'
+curl -s -X POST localhost:8000/message:send -H 'Content-Type: application/json' -H 'A2A-Version: 1.0' \
+  -d '{"message":{"messageId":"m2","role":"ROLE_USER","parts":[{"text":"hola"}]}}'
+kill %1
+```
+
+**Expected (runtime)**:
+- Health: `{"status": "ok"}`.
+- Agent card: `"name": "demo-agent"`, interfaces `JSONRPC` at `http://localhost:8000/` and `HTTP+JSON` at `http://localhost:8000`, skill `hello_world`.
+- `SendMessage` (JSON-RPC and REST): a task in the completed state whose artifact text is `Hello, World! You said: hola`. Without the `A2A-Version: 1.0` header the SDK answers with a version error.
+
+**Conflicts and removed flags**:
+
+```bash
+uv run --project <scaffold-repo> scaffold gep --type mcp; echo "exit=$?"                 # exit=1, conflict hint
+uv run --project <scaffold-repo> scaffold gep --type agent --enable-kafka; echo "exit=$?" # exit=2, No such option
+```
+
+**Use-case hook** (FR-044): after `gm`/`guc`/`gda` for a use case, uncomment the `some_usecase` lines in `a2a_config.py` and `agent_executor.py` (renamed to the real use case); `uv run pytest` still passes and `SendMessage` returns the use case's result.
 
 ---
 

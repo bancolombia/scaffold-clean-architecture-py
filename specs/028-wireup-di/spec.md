@@ -33,7 +33,7 @@ A developer creates a new project with `ca`, generates a use case referencing a 
 
 ### User Story 2 — Entry points receive dependencies by type without layer violations (Priority: P1)
 
-A developer generates any entry point (`restapi`, `mcp`, `agent`, `generic`) and writes a handler that declares a use case as `Injected[CreateOrderUseCase]`. No import from the `application` layer is needed in `infrastructure`. The REST lifespan and MCP startup warm up resources before serving traffic.
+A developer generates any entry point (`restapi`, `mcp`, `agent`, `generic`) and wires a use case into it: `Injected[CreateOrderUseCase]` in restapi and mcp handlers, constructor injection through a wireup factory in agent (`agent_executor_factory`), or `await container.get(...)` in generic. No import from the `application` layer is needed in `infrastructure`. The REST lifespan and MCP startup warm up resources before serving traffic.
 
 **Why this priority**: Eliminating the layer violation in entry points is the architectural guarantee the tool promises. Shared priority with US-1.
 
@@ -43,8 +43,8 @@ A developer generates any entry point (`restapi`, `mcp`, `agent`, `generic`) and
 
 1. **Given** `gep restapi` is run, **When** the generated `rest_controller.py` is inspected, **Then** it uses `Injected[UseCaseClass]` and never imports `application.Container`.
 2. **Given** `gep mcp` is run, **When** `bind_tools` is inspected, **Then** it uses `inject_from_container` (not `wireup.integration.fastmcp`, which targets a different package) and parameters are `Injected[...]`.
-3. **Given** `gep agent` is run, **When** the generated class name is inspected for a project named `my-app`, **Then** the class is `MyAppAgent` (PascalCase, no hyphens).
-4. **Given** `gep agent` or `gep generic` is run, **When** `main.py` is inspected, **Then** it imports an existing function (not a `run` function that doesn't exist).
+3. **Given** `gep agent` is run, **When** `infrastructure/entry_points/a2a_server/agent_executor.py` is inspected, **Then** it imports nothing from `application`; use cases reach the executor through constructor injection (see US4 and FR-042/FR-044).
+4. **Given** `gep generic` is run, **When** `main.py` is inspected, **Then** it imports an existing function (not a `run` function that doesn't exist).
 5. **Given** `gep restapi` is run, **When** the app starts, **Then** the `lifespan` warms up all async resources before the first request.
 
 ---
@@ -62,6 +62,25 @@ A developer forgets to implement a gateway, misspells a config field, or has an 
 1. **Given** a gateway has no implementation, **When** `create_container()` is called, **Then** wireup raises `WireupError` naming the missing dependency.
 2. **Given** an adapter's `<Name>Settings` declares a field without a default, **When** the environment variable is absent, **Then** pydantic-settings raises `ValidationError` at startup before the container is even created.
 3. **Given** two adapters implement the same gateway, **When** `create_container()` is called, **Then** wireup raises `WireupError` about ambiguity.
+
+---
+
+### User Story 4 — Agent entry point serves A2A out of the box (Priority: P2)
+
+A developer runs `scaffold ca` and then `scaffold gep --type agent`. Running `uv run <script>` starts an A2A server (a2a-sdk, Starlette, uvicorn) that publishes its agent card and answers `Hello, World! You said: <text>` over JSON-RPC and REST, with no configuration. Commented hooks show how to inject a use case into the executor. The agent's logic (LLM, LangGraph, memory) stays in the developer's domain and driven adapters; the entry point only translates the A2A protocol.
+
+**Why this priority**: The current `agent` output is a set of stubs that never starts a server (`run()` raises `NotImplementedError`). A working, protocol-compliant baseline is needed before any opinionated integration (Kafka, MCP client, LLM) can be layered on top. It does not block US-1/US-2.
+
+**Independent Test**: Run quickstart.md Scenario 4 on a fresh project: the health route, the agent card and a JSON-RPC `SendMessage` call all respond as described below, and the generated project passes the quality gates without manual edits.
+
+**Acceptance Scenarios**:
+
+1. **Given** `ca` + `gep agent` has been run, **When** `GET /api/v1/health` is requested, **Then** it returns 200 with `{"status": "ok"}`.
+2. **Given** the same project, **When** `GET /.well-known/agent-card.json` is requested, **Then** the card contains the project `name` and declares the `JSONRPC` and `HTTP+JSON` interfaces built from `AGENT_PUBLIC_URL` (default `http://localhost:8000`).
+3. **Given** the same project, **When** a JSON-RPC `SendMessage` with the text `hola` and the header `A2A-Version: 1.0` is posted to `/` (or the REST equivalent to `/message:send`), **Then** the result is a `completed` task whose artifact contains `Hello, World! You said: hola`.
+4. **Given** a project that already has an agent entry point, **When** `gep --type mcp` or `gep --type restapi` is run (or agent is generated after either of them), **Then** the command exits 1 with a conflict hint and writes nothing.
+5. **Given** `gep --type agent --enable-kafka` or `--enable-mcp-client` is run, **When** Typer parses the options, **Then** it exits 2 with "No such option" (both flags are removed).
+6. **Given** `ca` + `gep agent`, **When** `ruff check`, `ruff format --check`, `mypy --strict`, `pytest` (coverage ≥ 75 %) and `scaffold vs` are run on the generated project, **Then** all pass without any manual edit.
 
 ---
 
@@ -103,13 +122,25 @@ A developer forgets to implement a gateway, misspells a config field, or has an 
 
 #### Entry points
 
-- **FR-014**: All generated entry-point files MUST NOT import `Container` from `application`. Dependency injection in entry points MUST use `Injected[UseCaseClass]` (restapi, mcp) or `await container.get(UseCaseClass)` (agent, generic) only.
+- **FR-014**: All generated entry-point files MUST NOT import `Container` from `application`. Dependency injection in entry points MUST use `Injected[UseCaseClass]` (restapi, mcp), constructor injection through a wireup factory (agent: `agent_executor_factory` in `a2a_config.py`, see FR-044), or `await container.get(UseCaseClass)` (generic) only.
 - **FR-015**: `generate-entry-point restapi` MUST generate an `application/app.py` using `wireup.integration.fastapi.setup(container, app)` and a `lifespan` that warms up the async container before the first request.
 - **FR-016**: `generate-entry-point mcp` MUST generate MCP tool/prompt/resource binding using `inject_from_container(container)(bind_fn)(mcp)` — not `wireup.integration.fastmcp`, which targets a different third-party package.
-- **FR-017**: `generate-entry-point agent` and `generate-entry-point generic` MUST generate an async composition root in `application/` (`agent_app.py`, `generic_app.py`) using `async with create_<type>()` that closes the container on exit; `main.py` MUST use `asyncio.run` and import an existing function.
-- **FR-018**: The class name generated by `gep agent` MUST be valid Python (PascalCase from the snake-cased project name), not the raw project name with hyphens.
+- **FR-017**: `generate-entry-point generic` MUST generate an async composition root in `application/generic_app.py` using `async with create_generic()` that closes the container on exit; `main.py` MUST use `asyncio.run` and import an existing function. For `agent`, see FR-040–FR-048.
+- **FR-018**: *Superseded by FR-040.* `gep agent` no longer generates a `<Pascal>Agent` class; the executor class is `A2AExecutor` and the agent name comes from `AgentSettings`.
 - **FR-019**: `add-mcp-tool` MUST generate tool stubs that use `Injected[UseCaseClass]` for dependency injection, consistent with the wireup entry-point templates.
 - **FR-020**: All `generate-*` commands that modify an existing project MUST refuse (exit 1) when the project is legacy (i.e., `scaffold_version` key absent from `[tool.scaffold-ca-python]`). The error message MUST point developers to [docs/spec-029-migrate-di](../../docs/spec-029-migrate-di/README.md) and MAY name the planned commands `scaffold migrate-di` and `scaffold migrate-di --install-skill`. No legacy templates are shipped in the scaffolder.
+
+#### A2A agent entry point (US4)
+
+- **FR-040**: `generate-entry-point agent` MUST generate `infrastructure/entry_points/a2a_server/{__init__,agent_settings,a2a_config,agent_executor,agent_card,routes}.py`, `application/app.py`, and a package-root `server.py`, plus the tests `src/tests/application/test_app.py` and `src/tests/infrastructure/entry_points/a2a_server/{test_agent_executor,test_agent_card,test_routes}.py`. It MUST delete `main.py`, insert `HOST: str = "0.0.0.0"` and `PORT: int = 8000` after `LOG_LEVEL` in `application/config/config.py`, set `[project.scripts] <script> = "<pkg>.server:main"`, and inject `a2a-sdk[http-server]`, `starlette`, `uvicorn[standard]`, `wireup`, and `pydantic-settings`. The CLI type key stays `agent`; the package directory is `a2a_server` (protocol-named, like `mcp_server`).
+- **FR-041**: The generated agent MUST run with zero configuration: `GET /api/v1/health` returns `{"status": "ok"}`; `GET /.well-known/agent-card.json` serves the card; JSON-RPC (`POST /`) and REST (`POST /message:send`) answer `SendMessage` with a completed task whose artifact is `Hello, World! You said: <text>`. Clients MUST send the `A2A-Version: 1.0` header; a2a-sdk 1.1 rejects requests without it (it assumes protocol 0.3). Every `AgentSettings` field (`env_prefix="AGENT_"`: `name`, `description`, `version`, `public_url`) MUST have a default so the server starts without a `.env` file.
+- **FR-042**: `a2a` SDK imports MUST appear only in `infrastructure/entry_points/a2a_server/` and `application/app.py`. `A2AExecutor` is the anti-corruption layer: it translates user input into a use-case call and the result into A2A artifacts and task states; any exception MUST end the task in the `failed` state; `cancel` MUST raise `UnsupportedOperationError`. The scaffolder MUST NOT add agent-specific models, gateways, or response types to the domain.
+- **FR-043**: `application/app.py` MUST build its own async container from `[*INJECTABLES, a2a_server]` and pass it to `wireup.integration.starlette.setup()` (called last, after any other middleware), which closes the container on shutdown. `application/config/wiring.py` MUST NOT be modified by `gep agent`. The A2A protocol routes (agent card, JSON-RPC, REST) MUST be mounted in the lifespan exactly once, even if the lifespan is entered more than once.
+- **FR-044**: `agent_executor.py` and `a2a_config.py` MUST include a commented example showing how to inject a use case (`some_usecase: SomeUseCase` in `agent_executor_factory` and `A2AExecutor.__init__`, and `await self._some_usecase.execute(query)` in `execute`). Uncommenting both places MUST be enough for the container to resolve the use case.
+- **FR-045**: `agent` MUST conflict with `restapi` and with `mcp` in both directions (`mcp` also generates `server.py` and `application/app.py`). A conflicting `gep` MUST exit 1 with a hint and write nothing.
+- **FR-046**: `generate-entry-point` MUST NOT accept `--enable-kafka` or `--enable-mcp-client`; both flags and their `EntryPointFlag` members are removed. Kafka consumers and MCP clients are future features.
+- **FR-047**: The `Dockerfile` generated by `generate-project` MUST set `ENV PATH="/app/.venv/bin:$PATH"` and `CMD ["<script>"]` (the `[project.scripts]` key). This applies to every entry-point type, since the script always exists (`main:main` by default, `server:main` after `gep agent`/`mcp`).
+- **FR-048**: After `ca` + `gep agent`, the generated project MUST pass `ruff check .`, `ruff format --check .`, `mypy --strict src/`, `pytest` (with the template's `--cov-fail-under=75`), and `scaffold validate-structure` without any manual edit.
 
 #### Post-generation validation (Phase 3.1)
 
@@ -129,6 +160,8 @@ A developer forgets to implement a gateway, misspells a config field, or has an 
 - **UseCase factory file**: `application/config/usecases/<snake_name>_usecase.py` — one per use case, containing a single `@injectable`-decorated factory function.
 - **Adapter settings**: `<AdapterName>Settings(BaseSettings)` with `env_prefix`, living in the adapter's own package; injectable by type.
 - **Resource config**: `<adapter_name>_config.py` in the adapter package; contains an async factory with `yield` for resources with a lifecycle.
+- **AgentSettings**: `BaseSettings` with `env_prefix="AGENT_"` in `entry_points/a2a_server/agent_settings.py`; holds the agent identity (`name`, `description`, `version`) and `public_url`, from which the agent card interfaces are built. Injectable by type.
+- **A2AExecutor**: the `a2a` `AgentExecutor` implementation in `entry_points/a2a_server/agent_executor.py`; the anti-corruption layer between the A2A protocol and the developer's use cases (FR-042).
 
 ---
 
@@ -136,9 +169,10 @@ A developer forgets to implement a gateway, misspells a config field, or has an 
 
 ### Measurable Outcomes
 
-- **SC-001** (= SC-1 in plan): A project built end-to-end — `ca` + `guc --uses` + `gda --gateway` (all three types, including `rest-consumer`) + `gh` + `gep` (each type) — passes `ruff`, `ruff format --check`, `mypy --strict`, `pytest`, and `scaffold validate-structure` without any manual edit. The rest-consumer QA flows also pass pytest, Ruff, formatting, and `mypy src/<pkg>` at each intermediate milestone: `ca` + `gm`, use case before adapter (with or without gateway wiring), and adapter before use case (FR-033/FR-039).
+- **SC-001** (= SC-1 in plan): A project built end-to-end — `ca` + `guc --uses` + `gda --gateway` (all three types, including `rest-consumer`) + `gh` + `gep` (each type, including `agent` with no flags) — passes `ruff`, `ruff format --check`, `mypy --strict`, `pytest`, and `scaffold validate-structure` without any manual edit. The rest-consumer QA flows also pass pytest, Ruff, formatting, and `mypy src/<pkg>` at each intermediate milestone: `ca` + `gm`, use case before adapter (with or without gateway wiring), and adapter before use case (FR-033/FR-039).
 - **SC-003** (= SC-3 in plan): A missing gateway implementation, a missing required config value, or an ambiguous wiring causes a clear error at container creation or application startup — never silently at request time.
 - **SC-004**: No generated entry-point file imports `Container` from `application`; `scaffold validate-structure` reports zero layer violations in a freshly generated project.
+- **SC-005**: `ca` + `gep agent` + `uv run <script>` serves the agent card and answers a JSON-RPC `SendMessage` with the hello-world artifact, without any manual edit (FR-041, FR-048).
 
 ---
 
@@ -151,6 +185,8 @@ A developer forgets to implement a gateway, misspells a config field, or has an 
 - Multiple entry-point types per project remain unsupported (single entry-point restriction is documented, not removed).
 - The `--uses` flag on `generate-use-case` accepts only gateways. Helpers are infrastructure-only (D7); use cases that need a technical capability must model it as a domain gateway with an infrastructure adapter.
 - scaffold-ca-python 0.6.0 generates no dependency-injector code for new projects.
+- The agent entry point targets a2a-sdk 1.1.x: the protobuf types in `a2a.types.a2a_pb2` (`AgentCard` with `supported_interfaces`, no `url` field) and the Starlette route factories in `a2a.server.routes` (`create_agent_card_routes`, `create_jsonrpc_routes`, `create_rest_routes`). Starlette is used directly (not FastAPI) because the SDK already returns Starlette routes.
+- The A2A agent was validated first as a hand-written prototype (`library_aiagent/`); the templates reproduce it with the package name substituted.
 
 ---
 
@@ -160,6 +196,9 @@ A developer forgets to implement a gateway, misspells a config field, or has an 
 - DB adapter templates (`asyncpg`, `DynamoDB`, `SQLAlchemy`, etc.)
 - Lifting the single-entry-point restriction
 - Scoped (per-request) lifecycle generation
+- Kafka consumers and MCP clients for the agent entry point (former `--enable-kafka` / `--enable-mcp-client`)
+- Opinionated agent integrations (LangGraph, checkpointers, LLM gateways, observability); they may later be offered as optional driven adapters, never inside the entry point
+- `delete-module` undoing an entry point (restoring `main.py`, `HOST`/`PORT`, or `[project.scripts]`)
 
 ---
 
@@ -177,10 +216,10 @@ This spec partially replaces the following specs for the areas noted:
 
 | Principle | Status | Notes |
 |-----------|--------|-------|
-| I — Clean Architecture in generated projects | ✅ | All entry points use `Injected[...]`; domain stays decorator-free; `validate-structure` enforced by SC-004 |
+| I — Clean Architecture in generated projects | ✅ | All entry points use `Injected[...]` or factory injection; domain stays decorator-free; A2A imports confined to the entry point (FR-042); `validate-structure` enforced by SC-004 |
 | II — Tests first; `tests/templates/` per group | ✅ | Spec mandates tests for every command change; `test_di_config_templates.py` is rewritten |
 | III — Command table and aliases | ✅ | `guc` gets `--uses`; all existing aliases preserved |
 | IV — Python-first idioms (async, ruff, mypy strict) | ✅ | D2 enforces async-first; FR-003 mandates ruff ASYNC rule and asyncio_mode=auto |
 | V — Test-first development, 80% coverage gate | ✅ | Tests precede implementation for each command change |
-| VI — DX: dry-run, aliases, hints, help examples | ✅ | FR-005 mandates a helper-vs-gateway hint; legacy guard cites spec 029 |
+| VI — DX: dry-run, aliases, hints, help examples | ✅ | FR-005 mandates a helper-vs-gateway hint; legacy guard cites spec 029; agent runs with zero configuration (FR-041) and entry-point conflicts print a hint (FR-045) |
 | VII — Branch naming | ✅ | `feature/028-wireup-di` follows `feature/<name>` pattern |

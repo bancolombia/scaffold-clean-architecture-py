@@ -1,0 +1,53 @@
+"""Wireup factories for A2A infrastructure objects.
+
+To inject a use case into A2AExecutor:
+1. Uncomment the dependency in ``agent_executor_factory`` below.
+2. Uncomment the matching lines in ``A2AExecutor.__init__`` in ``agent_executor.py``.
+"""
+
+from __future__ import annotations
+
+import wireup
+from a2a.server.agent_execution import AgentExecutor
+from a2a.server.request_handlers import DefaultRequestHandler
+from a2a.server.request_handlers.request_handler import RequestHandler
+from a2a.server.tasks import InMemoryTaskStore, TaskStore
+from a2a.types.a2a_pb2 import AgentCard
+
+from {{ project.python_package }}.infrastructure.entry_points.a2a_server.agent_card import build_agent_card
+from {{ project.python_package }}.infrastructure.entry_points.a2a_server.agent_executor import A2AExecutor
+from {{ project.python_package }}.infrastructure.entry_points.a2a_server.agent_settings import AgentSettings
+
+
+@wireup.injectable
+def task_store_factory() -> TaskStore:
+    """In-memory task store. Swap for DatabaseTaskStore to persist tasks across restarts."""
+    return InMemoryTaskStore()
+
+
+@wireup.injectable
+def agent_card_factory(agent_settings: AgentSettings) -> AgentCard:
+    return build_agent_card(agent_settings)
+
+
+@wireup.injectable
+def agent_executor_factory(
+    # Inject use-case dependencies here, e.g.:
+    # some_usecase: SomeUseCase,
+) -> AgentExecutor:
+    return A2AExecutor(
+        # some_usecase=some_usecase,
+    )
+
+
+@wireup.injectable
+def request_handler_factory(
+    executor: AgentExecutor,
+    task_store: TaskStore,
+    card: AgentCard,
+) -> RequestHandler:
+    return DefaultRequestHandler(
+        agent_executor=executor,
+        task_store=task_store,
+        agent_card=card,
+    )

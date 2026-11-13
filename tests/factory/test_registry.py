@@ -75,14 +75,13 @@ def test_factory_descriptors() -> None:
     assert ep["mcp"].subdir == "mcp_server"
     assert ep["mcp"].supported_flags == frozenset({EntryPointFlag.MCP_PRIMITIVES})
     mcp_conflict_types = {c.type_key for c in ep["mcp"].conflicts}
-    assert "restapi" in mcp_conflict_types
+    assert mcp_conflict_types == {"restapi", "agent"}
 
     # agent
-    assert ep["agent"].subdir == "agent"
-    assert EntryPointFlag.ENABLE_MCP_CLIENT in ep["agent"].supported_flags
-    assert EntryPointFlag.ENABLE_KAFKA in ep["agent"].supported_flags
+    assert ep["agent"].subdir == "a2a_server"
+    assert ep["agent"].supported_flags == frozenset()
     agent_conflict_types = {c.type_key for c in ep["agent"].conflicts}
-    assert "restapi" in agent_conflict_types
+    assert agent_conflict_types == {"restapi", "mcp"}
 
     # generic
     assert ep["generic"].subdir == "generic"

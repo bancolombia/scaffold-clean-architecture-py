@@ -1,0 +1,17 @@
+"""A2A server entrypoint — run with the project script or ``python -m <pkg>.server``."""
+
+from __future__ import annotations
+
+import uvicorn
+
+from {{ project.python_package }}.application.app import start_server
+from {{ project.python_package }}.application.config.config import settings
+
+
+def main() -> None:
+    """Start the A2A server via uvicorn."""
+    uvicorn.run(start_server(), host=settings.HOST, port=settings.PORT)
+
+
+if __name__ == "__main__":
+    main()

@@ -32,14 +32,14 @@ def test_default_main_has_name_guard() -> None:
     assert '__name__ == "__main__"' in out
 
 
-def test_agent_main_has_def_main() -> None:
-    out = _render("entry_point/agent/entrypoint_main.py.jinja2")
+def test_agent_server_has_def_main() -> None:
+    out = _render("entry_point/agent/server.py.jinja2")
     assert "def main" in out
 
 
-def test_agent_main_uses_asyncio() -> None:
-    out = _render("entry_point/agent/entrypoint_main.py.jinja2")
-    assert "asyncio" in out
+def test_agent_server_runs_uvicorn() -> None:
+    out = _render("entry_point/agent/server.py.jinja2")
+    assert "uvicorn.run(start_server()" in out
 
 
 def test_mcp_main_has_def_main() -> None:

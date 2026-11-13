@@ -3,13 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar
 
-from rich.markup import escape
-
 from scaffold_ca_python.factory.dependencies import MCP_RUNTIME
 from scaffold_ca_python.factory.entry_points.base import (
     EntryPointConflict,
     EntryPointFactory,
     EntryPointFlag,
+    server_entry_notes,
 )
 
 if TYPE_CHECKING:
@@ -22,26 +21,13 @@ class EntryPointMcp(EntryPointFactory):
     description: ClassVar[str] = "Model Context Protocol server (FastMCP)"
     subdir: ClassVar[str] = "mcp_server"
     supported_flags: ClassVar[frozenset[EntryPointFlag]] = frozenset({EntryPointFlag.MCP_PRIMITIVES})
-    conflicts: ClassVar[tuple[EntryPointConflict, ...]] = (EntryPointConflict(type_key="restapi"),)
+    conflicts: ClassVar[tuple[EntryPointConflict, ...]] = (
+        EntryPointConflict(type_key="restapi"),
+        EntryPointConflict(type_key="agent"),
+    )
 
-    def result_notes(
-        self,
-        src_pkg_root: Path,
-        pkg: str,
-        type_key: str,
-        *,
-        dry_run: bool,
-    ) -> list[str]:
-        notes: list[str] = []
-        main_py = src_pkg_root / "main.py"
-        if dry_run:
-            if main_py.exists():
-                notes.append(f"[dim]Would delete: src/{pkg}/main.py[/dim]")
-            notes.append(f'[dim]Would update {escape("[project.scripts]")}: {pkg} = "{pkg}.server:start_server"[/dim]')
-        else:
-            notes.append(f"[green]✓[/green] Deleted src/{pkg}/main.py")
-            notes.append(f'[green]✓[/green] Updated {escape("[project.scripts]")}: {pkg} = "{pkg}.server:start_server"')
-        return notes
+    def result_notes(self, src_pkg_root: Path, pkg: str, type_key: str, *, dry_run: bool) -> list[str]:
+        return server_entry_notes(src_pkg_root, pkg, "main", dry_run=dry_run)
 
     def build(self, builder: ModuleBuilder) -> None:
         """Queue MCP entry-point files, optional resources/prompts, and runtime deps."""

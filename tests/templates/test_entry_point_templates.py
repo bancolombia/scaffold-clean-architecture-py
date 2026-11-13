@@ -116,29 +116,58 @@ def test_generated_test_rest_controller_has_no_duplicate_docstring() -> None:
 # agent
 
 
-def test_agent_has_class_name() -> None:
-    ctx = _ctx("my-app")
-    out = renderer.render_string(_tmpl("entry_point/agent/agent.py.jinja2"), ctx.model_dump())
-    assert "Agent" in out
+_AGENT_SOURCES = ("agent_settings", "a2a_config", "agent_executor", "agent_card", "routes", "server", "app")
+_A2A_ALLOWED = {"a2a_config", "agent_executor", "agent_card", "app"}
 
 
-def test_agent_has_async_run() -> None:
-    out = renderer.render_string(_tmpl("entry_point/agent/agent.py.jinja2"), _ctx().model_dump())
-    assert "async def run" in out
+def _render_agent(name: str) -> str:
+    return renderer.render_string(_tmpl(f"entry_point/agent/{name}.py.jinja2"), _ctx().model_dump())
 
 
-def test_agent_with_kafka_flag_includes_stub() -> None:
-    ctx_dict = _ctx().model_dump()
-    ctx_dict["enable_kafka"] = True
-    out = renderer.render_string(_tmpl("entry_point/agent/agent.py.jinja2"), ctx_dict)
-    assert "kafka" in out.lower()
+def test_agent_executor_is_hello_world_a2a_executor() -> None:
+    out = _render_agent("agent_executor")
+    assert "class A2AExecutor(AgentExecutor):" in out
+    assert "async def execute" in out
+    assert 'f"Hello, World! You said: {query}"' in out
+    assert "UnsupportedOperationError" in out
 
 
-def test_agent_without_kafka_flag_excludes_stub() -> None:
-    ctx_dict = _ctx().model_dump()
-    ctx_dict["enable_kafka"] = False
-    out = renderer.render_string(_tmpl("entry_point/agent/agent.py.jinja2"), ctx_dict)
-    assert "AIOKafkaConsumer" not in out
+def test_agent_executor_and_config_have_commented_usecase_hook() -> None:
+    for name in ("agent_executor", "a2a_config"):
+        assert "# some_usecase: SomeUseCase," in _render_agent(name), name
+    assert "# result = await self._some_usecase.execute(query)" in _render_agent("agent_executor")
+
+
+def test_agent_card_builder_uses_settings() -> None:
+    out = _render_agent("agent_card")
+    assert "def build_agent_card(agent_settings: AgentSettings) -> AgentCard:" in out
+    assert 'protocol_binding="JSONRPC"' in out
+    assert 'protocol_binding="HTTP+JSON"' in out
+
+
+def test_agent_settings_default_name_is_project_name() -> None:
+    out = _render_agent("agent_settings")
+    assert 'name: str = "my-app"' in out
+    assert 'env_prefix="AGENT_"' in out
+
+
+def test_agent_routes_expose_health() -> None:
+    assert 'Route("/api/v1/health", health, methods=["GET"])' in _render_agent("routes")
+
+
+@pytest.mark.parametrize("name", _AGENT_SOURCES)
+def test_agent_sources_are_valid_python(name: str) -> None:
+    ast.parse(_render_agent(name))
+
+
+@pytest.mark.parametrize("name", _AGENT_SOURCES)
+def test_agent_a2a_imports_confined_to_entry_point(name: str) -> None:
+    """Only the entry-point package and app.py may import the a2a SDK."""
+    tree = ast.parse(_render_agent(name))
+    modules = {n.module or "" for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)}
+    modules |= {a.name for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names}
+    uses_a2a = any(m == "a2a" or m.startswith("a2a.") for m in modules)
+    assert uses_a2a == (name in _A2A_ALLOWED), name
 
 
 # mcp — tools.py template

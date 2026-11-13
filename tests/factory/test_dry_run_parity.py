@@ -30,8 +30,6 @@ _BASELINE: dict[str, list[str]] = json.loads(
 # Flags the gep command always attaches to the builder before invoking a factory.
 _GEP_PARAMS = {
     "routes": [],
-    "enable_kafka": False,
-    "enable_mcp_client": False,
     "with_resources": False,
     "with_prompts": False,
 }

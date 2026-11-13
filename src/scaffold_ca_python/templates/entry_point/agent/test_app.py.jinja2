@@ -1,0 +1,75 @@
+"""End-to-end tests for the A2A Starlette application.
+
+``TestClient`` is used as a context manager so the lifespan runs and mounts the
+A2A routes; no real network or uvicorn process is needed.
+"""
+
+from __future__ import annotations
+
+import json
+from collections.abc import Iterator
+
+import pytest
+from a2a.server.agent_execution import AgentExecutor
+from a2a.server.request_handlers.request_handler import RequestHandler
+from a2a.types.a2a_pb2 import AgentCard
+from a2a.utils.constants import PROTOCOL_VERSION_CURRENT, VERSION_HEADER
+from starlette.testclient import TestClient
+
+from {{ project.python_package }}.application.app import create_a2a_container, start_server
+from {{ project.python_package }}.infrastructure.entry_points.a2a_server.agent_settings import AgentSettings
+
+_HEADERS = {VERSION_HEADER: PROTOCOL_VERSION_CURRENT}
+_MESSAGE = {"message": {"messageId": "m1", "role": "ROLE_USER", "parts": [{"text": "hola"}]}}
+
+
+@pytest.fixture(scope="module")
+def client() -> Iterator[TestClient]:
+    with TestClient(start_server()) as test_client:
+        yield test_client
+
+
+def test_health_returns_ok(client: TestClient) -> None:
+    resp = client.get("/api/v1/health")
+    assert resp.status_code == 200
+    assert resp.json() == {"status": "ok"}
+
+
+def test_agent_card_is_served(client: TestClient) -> None:
+    resp = client.get("/.well-known/agent-card.json")
+    assert resp.status_code == 200
+    assert resp.json()["name"] == "{{ project.name }}"
+
+
+def test_jsonrpc_send_message_returns_hello_world(client: TestClient) -> None:
+    payload = {"jsonrpc": "2.0", "id": 1, "method": "SendMessage", "params": _MESSAGE}
+    resp = client.post("/", json=payload, headers=_HEADERS)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "error" not in body, body
+    assert "Hello, World! You said: hola" in json.dumps(body["result"])
+
+
+def test_rest_send_message_returns_hello_world(client: TestClient) -> None:
+    resp = client.post("/message:send", json=_MESSAGE, headers=_HEADERS)
+    assert resp.status_code == 200
+    assert "Hello, World! You said: hola" in resp.text
+
+
+def test_lifespan_mounts_a2a_routes_once() -> None:
+    app = start_server()
+    with TestClient(app):
+        pass
+    with TestClient(app):
+        pass
+    card_routes = [r for r in app.router.routes if getattr(r, "path", None) == "/.well-known/agent-card.json"]
+    assert len(card_routes) == 1
+
+
+@pytest.mark.parametrize("dependency", [AgentSettings, AgentCard, AgentExecutor, RequestHandler])
+async def test_container_resolves_a2a_dependency(dependency: type[object]) -> None:
+    container = create_a2a_container()
+    try:
+        assert await container.get(dependency) is not None
+    finally:
+        await container.close()

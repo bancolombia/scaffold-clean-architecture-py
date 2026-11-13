@@ -119,6 +119,27 @@ This document records the research and spike findings that informed the design d
 
 ---
 
+## Decision 9: A2A agent entry point (US4)
+
+**Decision**: `gep agent` generates an open A2A server (a2a-sdk 1.1.x) on Starlette + uvicorn, with a hello-world `A2AExecutor` and commented use-case hooks. The composition root `application/app.py` builds its own container from `[*INJECTABLES, a2a_server]`; `wiring.py` is not modified. The A2A protocol routes are mounted once in the lifespan.
+
+**Rationale**:
+- **Open by default**: the entry point only translates the protocol (anti-corruption layer). No response model, gateway, LLM, LangGraph, persistence, or observability is imposed; those belong to the developer's domain and driven adapters. This follows the same philosophy as the `restapi` and `mcp` templates.
+- **Starlette, not FastAPI**: `a2a.server.routes.create_agent_card_routes`, `create_jsonrpc_routes`, and `create_rest_routes` return `list[starlette.routing.Route]`; the `mcp` template already uses Starlette; FastAPI would only add `/docs`. `a2a-sdk[http-server]` brings `starlette` and `sse-starlette`; uvicorn is added separately.
+- **Own container in `app.py`**: no factory edits `INJECTABLES` today, and the core has no "replace line" operation. Editing `wiring.py` with `insert_after` needs an anchor that projects generated before this change do not have (single-line `INJECTABLES = [...]`), so `gep agent` would fail on them with `ValueError`. Building the container in `app.py` keeps `wiring.py` untouched and works on any wireup project.
+- **Routes in the lifespan**: `DefaultRequestHandler` requires the `AgentCard`, and `AsyncContainer.get` is async, so the handler can only be resolved after startup. An `app.state` flag keeps the mount idempotent when `TestClient` re-enters the lifespan.
+- **Kafka and MCP client removed**: the old flags only added commented stubs to a class that no longer exists. They are deferred to future features (FR-046).
+
+**Alternatives considered**:
+- Keep the stub agent class with `asyncio.run` → rejected: never starts a server.
+- Edit `wiring.py` (`insert_after` on a multi-line `INJECTABLES`) → rejected: breaks already-generated projects.
+- New `ReplaceText` file operation in the core → rejected: more API surface for a single use.
+- FastAPI app with `app.mount(...)` → rejected: heavier dependencies and no benefit for the SDK-generated routes.
+
+**Validated in prototype**: `library_aiagent/` (hand-written with a2a-sdk 1.1.5, wireup 2.13) serves the agent card and answers JSON-RPC `SendMessage`. Facts confirmed against the installed SDK: `DefaultRequestHandler(agent_executor, task_store, agent_card)`; `AgentCard` uses `supported_interfaces=[AgentInterface(url, protocol_binding, protocol_version)]` (no `url` field); `TaskUpdater.add_artifact` must precede the terminal status event; `wireup.integration.starlette.setup()` wraps the lifespan and closes the container on shutdown; JSON-RPC and REST (`POST /message:send`) require the `A2A-Version: 1.0` header; `EventQueue` is abstract (tests use a collecting subclass); `RequestContext.task_id`/`context_id` are typed `str | None`.
+
+---
+
 ## Wireup error messages (measured in spike)
 
 | Situation | Error |

@@ -31,15 +31,13 @@ from scaffold_ca_python.models.options import EntryPointOptions
 
 _TYPE_HELP = "Entry-point type. Options: " + ", ".join(ENTRY_POINT_FACTORIES.keys()) + "."
 _SWAGGER_HELP = "Path to OpenAPI YAML/JSON (restapi only)."
-_KAFKA_HELP = "Add async Kafka consumer stub (agent type only)."
-_MCP_CLIENT_HELP = "Add MCP tool-call client stub (agent type only)."
 _GEP_HELP = "Scaffold an entry-point adapter and test stub. Alias 'gep'."
 _GEP_EPILOG = (
     "Types: " + " | ".join(ENTRY_POINT_FACTORIES.keys()) + "\n\n"
     " ==================================================\n\n"
     "Examples:\n\n"
     "  * scaffold gep --type restapi\n\n"
-    "  * scaffold gep --type agent --enable-kafka\n\n"
+    "  * scaffold gep --type agent\n\n"
     "  * scaffold gep --type mcp\n\n"
     "  * scaffold gep --type mcp --add-tool --name create_file --param path:str --returns str\n\n"
     "  * scaffold generate-entry-point --type generic\n"
@@ -64,12 +62,8 @@ def _check_flags_for(options: EntryPointOptions, factory_class: type[EntryPointF
     active_flags: list[EntryPointFlag] = []
     if options.swagger is not None:
         active_flags.append(EntryPointFlag.SWAGGER)
-    if options.enable_mcp_client:
-        active_flags.append(EntryPointFlag.ENABLE_MCP_CLIENT)
     if options.with_resources or options.with_prompts:
         active_flags.append(EntryPointFlag.MCP_PRIMITIVES)
-    if options.enable_kafka:
-        active_flags.append(EntryPointFlag.ENABLE_KAFKA)
     check_flags(options.type_, factory_class, active_flags, ENTRY_POINT_FACTORIES)
 
 
@@ -149,24 +143,6 @@ def register(app: typer.Typer) -> None:
         ctx: typer.Context,
         type_: Annotated[str | None, typer.Option("--type", help=_TYPE_HELP, rich_help_panel="Required")] = None,
         swagger: Annotated[str | None, typer.Option("--swagger", help=_SWAGGER_HELP, rich_help_panel="Options")] = None,
-        enable_kafka: Annotated[
-            bool,
-            typer.Option(
-                "--enable-kafka/--no-enable-kafka",
-                help=_KAFKA_HELP,
-                rich_help_panel="Options",
-                show_default=True,
-            ),
-        ] = False,
-        enable_mcp_client: Annotated[
-            bool,
-            typer.Option(
-                "--enable-mcp-client/--no-enable-mcp-client",
-                help=_MCP_CLIENT_HELP,
-                rich_help_panel="Options",
-                show_default=True,
-            ),
-        ] = False,
         with_resources: Annotated[
             bool,
             typer.Option(
@@ -213,8 +189,6 @@ def register(app: typer.Typer) -> None:
         options = EntryPointOptions(
             type_=type_,
             swagger=swagger,
-            enable_kafka=enable_kafka,
-            enable_mcp_client=enable_mcp_client,
             with_resources=with_resources,
             with_prompts=with_prompts,
             add_tool=add_tool,

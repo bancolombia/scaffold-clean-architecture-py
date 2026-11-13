@@ -30,22 +30,6 @@ runner = CliRunner()
             "--swagger is only valid with --type restapi.",
         ),
         (
-            ["gep", "--type", "mcp", "--enable-mcp-client"],
-            "--enable-mcp-client is only valid with --type agent.",
-        ),
-        (
-            ["gep", "--type", "generic", "--enable-mcp-client"],
-            "--enable-mcp-client is only valid with --type agent.",
-        ),
-        (
-            ["gep", "--type", "restapi", "--enable-kafka"],
-            "--enable-kafka is only valid with --type agent.",
-        ),
-        (
-            ["gep", "--type", "mcp", "--enable-kafka"],
-            "--enable-kafka is only valid with --type agent.",
-        ),
-        (
             ["gep", "--type", "agent", "--with-prompts"],
             "--with-resources and --with-prompts are only valid with --type mcp.",
         ),
@@ -54,8 +38,8 @@ runner = CliRunner()
             "--add-tool is only valid with --type mcp.",
         ),
         (
-            ["gep", "--type", "mcp", "--add-tool", "--name", "x", "--enable-kafka"],
-            "--add-tool is incompatible with --enable-kafka.",
+            ["gep", "--type", "mcp", "--add-tool", "--name", "x", "--with-resources"],
+            "--add-tool is incompatible with --with-resources.",
         ),
     ],
 )
@@ -67,6 +51,13 @@ def test_gep_error_cases(
     result = runner.invoke(app, args)
     assert result.exit_code == 1
     assert expected_fragment in strip_ansi(result.output)
+
+
+@pytest.mark.parametrize("flag", ["--enable-kafka", "--enable-mcp-client"])
+def test_gep_removed_agent_flags_are_unknown(flag: str, project_root: Path) -> None:
+    result = runner.invoke(app, ["gep", "--type", "agent", flag])
+    assert result.exit_code == 2
+    assert "No such option" in strip_ansi(result.output)
 
 
 def test_gep_restapi_after_mcp_conflicts(mcp_project: Path) -> None:
@@ -154,13 +145,22 @@ def test_gep_mcp_success_message(project_root: Path) -> None:
     assert result.exit_code == 0
     out = strip_ansi(result.output)
     assert "Deleted src/my_app/main.py" in out
-    assert 'Updated [project.scripts]: my_app = "my_app.server:start_server"' in out
+    assert 'Updated [project.scripts]: my_app = "my_app.server:main"' in out
 
 
-def test_gep_agent_dry_run_shows_will_be_replaced(project_root: Path) -> None:
+def test_gep_agent_dry_run_keeps_dependency_extras(project_root: Path) -> None:
+    result = runner.invoke(app, ["gep", "--type", "agent", "--dry-run"])
+    out = " ".join(strip_ansi(result.output).split())
+    assert "a2a-sdk[http-server]~=1.1.4" in out
+    assert "uvicorn[standard]~=0.53.0" in out
+
+
+def test_gep_agent_dry_run_announces_server_entrypoint(project_root: Path) -> None:
     result = runner.invoke(app, ["gep", "--type", "agent", "--dry-run"])
     assert result.exit_code == 0
-    assert "main.py will be replaced with agent entrypoint." in strip_ansi(result.output)
+    out = strip_ansi(result.output)
+    assert "Would delete: src/my_app/main.py" in out
+    assert 'Would update [project.scripts]: my_app = "my_app.server:main"' in out
 
 
 def test_gep_mcp_writes_main_script(project_root: Path) -> None:

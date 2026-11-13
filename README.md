@@ -147,6 +147,18 @@ scaffold gep --type mcp --with-resources --with-prompts --dry-run
 scaffold gep --type mcp --add-tool --name create_file --param path:str --param content:str --returns str --description "Creates a file on disk"
 ```
 
+```bash
+scaffold gep --type agent
+```
+
+`--type agent` generates an [A2A](https://a2a-protocol.org) server (a2a-sdk, Starlette, uvicorn) under `infrastructure/entry_points/a2a_server/` and replaces `main.py` with `server.py`. It runs with zero configuration (`uv run <project-script>`):
+
+- `GET /api/v1/health` — liveness probe.
+- `GET /.well-known/agent-card.json` — agent card built from `AGENT_NAME`, `AGENT_DESCRIPTION`, `AGENT_VERSION`, and `AGENT_PUBLIC_URL`.
+- `POST /` (JSON-RPC) and `POST /message:send` (REST) — `SendMessage` answers `Hello, World! You said: <text>`. Clients send the `A2A-Version: 1.0` header.
+
+`HOST` and `PORT` (default `0.0.0.0:8000`) are added to `application/config/config.py`. To call a use case, uncomment the `some_usecase` hooks in `a2a_config.py` and `agent_executor.py`. Only one entry-point type per project: `agent` conflicts with `restapi` and `mcp`.
+
 ### scaffold gh
 
 Scaffold a helper utility module and its test stub.
@@ -213,7 +225,7 @@ New projects generated with `scaffold ca` use [wireup](https://pypi.org/project/
 
 - `application/config/wiring.py` defines `create_container()` and package scan targets (`driven_adapters`, `helpers`, `usecases`).
 - Use cases declare gateway dependencies with `scaffold guc --uses …`; adapters bind to gateways with `scaffold gda --gateway …`.
-- Entry points inject use cases with `Injected[…]` (REST/MCP) or resolve types from the container (agent/generic)—without importing `application` from infrastructure.
+- Entry points inject use cases with `Injected[…]` (REST/MCP), through constructor injection in a wireup factory (agent), or resolve types from the container (generic)—without importing `application` from infrastructure.
 - Generated code enables ruff rule `ASYNC` and pytest `asyncio_mode = auto`.
 
 **Legacy projects** (generated with scaffold-ca-python ≤ 0.5.0, `dependency-injector`, no `scaffold_version` in `[tool.scaffold-ca-python]`) are not modified by generate commands. Migrate to wireup manually, then set `scaffold_version` in `pyproject.toml` before using newer scaffold commands on that repo.
@@ -241,7 +253,7 @@ New projects generated with `scaffold ca` use [wireup](https://pypi.org/project/
 - Generates domain models with `scaffold gm`.
 - Generates domain use cases with `scaffold guc` (optional `--uses` for gateway wiring and DI factories).
 - Generates driven adapters with `scaffold gda` (optional `--gateway` for port binding).
-- Generates entry points for REST API, agent, MCP, and generic modes with `scaffold gep`.
+- Generates entry points for REST API, A2A agent, MCP, and generic modes with `scaffold gep`.
 - Generates helper utilities with `scaffold gh`.
 - Generates CI/CD pipeline files with `scaffold gpipe`.
 - Validates import boundaries with `scaffold vs`.

@@ -9,7 +9,7 @@
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Parallelizable (different files, no dependencies on incomplete tasks)
-- **[Story]**: User story label (US1–US3; migration US4/US5 → [docs/spec-029-migrate-di/tasks.md](../../docs/spec-029-migrate-di/tasks.md))
+- **[Story]**: User story label (US1–US4). The former migration stories (labelled US4/US5 before the split) now live as US1/US2 in [docs/spec-029-migrate-di/tasks.md](../../docs/spec-029-migrate-di/tasks.md); US4 here is the A2A agent entry point.
 - All paths relative to repo root
 
 ---
@@ -137,8 +137,8 @@
 - [X] T031 [P] [US2] Update `src/scaffold_ca_python/templates/entry_point/restapi/test_rest_controller.py.jinja2`: show `container.override.injectable(target=..., new=...)` pattern
 - [X] T032 [US2] Update `src/scaffold_ca_python/factory/entry_points/ep_mcp.py` and `src/scaffold_ca_python/templates/entry_point/mcp/app.py.jinja2`: use `inject_from_container(container)(bind_fn)(mcp)`; close container in async context manager
 - [X] T033 [P] [US2] Update `src/scaffold_ca_python/templates/entry_point/mcp/tools.py.jinja2`, `prompts.py.jinja2`, `resources.py.jinja2`: use `Injected[...]`; remove `@inject`, `Provide[...]`, and `container.wire()`
-- [X] T034 [US2] Update `src/scaffold_ca_python/factory/entry_points/ep_agent.py`: create `application/agent_app.py.jinja2` (new template) with `async with create_agent()`; fix `entrypoint_main.py.jinja2` to import a function that exists (not `run`); fix class name to `to_pascal_case(project.python_package)` (eliminates hyphen bug)
-- [X] T035 [P] [US2] Create `src/scaffold_ca_python/templates/entry_point/agent/agent_app.py.jinja2` with `@asynccontextmanager async def create_agent()` composition root; `asyncio.run` in `main.py.jinja2`
+- [X] T034 [US2] Update `src/scaffold_ca_python/factory/entry_points/ep_agent.py`: create `application/agent_app.py.jinja2` (new template) with `async with create_agent()`; fix `entrypoint_main.py.jinja2` to import a function that exists (not `run`); fix class name to `to_pascal_case(project.python_package)` (eliminates hyphen bug) <!-- agent part superseded by T109–T120 (US4) -->
+- [X] T035 [P] [US2] Create `src/scaffold_ca_python/templates/entry_point/agent/agent_app.py.jinja2` with `@asynccontextmanager async def create_agent()` composition root; `asyncio.run` in `main.py.jinja2` <!-- superseded by T109–T120 (US4) -->
 - [X] T036 [US2] Update `src/scaffold_ca_python/factory/entry_points/ep_generic.py` and templates with same async composition-root pattern; fix `entrypoint_main.py.jinja2` run-import bug
 - [X] T037 [P] [US2] Create `src/scaffold_ca_python/templates/entry_point/generic/generic_app.py.jinja2`
 - [X] T038 [US2] Update `src/scaffold_ca_python/commands/add_mcp_tool.py` and related template: tool stub uses `Injected[UseCase]` instead of `Provide[...]`
@@ -147,6 +147,36 @@
 - [X] T041 [P] [US2] Verify spec 027 (MCP health check) still passes on the new mcp app.py template; update `test_gep_mcp_generated_health_route_tests_pass` if needed
 
 **Checkpoint**: All four entry-point types generate without layer violations; end-to-end test passes.
+
+---
+
+## Phase 4.1: User Story 4 — A2A agent entry point (P2)
+
+**Goal**: `gep --type agent` generates the open A2A server validated in the `library_aiagent/` prototype (FR-040–FR-048): Starlette + uvicorn, hello-world `A2AExecutor`, commented use-case hooks, own container in `application/app.py`; `--enable-kafka` / `--enable-mcp-client` removed.
+
+**Independent Test** (SC-005): Run quickstart.md Scenario 4; health, agent card, and JSON-RPC `SendMessage` respond as specified and the generated project passes all quality gates without manual edits.
+
+**Reference**: plan.md Block G; research.md Decision 9; [contracts/generated-files.md](contracts/generated-files.md#scaffold-gep---type-agent).
+
+### Tests for US4 (write first — must FAIL)
+
+- [X] T109 [P] [US4] Rewrite `tests/factory/entry_points/test_ep_agent.py` in the `test_ep_mcp.py` style (pre-create `config.py` for live runs): preview contains `entry_points/a2a_server/{__init__,agent_settings,a2a_config,agent_executor,agent_card,routes}.py`, root `server.py`, `application/app.py` and the four tests; `main.py` is deleted; `builder.pending_project_script == "main"`; the five `A2A_RUNTIME` dependencies land in `pyproject.toml`; an existing `application/app.py` makes `persist()` raise `FileExistsError`; HOST/PORT inserted after `LOG_LEVEL` — confirm FAIL
+- [X] T110 [P] [US4] Template tests: in `tests/templates/test_entry_point_templates.py` replace the agent class/Kafka tests with checks for `A2AExecutor`, `build_agent_card`, `/api/v1/health` and the commented `some_usecase` hook; in `test_entrypoint_main_templates.py` check `agent/server.py.jinja2` has `def main` and `uvicorn`; in `test_di_config_templates.py` check `agent/app.py.jinja2` has `create_a2a_container`, `INJECTABLES`, `asynccontextmanager`, `yield` and `wireup.integration.starlette.setup`; add a test that renders every `entry_point/agent/*.jinja2` source template (not `test_*`) and asserts `from a2a` / `import a2a` appears only in `a2a_server/*` templates and `app.py.jinja2`, and never in `server.py.jinja2` (FR-042) — confirm FAIL
+- [X] T111 [P] [US4] Command tests in `tests/commands/test_generate_entry_point.py` and `test_behavior_contract.py`: drop the Kafka/MCP-client tests, rows and `--add-tool` parametrize entries; drop `test_agent_class_name_has_no_hyphens` and `test_agent_main_does_not_import_run`; `--enable-kafka` / `--enable-mcp-client` exit 2; `[project.scripts]` becomes `my_app.server:main`; `a2a-sdk[http-server]` injected; `server.py` created and `main.py` deleted; `gep mcp` after `gep agent` and `gep agent` after `gep mcp` exit 1 with a conflict hint; `gep restapi` blocked when `entry_points/a2a_server/` exists; agent dry-run prints the delete/scripts notes — confirm FAIL
+- [X] T112 [P] [US4] Registry and options tests: `tests/factory/test_registry.py` (`subdir == "a2a_server"`, empty `supported_flags`, agent conflicts with restapi and mcp, mcp conflicts with agent); `tests/models/test_options.py` and `tests/factory/test_dry_run_parity.py` without the removed flags; update the `"gep:agent"` entry in `tests/factory/fixtures/dry_run_baseline.json` — confirm FAIL
+- [X] T113 [US4] Rename e2e scenario `02_agent_kafka_mcp` to `02_agent` (`ca` + `gep --type agent`, no flags) in `tests/e2e/test_generated_project_quality.py`; it runs `uv sync`, `ruff check`, `ruff format --check`, `mypy --strict src/`, `pytest` and `scaffold vs` (FR-048)
+
+### Implementation for US4
+
+- [X] T114 [US4] `src/scaffold_ca_python/factory/dependencies.py`: replace `A2A_SDK` with `A2A_SDK_HTTP_SERVER = "a2a-sdk[http-server]~=1.1.4"`; add `A2A_RUNTIME = (A2A_SDK_HTTP_SERVER, STARLETTE, UVICORN_STANDARD, WIREUP, PYDANTIC_SETTINGS)`
+- [X] T115 [US4] Remove `--enable-kafka` / `--enable-mcp-client` (FR-046): `EntryPointFlag.ENABLE_KAFKA` / `ENABLE_MCP_CLIENT` in `factory/entry_points/base.py`; fields, `_FLAG_ORDER` and flag-map entries and `add_param` calls in `models/options.py`; help strings, Typer options, `_check_flags_for` branches, `EntryPointOptions` arguments and the epilog example in `commands/generate_entry_point.py`
+- [X] T116 [P] [US4] Templates in `src/scaffold_ca_python/templates/entry_point/agent/`: delete `agent.py`, `agent_app.py`, `card.py`, `entrypoint_main.py`, `test_agent.py` (`.jinja2`); create `__init__`, `agent_settings`, `a2a_config`, `agent_executor`, `agent_card`, `routes`, `server`, `app`, `test_agent_executor`, `test_agent_card`, `test_routes`, `test_app` (`.jinja2`) copied from `library_aiagent/` with `{{ project.python_package }}` / `{{ project.name }}` and the Block G fixes (health `/api/v1/health`; `with TestClient(...)` fixture; no unused imports/params or banners; container-resolution tests moved to `test_app.py` using `create_a2a_container()`; `test_app.py.jinja2` MUST also cover the REST binding (`SendMessage` via the route exposed by `create_rest_routes`, path confirmed against a2a-sdk 1.1.x and then fixed in FR-041 and the contract) and lifespan idempotency (enter `TestClient(app)` twice on the same app and assert the agent-card route is registered exactly once) — FR-041, FR-043)
+- [X] T117 [US4] Rewrite `src/scaffold_ca_python/factory/entry_points/ep_agent.py` (`subdir="a2a_server"`, no flags, conflicts restapi + mcp; `build()` mirrors `EntryPointMcp.build()`); extract `server_entry_notes()` from `EntryPointMcp.result_notes` into `base.py` and use it in both factories (fixes the mcp note that announced `server:start_server`); add `EntryPointConflict("agent")` to `EntryPointMcp.conflicts`
+- [X] T118 [P] [US4] `src/scaffold_ca_python/templates/project/dockerfile.jinja2`: add `ENV PATH="/app/.venv/bin:$PATH"` and `CMD ["{{ python_package_script }}"]` (FR-047); update any test asserting the old `CMD`
+- [X] T119 [P] [US4] `README.md`: describe `gep --type agent` as an A2A server (routes, `AGENT_*`, `HOST`, `PORT`, use-case hook). `CHANGELOG.md` is generated by release-please from Conventional Commits, so the entry comes from the commit message (`feat(agent)!: ...` with a `BREAKING CHANGE` footer for the removed flags), not from a manual edit
+- [X] T120 [US4] Validation: run quickstart.md Scenario 4; `diff -r` the generated `a2a_server/` against `library_aiagent/src/library_aiagent/infrastructure/entry_points/a2a_server/` (only the package name and the Block G fixes may differ); `uv run ruff check src tests && uv run ruff format --check src tests && uv run mypy --strict src && uv run pytest` and `uv run pytest -m e2e -k agent`
+
+**Checkpoint**: SC-005 satisfied; `gep agent` serves A2A out of the box; Kafka/MCP-client flags gone; SC-001 and SC-004 still hold.
 
 ---
 
@@ -175,7 +205,7 @@
 
 ## Deferred — Spec 029 (migration)
 
-User stories US4/US5 and tasks **T047–T067** (`scaffold migrate-di`, skill, migration guide) moved to [docs/spec-029-migrate-di/tasks.md](../../docs/spec-029-migrate-di/tasks.md). Do not implement under spec 028.
+The former migration user stories (US4/US5 before the split; now US1/US2 in spec 029) and tasks **T047–T067** (`scaffold migrate-di`, skill, migration guide) moved to [docs/spec-029-migrate-di/tasks.md](../../docs/spec-029-migrate-di/tasks.md). Do not implement under spec 028.
 
 ---
 
@@ -228,6 +258,7 @@ Latest evidence: [scenario 1](../../docs/qa-report-escenario-01-ms_library.md#11
 - **Phase 3 (US1)**: Depends on Phase 2 — implements `guc --uses`, adapter/helper `@injectable`
 - **Phase 3.2 (US1 hardening)**: Depends on Phase 3.1; blocks the T073 quickstart validation
 - **Phase 4 (US2)**: Depends on Phase 2; can run in parallel with Phase 3 (different files)
+- **Phase 4.1 (US4)**: Depends on Phase 4 (entry-point templates and `ep_mcp` patterns); independent from Phase 5
 - **Phase 5 (US3)**: Depends on Phase 3 and Phase 4 being mostly complete (needs wiring templates)
 - **Phase 6 (Polish)**: Depends on Phases 3–5 (and Phase 3.1–3.3 as applicable)
 
@@ -236,6 +267,7 @@ Latest evidence: [scenario 1](../../docs/qa-report-escenario-01-ms_library.md#11
 - **US1 (P1)**: Can start after Phase 2 — no other story dependency
 - **US2 (P1)**: Can start after Phase 2 in parallel with US1 (different file sets)
 - **US3 (P2)**: Depends on US1 + US2 being at least partially complete (needs generated templates)
+- **US4 (P2)**: Depends on US2 (reuses the `ep_mcp` server/app pattern); no dependency on US3
 ### Parallel Opportunities
 
 - T001, T002, T003: setup tasks — T003 independent of T001/T002
