@@ -21,7 +21,6 @@ def run_quality_checks(project_dir: Path) -> None:
     """Run ruff, mypy, pytest, and scaffold vs on a generated project (uses its venv via uv)."""
     env = os.environ.copy()
     env.pop("VIRTUAL_ENV", None)
-    env.setdefault("SSL_CERT_FILE", "/etc/ssl/cert.pem")
     cmds = [
         ["uv", "run", "ruff", "check", "."],
         ["uv", "run", "ruff", "format", "--check", "."],
@@ -43,7 +42,6 @@ def uv_sync_project(tmp_path_factory: pytest.TempPathFactory) -> Callable[[Path]
     def _sync(project_dir: Path) -> None:
         env = os.environ.copy()
         env.pop("VIRTUAL_ENV", None)
-        env.setdefault("SSL_CERT_FILE", "/etc/ssl/cert.pem")
         result = subprocess.run(
             ["uv", "sync", "--no-progress"],
             cwd=project_dir,
@@ -55,6 +53,6 @@ def uv_sync_project(tmp_path_factory: pytest.TempPathFactory) -> Callable[[Path]
             detail = (result.stderr or result.stdout or "").strip()[-800:]
             if os.environ.get("CI"):
                 pytest.fail(f"uv sync failed in CI:\n{result.stdout}\n{result.stderr}")
-            pytest.skip(f"uv sync failed (set SSL_CERT_FILE or network): {detail or 'no output'}")
+            pytest.skip(f"uv sync failed (check network or TLS configuration): {detail or 'no output'}")
 
     return _sync

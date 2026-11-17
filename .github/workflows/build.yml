@@ -130,7 +130,7 @@ jobs:
 
       # E2E: no coverage — addopts include --cov/--cov-fail-under for the default suite only.
       - name: Run e2e tests
-        run: SSL_CERT_FILE=/etc/ssl/cert.pem uv run pytest -m e2e --no-cov
+        run: uv run pytest -m e2e --no-cov
 
   check:
     name: Check Status

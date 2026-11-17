@@ -294,6 +294,20 @@ git checkout -b your-branch-feature-name
 uv run pytest
 ```
 
+To run end-to-end tests (these generate real projects and run quality checks on them):
+
+```bash
+uv run pytest -m e2e
+```
+
+**Troubleshooting E2E tests**: If you see `uv sync failed` errors during e2e tests due to TLS/certificate issues (typically in corporate environments with custom CAs or proxies), set `UV_SYSTEM_CERTS=1` to make `uv` use your system's certificate store:
+
+```bash
+UV_SYSTEM_CERTS=1 uv run pytest -m e2e
+```
+
+You can also export this variable in your shell configuration (`.zshrc`, `.bashrc`) to make it permanent for your local environment.
+
 6. Check linting.
 
 ```bash
