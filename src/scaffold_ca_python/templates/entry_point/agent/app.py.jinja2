@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-import wireup
 import wireup.integration.starlette
 from a2a.server.request_handlers.request_handler import RequestHandler
 from a2a.server.routes import (
@@ -15,16 +14,9 @@ from a2a.server.routes import (
 )
 from a2a.types.a2a_pb2 import AgentCard
 from starlette.applications import Starlette
-from wireup.ioc.container.async_container import AsyncContainer
 
-from {{ project.python_package }}.application.config.wiring import INJECTABLES
-from {{ project.python_package }}.infrastructure.entry_points import a2a_server
+from {{ project.python_package }}.application.config.wiring import create_container
 from {{ project.python_package }}.infrastructure.entry_points.a2a_server import routes
-
-
-def create_a2a_container() -> AsyncContainer:
-    """Base injectables plus the A2A entry-point factories (wiring.py stays untouched)."""
-    return wireup.create_async_container(injectables=[*INJECTABLES, a2a_server])
 
 
 @asynccontextmanager
@@ -51,5 +43,5 @@ def start_server() -> Starlette:
     """Build and return the ASGI app. Called by server.py."""
     app = Starlette(routes=list(routes.routes), lifespan=lifespan)
     # setup() must be called last: it adds WireupAsgiMiddleware.
-    wireup.integration.starlette.setup(create_a2a_container(), app)
+    wireup.integration.starlette.setup(create_container(), app)
     return app

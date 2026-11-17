@@ -79,6 +79,13 @@ def test_wiring_imports_helpers() -> None:
     assert "helpers" in out
 
 
+def test_wiring_scans_entry_points() -> None:
+    """wiring.py must scan entry_points so entry-point factories (e.g. A2A) register without edits."""
+    out = _render("wiring.py")
+    assert "from order_service.infrastructure import driven_adapters, entry_points, helpers" in out
+    assert "INJECTABLES = [driven_adapters, entry_points, helpers, usecases]" in out
+
+
 def test_wiring_imports_usecases() -> None:
     """wiring.py must import usecases package for scan."""
     out = _render("wiring.py")
@@ -116,12 +123,12 @@ def test_mcp_app_lifespan_warms_container() -> None:
     assert "yield" in content
 
 
-def test_agent_app_builds_own_container() -> None:
-    """agent app.py extends INJECTABLES with a2a_server and hands the container to wireup."""
+def test_agent_app_uses_shared_container() -> None:
+    """agent app.py hands the single wiring container to wireup's Starlette integration."""
     content = read_template("entry_point/agent/app.py.jinja2")
-    assert "def create_a2a_container()" in content
-    assert "injectables=[*INJECTABLES, a2a_server]" in content
-    assert "wireup.integration.starlette.setup(create_a2a_container(), app)" in content
+    assert "from {{ project.python_package }}.application.config.wiring import create_container" in content
+    assert "wireup.integration.starlette.setup(create_container(), app)" in content
+    assert "INJECTABLES" not in content
     assert "asynccontextmanager" in content
     assert "yield" in content
 

@@ -121,18 +121,19 @@ This document records the research and spike findings that informed the design d
 
 ## Decision 9: A2A agent entry point (US4)
 
-**Decision**: `gep agent` generates an open A2A server (a2a-sdk 1.1.x) on Starlette + uvicorn, with a hello-world `A2AExecutor` and commented use-case hooks. The composition root `application/app.py` builds its own container from `[*INJECTABLES, a2a_server]`; `wiring.py` is not modified. The A2A protocol routes are mounted once in the lifespan.
+**Decision**: `gep agent` generates an open A2A server (a2a-sdk 1.1.x) on Starlette + uvicorn, with a hello-world `A2AExecutor` and commented use-case hooks. The base `wiring.py` scans `infrastructure/entry_points` (`INJECTABLES = [driven_adapters, entry_points, helpers, usecases]`), so the A2A factories register without editing it; `application/app.py` reuses `create_container()`. The A2A protocol routes are mounted once in the lifespan.
 
 **Rationale**:
 - **Open by default**: the entry point only translates the protocol (anti-corruption layer). No response model, gateway, LLM, LangGraph, persistence, or observability is imposed; those belong to the developer's domain and driven adapters. This follows the same philosophy as the `restapi` and `mcp` templates.
 - **Starlette, not FastAPI**: `a2a.server.routes.create_agent_card_routes`, `create_jsonrpc_routes`, and `create_rest_routes` return `list[starlette.routing.Route]`; the `mcp` template already uses Starlette; FastAPI would only add `/docs`. `a2a-sdk[http-server]` brings `starlette` and `sse-starlette`; uvicorn is added separately.
-- **Own container in `app.py`**: no factory edits `INJECTABLES` today, and the core has no "replace line" operation. Editing `wiring.py` with `insert_after` needs an anchor that projects generated before this change do not have (single-line `INJECTABLES = [...]`), so `gep agent` would fail on them with `ValueError`. Building the container in `app.py` keeps `wiring.py` untouched and works on any wireup project.
+- **`entry_points` in the base `INJECTABLES`**: `driven_adapters`, `helpers` and `usecases` are already scanned as whole layers; scanning `entry_points` the same way registers any entry-point factory (A2A today, e.g. a Kafka consumer later) without `gep` ever editing `wiring.py`, and keeps a single composition point that `test_wiring.py` validates. The wireup layout of spec 028 is not released yet, so no shipped project lacks the entry; development projects created before this change (e.g. `library_aiagent/`) add `entry_points` by hand. Cost: the scan imports every module under `entry_points/` at container creation, so those modules must stay free of import-time side effects; the e2e scenarios for every `gep` type cover this.
 - **Routes in the lifespan**: `DefaultRequestHandler` requires the `AgentCard`, and `AsyncContainer.get` is async, so the handler can only be resolved after startup. An `app.state` flag keeps the mount idempotent when `TestClient` re-enters the lifespan.
 - **Kafka and MCP client removed**: the old flags only added commented stubs to a class that no longer exists. They are deferred to future features (FR-046).
 
 **Alternatives considered**:
 - Keep the stub agent class with `asyncio.run` → rejected: never starts a server.
-- Edit `wiring.py` (`insert_after` on a multi-line `INJECTABLES`) → rejected: breaks already-generated projects.
+- Own container in `app.py` (`create_async_container(injectables=[*INJECTABLES, a2a_server])`) → first implementation, replaced: two composition points, and `test_wiring.py` would not validate the A2A graph.
+- Edit `wiring.py` (`insert_after` on a multi-line `INJECTABLES`) → rejected: needs a per-type edit and an anchor format that older projects lack.
 - New `ReplaceText` file operation in the core → rejected: more API surface for a single use.
 - FastAPI app with `app.mount(...)` → rejected: heavier dependencies and no benefit for the SDK-generated routes.
 

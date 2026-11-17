@@ -102,12 +102,43 @@ jobs:
           path: .coverage
           if-no-files-found: ignore
 
+  e2e:
+    name: E2E (generated projects)
+    runs-on: ubuntu-latest
+    needs:
+      - lint
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: ".python-version"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
+
+      - name: Install dependencies
+        run: uv sync --locked --group dev
+
+      # E2E: no coverage — addopts include --cov/--cov-fail-under for the default suite only.
+      - name: Run e2e tests
+        run: SSL_CERT_FILE=/etc/ssl/cert.pem uv run pytest -m e2e --no-cov
+
   check:
     name: Check Status
     if: always()
     needs:
       - lint
       - test
+      - e2e
     runs-on: ubuntu-latest
     steps:
       - name: Dump GitHub context

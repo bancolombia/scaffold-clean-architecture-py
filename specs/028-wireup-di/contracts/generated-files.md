@@ -13,7 +13,7 @@ All paths are relative to `src/<python_package>/` unless otherwise noted.
 ```
 application/config/__init__.py
 application/config/config.py               # Settings: ENV, LOG_LEVEL only
-application/config/wiring.py               # INJECTABLES + create_container()
+application/config/wiring.py               # INJECTABLES = [driven_adapters, entry_points, helpers, usecases] + create_container()
 application/config/usecases/__init__.py    # empty, scanned by wireup
 src/tests/application/config/test_config.py    # NEW (FR-033)
 src/tests/application/config/test_wiring.py    # NEW (FR-033, FR-034)
@@ -159,7 +159,7 @@ A2A server (US4, FR-040–FR-048). Paths are relative to `src/<pkg>/` unless the
 ```
 server.py                                              # NEW — main(): uvicorn.run(start_server(), host, port)
 main.py                                                # DELETED
-application/app.py                                     # Starlette + lifespan (mounts A2A routes once) + create_a2a_container()
+application/app.py                                     # Starlette + lifespan (mounts A2A routes once); reuses create_container()
 application/config/config.py                           # MODIFIED — HOST / PORT inserted after LOG_LEVEL
 infrastructure/entry_points/a2a_server/__init__.py
 infrastructure/entry_points/a2a_server/agent_settings.py   # AgentSettings(env_prefix="AGENT_") + @wireup.injectable factory
@@ -177,7 +177,7 @@ src/tests/infrastructure/entry_points/a2a_server/test_routes.py
 - Dependencies added: `a2a-sdk[http-server]~=1.1.4`, `starlette~=1.6.0`, `uvicorn[standard]~=0.53.0`, `wireup~=2.13.0`, `pydantic-settings~=2.15.0` (skipped when already present by name).
 - `[project.scripts]`: `<script> = "<pkg>.server:main"`.
 
-**Not modified**: `application/config/wiring.py` (the A2A factories are added by `create_a2a_container()` in `app.py`).
+**Not modified**: `application/config/wiring.py` (the A2A factories are registered by the `entry_points` scan already present in `INJECTABLES`).
 
 **Conflicts**: refused (exit 1, nothing written) when a `restapi` (`entry_points/api/`) or `mcp` (`entry_points/mcp_server/`) entry point exists; `restapi` and `mcp` are refused when `entry_points/a2a_server/` exists.
 

@@ -16,7 +16,8 @@ from a2a.types.a2a_pb2 import AgentCard
 from a2a.utils.constants import PROTOCOL_VERSION_CURRENT, VERSION_HEADER
 from starlette.testclient import TestClient
 
-from {{ project.python_package }}.application.app import create_a2a_container, start_server
+from {{ project.python_package }}.application.app import start_server
+from {{ project.python_package }}.application.config.wiring import create_container
 from {{ project.python_package }}.infrastructure.entry_points.a2a_server.agent_settings import AgentSettings
 
 _HEADERS = {VERSION_HEADER: PROTOCOL_VERSION_CURRENT}
@@ -68,7 +69,7 @@ def test_lifespan_mounts_a2a_routes_once() -> None:
 
 @pytest.mark.parametrize("dependency", [AgentSettings, AgentCard, AgentExecutor, RequestHandler])
 async def test_container_resolves_a2a_dependency(dependency: type[object]) -> None:
-    container = create_a2a_container()
+    container = create_container()
     try:
         assert await container.get(dependency) is not None
     finally:

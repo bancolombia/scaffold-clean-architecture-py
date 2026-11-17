@@ -173,7 +173,7 @@ src/scaffold_ca_python/
         │   └── resources.py.jinja2              # Injected[...], no @inject
         ├── agent/                               # US4 — A2A server (Block G); old agent/agent_app/card/entrypoint_main removed
         │   ├── server.py.jinja2                 # NEW — uvicorn.run(start_server())
-        │   ├── app.py.jinja2                    # NEW — Starlette + lifespan + create_a2a_container()
+        │   ├── app.py.jinja2                    # NEW — Starlette + lifespan; reuses create_container()
         │   ├── agent_settings.py.jinja2         # NEW — AgentSettings(env_prefix="AGENT_")
         │   ├── a2a_config.py.jinja2             # NEW — wireup factories (TaskStore, AgentCard, AgentExecutor, RequestHandler)
         │   ├── agent_executor.py.jinja2         # NEW — A2AExecutor hello world + commented use-case hook
@@ -334,13 +334,13 @@ No constitution violations. All new code complies with every principle.
 3. **`EntryPointAgent`**: `subdir = "a2a_server"`, `supported_flags = frozenset()`, `conflicts = (restapi, mcp)`. `build()` mirrors `EntryPointMcp.build()`: render the 6 package files and 3 tests, `server.py` (`overwrite=True`), `delete_file(main.py)`, `insert_after(config.py, anchor="LOG_LEVEL", HOST/PORT)`, `application/app.py` + `tests/application/test_app.py`, add `A2A_RUNTIME`, `set_project_script("main")`.
 4. **Shared notes**: extract `server_entry_notes(src_pkg_root, pkg, *, dry_run)` from `EntryPointMcp.result_notes` into `base.py` and reuse it in agent and mcp; this also fixes the mcp note, which announced `server:start_server` while the script is set to `server:main`.
 5. **Conflict (FR-045)**: add `EntryPointConflict("agent")` to `EntryPointMcp.conflicts`.
-6. **Container (FR-043)**: `app.py.jinja2` defines `create_a2a_container()` returning `wireup.create_async_container(injectables=[*INJECTABLES, a2a_server])`; `start_server()` calls `wireup.integration.starlette.setup(create_a2a_container(), app)` last. `wiring.py` is not touched.
+6. **Container (FR-043)**: the base `wiring.py.jinja2` scans `entry_points` (`INJECTABLES = [driven_adapters, entry_points, helpers, usecases]`); `app.py.jinja2` calls `wireup.integration.starlette.setup(create_container(), app)` last. `gep agent` never edits `wiring.py`.
 7. **Dockerfile (FR-047)**: base template adds `ENV PATH="/app/.venv/bin:$PATH"` and `CMD ["{{ python_package_script }}"]`.
 
 **Tests first**:
 - `test_ep_agent.py` (rewritten, `test_ep_mcp.py` style): preview contains the `a2a_server/` files, root `server.py` and `application/app.py`; `main.py` is deleted; `pending_project_script == "main"`; the five `A2A_RUNTIME` dependencies land in `pyproject.toml`; an existing `app.py` makes `persist()` raise `FileExistsError`.
 - `dry_run_baseline.json` `"gep:agent"` entry updated; `test_dry_run_parity[agent]` passes.
-- Template tests: `A2AExecutor`, `build_agent_card`, `/api/v1/health`, `create_a2a_container`, `INJECTABLES`, lifespan with `yield`, `server.py` with `def main` and `uvicorn`.
+- Template tests: `A2AExecutor`, `build_agent_card`, `/api/v1/health`, `create_container()` from `wiring` (no `INJECTABLES` in `app.py`), lifespan with `yield`, `entry_points` in the base `INJECTABLES`, `server.py` with `def main` and `uvicorn`.
 - Command tests: removed flags exit 2; `gep mcp` after `gep agent` (and the reverse) exits 1; `[project.scripts]` becomes `<pkg>.server:main`; `a2a-sdk[http-server]` injected.
 - FR-042 guard: rendered templates outside `a2a_server/` and `application/app.py` contain no `a2a` import.
 - Generated `test_app.py` covers JSON-RPC and REST `SendMessage`, and lifespan re-entry mounts the A2A routes once (FR-041, FR-043).
@@ -357,5 +357,5 @@ See [research.md](research.md) for full details. Highlights:
 | DI library | wireup 2.13.0 | Async-native, validates graph at creation, typed injection, no domain imports |
 | Factory placement | one file per use case in `application/config/usecases/` | No markers, no `insert_after`, `delete-module` just deletes a file |
 | A2A web framework | Starlette (not FastAPI) | a2a-sdk route factories already return Starlette routes; FastAPI would only add `/docs` (research Decision 9) |
-| A2A container | own container in `application/app.py` (`[*INJECTABLES, a2a_server]`) | `gep agent` never edits `wiring.py`; no new core file operation; works on already-generated projects |
+| A2A container | `entry_points` scanned by the base `INJECTABLES`; `app.py` reuses `create_container()` | Single composition point validated by `test_wiring.py`; `gep` never edits `wiring.py`; any entry-point factory registers automatically |
 | Adapter config | `<Name>Settings(BaseSettings)` | Type-safe, mypy-verified, pydantic-settings validates at startup |
