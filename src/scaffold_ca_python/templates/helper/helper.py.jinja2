@@ -1,7 +1,18 @@
-"""{{ class_name }} helper."""
+"""{{ class_name }} helper.
+
+Infrastructure-only: this helper may be injected into driven adapters and entry points only.
+It must never be injected into use cases or domain objects.
+"""
+
+from __future__ import annotations
+
+import wireup
 
 
+@wireup.injectable
 class {{ class_name }}:
-    """{{ class_name }} utility helper."""
+    """{{ class_name }} utility helper.
 
-    pass
+    Registered with wireup; injectable in infrastructure layers (driven adapters, entry points).
+    Do NOT inject into use cases or domain — use a domain gateway instead.
+    """

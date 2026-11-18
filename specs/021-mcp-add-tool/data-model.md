@@ -58,9 +58,7 @@ def has_bind_tools_function(tools_py_source: str) -> bool:
     """Return whether the last top-level statement of tools_py_source is `async def bind_tools`."""
     module = ast.parse(tools_py_source)
     return (
-        bool(module.body)
-        and isinstance(module.body[-1], ast.AsyncFunctionDef)
-        and module.body[-1].name == "bind_tools"
+        bool(module.body) and isinstance(module.body[-1], ast.AsyncFunctionDef) and module.body[-1].name == "bind_tools"
     )
 ```
 
@@ -70,9 +68,7 @@ def has_bind_tools_function(tools_py_source: str) -> bool:
 def has_test_registration_structure(test_tools_py_source: str) -> bool:
     """Return whether test_tools_py_source can host an appended registration test."""
     module = ast.parse(test_tools_py_source)
-    has_helper = any(
-        isinstance(n, ast.FunctionDef) and n.name == "_make_mock_mcp" for n in module.body
-    )
+    has_helper = any(isinstance(n, ast.FunctionDef) and n.name == "_make_mock_mcp" for n in module.body)
     imported = {
         alias.asname or alias.name
         for n in module.body

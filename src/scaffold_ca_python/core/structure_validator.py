@@ -6,7 +6,7 @@ import ast
 import warnings
 from pathlib import Path
 
-from scaffold_ca_python.core.name_utils import ScaffoldError
+from scaffold_ca_python.core.errors import ScaffoldError
 from scaffold_ca_python.models.layer import FORBIDDEN_IMPORTS, Layer
 from scaffold_ca_python.models.violation import ValidationReport, Violation
 

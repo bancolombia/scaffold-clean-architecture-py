@@ -141,8 +141,7 @@ When `--dry-run` is used, the command MUST:
 ```python
 @inject
 async def bind_tools(
-    mcp: FastMCP,
-    usecase: SomeUseCase = Provide[Container.usecase_container.some_usecase]
+    mcp: FastMCP, usecase: SomeUseCase = Provide[Container.usecase_container.some_usecase]
 ) -> None: ...
 ```
 
@@ -151,8 +150,7 @@ async def bind_tools(
 ```python
 @inject
 async def bind_resources(
-    mcp: FastMCP,
-    usecase: SomeUseCase = Provide[Container.usecase_container.some_usecase]
+    mcp: FastMCP, usecase: SomeUseCase = Provide[Container.usecase_container.some_usecase]
 ) -> None: ...
 ```
 
@@ -160,10 +158,7 @@ async def bind_resources(
 
 ```python
 @inject
-def bind_prompts(
-    mcp: FastMCP,
-    prompt_usecase: SomeUseCase = Provide[Container.some_usecase]
-) -> None: ...
+def bind_prompts(mcp: FastMCP, prompt_usecase: SomeUseCase = Provide[Container.some_usecase]) -> None: ...
 ```
 
 ### `application/app.py` — public interface

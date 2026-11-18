@@ -1,4 +1,4 @@
-"""Tests for Violation and ValidationReport models (T012)."""
+"""Tests for Violation and ValidationReport models."""
 
 from pathlib import Path
 
@@ -17,9 +17,7 @@ def _make_violation() -> Violation:
     )
 
 
-# ---------------------------------------------------------------------------
 # Violation
-# ---------------------------------------------------------------------------
 
 
 def test_violation_fields_populated() -> None:
@@ -37,9 +35,7 @@ def test_violation_line_number_is_one_based() -> None:
     assert v.line_number >= 1
 
 
-# ---------------------------------------------------------------------------
 # ValidationReport
-# ---------------------------------------------------------------------------
 
 
 def test_validation_report_passed_when_no_violations() -> None:

@@ -2,17 +2,17 @@
 
 from __future__ import annotations
 
-from typing import Annotated
-
 import typer
 from rich.table import Table
 
 from scaffold_ca_python.commands._shared import (
+    DryRunValidate,
     console,
     fail,
+    register_with_alias,
     require_project_root,
 )
-from scaffold_ca_python.core.name_utils import ScaffoldError
+from scaffold_ca_python.core.errors import ScaffoldError
 from scaffold_ca_python.core.structure_validator import StructureValidator
 
 _validator = StructureValidator()
@@ -63,24 +63,9 @@ def _validate_structure_impl(dry_run: bool) -> None:
 
 
 def register(app: typer.Typer) -> None:
-    """Register vs / validate-structure commands onto *app*."""
-
-    @app.command(
-        "validate-structure",
-        help=_GVS_HELP,
-        epilog=_GVS_EPILOG,
-    )
-    @app.command("vs", hidden=True, help=_GVS_HELP, epilog=_GVS_EPILOG)
     def validate_structure(
-        dry_run: Annotated[
-            bool,
-            typer.Option(
-                "--dry-run/--no-dry-run",
-                help="Print results but always exit 0.",
-                rich_help_panel="Options",
-                show_default=True,
-            ),
-        ] = False,
+        dry_run: DryRunValidate = False,
     ) -> None:
-        """Validate Clean Architecture layer boundaries in the current project."""
         _validate_structure_impl(dry_run)
+
+    register_with_alias(app, "validate-structure", "vs", validate_structure, help=_GVS_HELP, epilog=_GVS_EPILOG)

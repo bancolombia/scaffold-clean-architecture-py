@@ -4,20 +4,18 @@ from __future__ import annotations
 
 import re
 
+from scaffold_ca_python.core.errors import ScaffoldError
+
 NAME_RE = re.compile(r"^[a-z][a-z0-9]*([_-][a-z0-9]+)*$")
 
 # Stricter pattern for module/class-generating commands: snake_case only (no hyphens).
 MODULE_NAME_RE = re.compile(r"^[a-z][a-z0-9]*(_[a-z0-9]+)*$")
 
-# Trailing use case suffixes (applied to "_" + name so a bare "usecase" also matches)
+# Trailing _usecase / _use_case segments; strip_usecase_suffix prefixes "_" before matching.
 _USECASE_SUFFIX_RE = re.compile(r"(?:_(?:usecase|use_case))+$")
 
 # Matches transitions: lowercase→uppercase and letter→digit boundary runs
 _CAMEL_BOUNDARY_RE = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
-
-
-class ScaffoldError(Exception):
-    """Raised for user-facing errors (exit code 1)."""
 
 
 def validate_name(name: str) -> str:
@@ -33,24 +31,35 @@ def validate_name(name: str) -> str:
     return name
 
 
+def validate_snake_identifier(value: str, *, kind: str) -> str:
+    """Return *value* when it is a valid snake_case identifier; otherwise raise ValueError."""
+    if not MODULE_NAME_RE.fullmatch(value):
+        raise ValueError(f"Invalid {kind} {value!r}. Use snake_case.")
+    return value
+
+
 def validate_module_name(name: str) -> str:
     """Validate *name* for module/class-generating commands: snake_case only.
 
     Raises :class:`ScaffoldError` with a hint if the name is not snake_case.
     Returns the original name unchanged when valid.
     """
-    if not MODULE_NAME_RE.match(name):
-        raise ScaffoldError(f"Invalid name {name!r}. Use snake_case (e.g., 'create_order').")
+    try:
+        validate_snake_identifier(name, kind="name")
+    except ValueError as exc:
+        raise ScaffoldError(str(exc)) from None
     return name
+
+
+def _case_convert(name: str, sep: str) -> str:
+    other = "-" if sep == "_" else "_"
+    name = name.replace(other, sep)
+    return _CAMEL_BOUNDARY_RE.sub(sep, name).lower()
 
 
 def to_snake_case(name: str) -> str:
     """Convert *name* (PascalCase, camelCase, kebab-case, or already snake_case) to snake_case."""
-    # Normalise hyphens to underscores first (kebab-case support)
-    name = name.replace("-", "_")
-    # Insert underscores at camelCase / PascalCase boundaries first
-    s = _CAMEL_BOUNDARY_RE.sub("_", name)
-    return s.lower()
+    return _case_convert(name, "_")
 
 
 def strip_usecase_suffix(name: str) -> str:
@@ -60,11 +69,7 @@ def strip_usecase_suffix(name: str) -> str:
 
 def to_kebab_case(name: str) -> str:
     """Convert *name* (PascalCase, snake_case, or already kebab-case) to kebab-case."""
-    # Normalise underscores to hyphens first (snake_case support)
-    name = name.replace("_", "-")
-    # Insert hyphens at camelCase / PascalCase boundaries
-    s = _CAMEL_BOUNDARY_RE.sub("-", name)
-    return s.lower()
+    return _case_convert(name, "-")
 
 
 def to_pascal_case(name: str) -> str:

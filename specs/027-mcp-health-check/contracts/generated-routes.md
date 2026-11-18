@@ -34,7 +34,7 @@ def bind_routes(mcp: FastMCP) -> None:
     Bind routes to the FastMCP instance.
     """
 
-    @mcp.custom_route(name="health_check", path="/api/v1/health", methods=["GET"])
+    @mcp.custom_route(name="health_check", path="/api/v1/health", methods=["GET"])  # type: ignore[misc]
     async def health_check(_request: Request) -> Response:
         """
         Health check endpoint to verify the server is running.
@@ -47,7 +47,7 @@ def bind_routes(mcp: FastMCP) -> None:
         return JSONResponse(response_data)
 ```
 
-The file must pass the generated project's `ruff check` (`E`, `F`, `I`, `UP`, `ANN`).
+The file must pass the generated project's `ruff check` (`E`, `F`, `I`, `UP`, `ANN`) and `mypy src/<pkg>` (strict settings from the generated `mypy.ini`). The `# type: ignore[misc]` on the `custom_route` decorator is required because `FastMCP.custom_route` is untyped in the MCP SDK.
 
 ## 3. Generated `app.py` delta
 

@@ -1,0 +1,18 @@
+"""Tests for application config module."""
+
+from __future__ import annotations
+
+
+def test_config_module_imports() -> None:
+    """application.config must be importable."""
+    import importlib
+
+    importlib.import_module("{{ python_package }}.application.config")
+
+
+def test_settings_defaults() -> None:
+    """Settings must expose default ENV value without env vars."""
+    from {{ python_package }}.application.config.config import Settings
+
+    settings = Settings()
+    assert settings.ENV == "development"

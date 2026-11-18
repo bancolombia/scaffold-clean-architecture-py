@@ -1,14 +1,30 @@
 """{{ class_name }} async driven adapter."""
 
 from __future__ import annotations
+{% if gateway %}
+import wireup
+
+from {{ project.python_package }}.domain.model.{{ gateway.model_module }}.gateways.{{ gateway.name }} import {{ gateway.class_name }}
 
 
+@wireup.injectable(as_type={{ gateway.class_name }})
+class {{ class_name }}Adapter({{ gateway.class_name }}):
+    """Adapter implementing {{ gateway.class_name }}.
+
+    Registered with wireup; discovered by package scan during container creation.
+    """
+{% else %}
+import wireup
+
+
+@wireup.injectable
 class {{ class_name }}Adapter:
     """Async driven adapter for {{ class_name }}.
 
-    Implement the methods below to integrate with your external resource.
+    Registered with wireup; discovered by package scan during container creation.
+    Use @wireup.injectable(as_type=<GatewayABC>) when this adapter implements a domain gateway.
     """
-
+{% endif %}
     async def execute(self) -> None:
         """Perform the adapter's primary operation.
 

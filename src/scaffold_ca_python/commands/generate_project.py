@@ -8,10 +8,19 @@ from typing import Annotated
 
 import typer
 
-from scaffold_ca_python.commands._shared import console, fail, print_dry_run_tree
+from scaffold_ca_python.commands._shared import (
+    DryRunProject,
+    console,
+    fail,
+    print_dry_run_tree,
+    register_with_alias,
+    show_help_if_missing,
+)
+from scaffold_ca_python.core.errors import ScaffoldError
 from scaffold_ca_python.core.file_writer import FileWriter
-from scaffold_ca_python.core.name_utils import ScaffoldError, to_snake_case, validate_name
+from scaffold_ca_python.core.name_utils import to_snake_case, validate_name
 from scaffold_ca_python.core.template_renderer import TemplateRenderer
+from scaffold_ca_python.core.version import get_scaffold_version
 from scaffold_ca_python.models.context import ProjectContext
 
 _ROOT_FILES: tuple[tuple[str, str], ...] = (
@@ -24,13 +33,10 @@ _ROOT_FILES: tuple[tuple[str, str], ...] = (
     (".python-version", "project/python_version.jinja2"),
 )
 
-_DI_CONFIG_FILES: tuple[str, ...] = (
+_DI_CONFIG_FILES_WIREUP: tuple[str, ...] = (
     "__init__.py",
     "config.py",
-    "resource_container.py",
-    "driven_adapters_container.py",
-    "usecases_container.py",
-    "container.py",
+    "wiring.py",
 )
 
 # Layers: (subpath-under-src/<pkg>, label for layer_init.jinja2)
@@ -38,8 +44,8 @@ _LAYER_DIRS: tuple[tuple[str, str], ...] = (
     ("application", "application"),
     ("domain/model", "domain/model"),
     ("domain/usecase", "domain/usecase"),
-    ("infrastructure/driven_adapters", "infrastructure/driven-adapters"),
-    ("infrastructure/entry_points", "infrastructure/entry-points"),
+    ("infrastructure/driven_adapters", "infrastructure/driven_adapters"),
+    ("infrastructure/entry_points", "infrastructure/entry_points"),
     ("infrastructure/helpers", "infrastructure/helpers"),
 )
 
@@ -54,7 +60,8 @@ def _collect_files(
     renderer: TemplateRenderer,
 ) -> list[tuple[Path, str]]:
     """Return all (path, content) pairs for a new project scaffold."""
-    ctx_dict = ProjectContext(name=name).model_dump()
+    scaffold_version = get_scaffold_version()
+    ctx_dict = ProjectContext(name=name, scaffold_version=scaffold_version).model_dump()
     ctx_dict["created_at"] = datetime.now(tz=UTC).isoformat()
 
     files: list[tuple[Path, str]] = []
@@ -63,8 +70,15 @@ def _collect_files(
         files.append((target_dir / filename, renderer.render(template, ctx_dict)))
 
     di_cfg = target_dir / "src" / python_pkg / "application" / "config"
-    for fname in _DI_CONFIG_FILES:
+    for fname in _DI_CONFIG_FILES_WIREUP:
         files.append((di_cfg / fname, renderer.render(f"project/application/config/{fname}.jinja2", ctx_dict)))
+    # usecases/ package scanned by wireup
+    files.append(
+        (
+            di_cfg / "usecases" / "__init__.py",
+            renderer.render("project/application/config/usecases/__init__.py.jinja2", ctx_dict),
+        )
+    )
 
     src_pkg = target_dir / "src" / python_pkg
     files.append((src_pkg / "main.py", renderer.render("project/main.py.jinja2", ctx_dict)))
@@ -74,20 +88,26 @@ def _collect_files(
         layer_ctx = {**ctx_dict, "layer": layer_label}
         files.append((src_pkg / layer_path / "__init__.py", renderer.render("project/layer_init.jinja2", layer_ctx)))
 
-    files.append((target_dir / "src" / "tests" / "__init__.py", renderer.render("project/empty.jinja2", {})))
+    tests_root = target_dir / "src" / "tests"
+    files.append((tests_root / "__init__.py", renderer.render("project/empty.jinja2", {})))
+    files.append((tests_root / "test_main.py", renderer.render("project/test_main.py.jinja2", ctx_dict)))
+
+    tests_app_cfg = tests_root / "application" / "config"
+    files.append((tests_root / "application" / "__init__.py", renderer.render("project/empty.jinja2", {})))
+    files.append((tests_app_cfg / "__init__.py", renderer.render("project/empty.jinja2", {})))
+    files.append((tests_app_cfg / "test_config.py", renderer.render("project/test_config.py.jinja2", ctx_dict)))
+    files.append((tests_app_cfg / "test_wiring.py", renderer.render("project/test_wiring.py.jinja2", ctx_dict)))
+    files.append((tests_app_cfg / "usecases" / "__init__.py", renderer.render("project/empty.jinja2", {})))
     return files
 
 
 def _generate_project_impl(
-    name: str | None,
+    name: str,
     dry_run: bool,
     *,
     renderer: TemplateRenderer | None = None,
     writer: FileWriter | None = None,
 ) -> None:
-    if name is None:
-        return
-
     try:
         validate_name(name)
     except ScaffoldError as exc:
@@ -98,7 +118,7 @@ def _generate_project_impl(
 
     if target_dir.exists():
         fail(
-            f"Directory '{python_pkg}/' already exists. Aborting to prevent data loss.",
+            f"Directory '{name}/' already exists. Aborting to prevent data loss.",
             hint="Choose a different project name or remove the existing directory first.",
         )
 
@@ -107,31 +127,16 @@ def _generate_project_impl(
     files = _collect_files(name, python_pkg, target_dir, _renderer)
 
     if dry_run:
-        print_dry_run_tree(f"{python_pkg}/", [p for p, _ in files], target_dir)
+        print_dry_run_tree(f"{name}/", [p for p, _ in files], target_dir)
         return
 
     for path, content in files:
         _writer.write(path, content)
 
-    console.print(
-        f"[green]✓[/green] Project [bold]{python_pkg}/[/bold] created successfully. Created {len(files)} file(s)."
-    )
+    console.print(f"[green]✓[/green] Project [bold]{name}/[/bold] created successfully. Created {len(files)} file(s).")
 
 
 def register(app: typer.Typer) -> None:
-    """Register clean-architecture / ca commands onto *app*."""
-
-    @app.command(
-        "clean-architecture",
-        help=_GCA,
-        epilog=_GCA_EPILOG,
-    )
-    @app.command(
-        "ca",
-        hidden=True,
-        help=_GCA,
-        epilog=_GCA_EPILOG,
-    )
     def clean_architecture(
         ctx: typer.Context,
         name: Annotated[
@@ -142,18 +147,9 @@ def register(app: typer.Typer) -> None:
                 rich_help_panel="Required",
             ),
         ] = None,
-        dry_run: Annotated[
-            bool,
-            typer.Option(
-                "--dry-run/--no-dry-run",
-                help="Preview files without writing.",
-                rich_help_panel="Options",
-                show_default=True,
-            ),
-        ] = False,
+        dry_run: DryRunProject = False,
     ) -> None:
-        """Scaffold a complete Clean Architecture Python project."""
-        if name is None:
-            typer.echo(ctx.get_help())
-            raise typer.Exit(0)
+        name = show_help_if_missing(ctx, name)
         _generate_project_impl(name, dry_run)
+
+    register_with_alias(app, "clean-architecture", "ca", clean_architecture, help=_GCA, epilog=_GCA_EPILOG)

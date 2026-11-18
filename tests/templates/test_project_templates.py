@@ -1,19 +1,12 @@
-"""Template rendering tests for project/ group (T083)."""
+"""Template rendering tests for project/ group."""
 
-import importlib.resources
-
-from scaffold_ca_python.core.template_renderer import TemplateRenderer
 from scaffold_ca_python.models.context import ProjectContext
-
-renderer = TemplateRenderer()
+from tests.helpers import read_template as _tmpl
+from tests.helpers import renderer
 
 
 def _ctx() -> ProjectContext:
     return ProjectContext(name="my-app")
-
-
-def _tmpl(name: str) -> str:
-    return importlib.resources.files("scaffold_ca_python.templates").joinpath(name).read_text(encoding="utf-8")
 
 
 def test_pyproject_toml_has_scaffold_section() -> None:
@@ -81,14 +74,6 @@ def test_layer_init_renders() -> None:
     assert isinstance(out, str)
 
 
-def test_project_resource_container_has_declarative_container() -> None:
-    out = renderer.render_string(
-        _tmpl("project/application/config/resource_container.py.jinja2"),
-        _ctx().model_dump(),
-    )
-    assert "DeclarativeContainer" in out
-
-
 def test_pyproject_template_has_test_group_with_pytest() -> None:
     """[dependency-groups.test] must list pytest*, no respx."""
     out = renderer.render_string(_tmpl("project/pyproject_toml.jinja2"), _ctx().model_dump())
@@ -106,11 +91,6 @@ def test_pyproject_template_no_respx_in_base() -> None:
     """respx must NOT appear in the base template (injected only on rest-consumer)."""
     out = renderer.render_string(_tmpl("project/pyproject_toml.jinja2"), _ctx().model_dump())
     assert "respx" not in out
-
-
-# ---------------------------------------------------------------------------
-# T037: package_init.py.jinja2 and empty.jinja2 (must fail until T047 creates them)
-# ---------------------------------------------------------------------------
 
 
 def test_package_init_template_renders_docstring() -> None:

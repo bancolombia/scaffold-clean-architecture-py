@@ -8,14 +8,14 @@ from scaffold_ca_python.core.name_utils import strip_usecase_suffix
 from scaffold_ca_python.core.project_detector import resolve_tests_root
 
 
-def find_module_targets(project_root: Path, pkg: str, snake: str) -> list[tuple[Path, Path | None]]:
+def find_module_targets(project_root: Path, src_pkg_root: Path, snake: str) -> list[tuple[Path, Path | None]]:
     """Return ``(src_path, test_path | None)`` pairs for every match of *snake*.
 
     Searches in order: domain/model/<snake>/ (package), domain/model/<snake>.py (legacy flat),
     domain/usecase (``<base>_usecase.py`` first, then legacy ``<snake>.py``), driven_adapters,
     entry_points, helpers.
     """
-    src_root = project_root / "src" / pkg
+    src_root = src_pkg_root
     tests_root = resolve_tests_root(project_root)
 
     candidates: list[tuple[Path, Path | None]] = []

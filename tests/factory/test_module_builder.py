@@ -1,4 +1,4 @@
-"""Tests for ModuleBuilder foundational behavior (T010)."""
+"""Tests for ModuleBuilder foundational behavior."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import pytest
 
 from scaffold_ca_python.core.module_builder import ModuleBuilder
 from scaffold_ca_python.models.context import ModuleContext, ProjectContext
-from scaffold_ca_python.models.layer import Layer
+from tests.helpers import write_minimal_pyproject
 
 
 class _StubRenderer:
@@ -34,20 +34,7 @@ def _project_ctx() -> ProjectContext:
 
 
 def _module_ctx(project: ProjectContext) -> ModuleContext:
-    return ModuleContext(name="health", layer=Layer.ENTRY_POINTS, project=project)
-
-
-def _write_minimal_pyproject(root: Path) -> None:
-    (root / "pyproject.toml").write_text(
-        """
-[project]
-name = "demo"
-version = "0.1.0"
-dependencies = []
-""".strip()
-        + "\n",
-        encoding="utf-8",
-    )
+    return ModuleContext(name="health", project=project)
 
 
 def test_add_file_and_dry_run_returns_preview_without_writing(tmp_path: Path) -> None:
@@ -55,7 +42,7 @@ def test_add_file_and_dry_run_returns_preview_without_writing(tmp_path: Path) ->
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, module_ctx=_module_ctx(project), dry_run=True)
 
     target = tmp_path / "src" / "ms_demo" / "domain" / "model" / "health.py"
-    builder.add_file(target, "class Health: pass\n", template_name="model.py.jinja2")
+    builder.add_file(target, "class Health: pass\n")
 
     preview = builder.persist()
 
@@ -76,7 +63,7 @@ def test_delete_file_operation_is_included_in_preview(tmp_path: Path) -> None:
 
 
 def test_add_dependency_and_real_persist_injects_dependency(tmp_path: Path) -> None:
-    _write_minimal_pyproject(tmp_path)
+    write_minimal_pyproject(tmp_path)
     project = _project_ctx()
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, dry_run=False)
 
@@ -114,7 +101,7 @@ def test_persist_real_writes_file(tmp_path: Path) -> None:
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, dry_run=False)
 
     target = tmp_path / "a.py"
-    builder.add_file(target, "# ok\n", template_name="a.jinja2")
+    builder.add_file(target, "# ok\n")
 
     written = builder.persist()
 
@@ -136,9 +123,7 @@ def test_filesystem_read_in_factory_runs_during_dry_run(tmp_path: Path) -> None:
     assert builder.get_param("probe_exists") is True
 
 
-# ---------------------------------------------------------------------------
 # insert_after
-# ---------------------------------------------------------------------------
 
 
 def test_insert_after_is_included_in_dry_run_preview(tmp_path: Path) -> None:
@@ -157,7 +142,7 @@ def test_insert_after_is_included_in_dry_run_preview(tmp_path: Path) -> None:
 
 
 def test_insert_after_real_persist_modifies_file(tmp_path: Path) -> None:
-    _write_minimal_pyproject(tmp_path)
+    write_minimal_pyproject(tmp_path)
     project = _project_ctx()
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, dry_run=False)
 
@@ -180,37 +165,13 @@ def test_insert_after_real_persist_modifies_file(tmp_path: Path) -> None:
     assert "PORT" in lines[log_idx + 2]
 
 
-# ---------------------------------------------------------------------------
 # add_dependency with group
-# ---------------------------------------------------------------------------
-
-
-def _write_pyproject_with_groups(root: Path) -> None:
-    (root / "pyproject.toml").write_text(
-        """
-[project]
-name = "demo"
-version = "0.1.0"
-dependencies = []
-
-[dependency-groups]
-test = [
-    "pytest==9.1.1",
-]
-dev = [
-    "ruff==0.16.8",
-    {include-group = "test"},
-]
-""".strip()
-        + "\n",
-        encoding="utf-8",
-    )
 
 
 def test_add_dependency_with_group_injects_into_group(tmp_path: Path) -> None:
     import tomllib
 
-    _write_pyproject_with_groups(tmp_path)
+    write_minimal_pyproject(tmp_path, with_dependency_groups=True)
     project = _project_ctx()
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, dry_run=False)
 
@@ -227,7 +188,7 @@ def test_add_dependency_with_group_injects_into_group(tmp_path: Path) -> None:
 def test_add_dependency_with_group_does_not_touch_runtime_deps(tmp_path: Path) -> None:
     import tomllib
 
-    _write_pyproject_with_groups(tmp_path)
+    write_minimal_pyproject(tmp_path, with_dependency_groups=True)
     project = _project_ctx()
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, dry_run=False)
 
@@ -242,7 +203,7 @@ def test_add_dependency_with_group_does_not_touch_runtime_deps(tmp_path: Path) -
 
 
 def test_add_dependency_with_group_dry_run_does_not_write(tmp_path: Path) -> None:
-    _write_pyproject_with_groups(tmp_path)
+    write_minimal_pyproject(tmp_path, with_dependency_groups=True)
     pyproject = tmp_path / "pyproject.toml"
     original = pyproject.read_bytes()
     project = _project_ctx()
@@ -281,9 +242,7 @@ def test_pending_properties_return_copies(tmp_path: Path) -> None:
     assert builder.pending_group_dependencies == {"test": ["respx>=0.22"]}
 
 
-# ---------------------------------------------------------------------------
-# T012: set_project_script API
-# ---------------------------------------------------------------------------
+# : set_project_script API
 
 
 def _write_pyproject_with_scripts(root: Path) -> None:
@@ -330,8 +289,14 @@ def test_set_project_script_persist_calls_update(
 
     calls: list[tuple[object, ...]] = []
 
-    def _fake_update(root: Path, ctx: object, entry_fn: str = "start_server") -> bool:
-        calls.append((root, ctx, entry_fn))
+    def _fake_update(
+        root: Path,
+        ctx: object,
+        entry_fn: str = "start_server",
+        *,
+        dry_run: bool = False,
+    ) -> bool:
+        calls.append((root, ctx, entry_fn, dry_run))
         return True
 
     monkeypatch.setattr(mb, "update_project_scripts", _fake_update)
@@ -342,25 +307,33 @@ def test_set_project_script_persist_calls_update(
     builder.persist()
     assert calls != [], "update_project_scripts was not called"
     assert calls[0][2] == "main"
+    assert calls[0][3] is False
 
 
 def test_set_project_script_dry_run_calls_dry_run_update(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """In dry-run, persist() calls dry_run_scripts_update instead."""
+    """In dry-run, persist() calls update_project_scripts with dry_run=True."""
     import scaffold_ca_python.core.module_builder as mb  # noqa: PLC0415
 
     calls: list[tuple[object, ...]] = []
 
-    def _fake_dry(root: Path, ctx: object, entry_fn: str = "start_server") -> bool:
-        calls.append((root, ctx, entry_fn))
+    def _fake_update(
+        root: Path,
+        ctx: object,
+        entry_fn: str = "start_server",
+        *,
+        dry_run: bool = False,
+    ) -> bool:
+        calls.append((root, ctx, entry_fn, dry_run))
         return True
 
-    monkeypatch.setattr(mb, "dry_run_scripts_update", _fake_dry)
+    monkeypatch.setattr(mb, "update_project_scripts", _fake_update)
     _write_pyproject_with_scripts(tmp_path)
     project = _project_ctx()
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, dry_run=True)
     builder.set_project_script()
     builder.persist()
-    assert calls != [], "dry_run_scripts_update was not called"
+    assert calls != [], "update_project_scripts was not called"
+    assert calls[0][3] is True

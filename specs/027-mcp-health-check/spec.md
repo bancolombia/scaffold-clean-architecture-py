@@ -143,5 +143,5 @@ The generated project includes a test file for `routes.py` so the health contrac
 - The health route is served by the same host/port as the MCP server (existing `HOST`/`PORT` settings); no separate listener is introduced.
 - Only the `mcp` entry point is affected; `restapi`, `agent`, and `generic` entry points are unchanged.
 - Existing projects that already generated the MCP entry point are not migrated. Re-running `gep --type mcp` is blocked by the existing `mcp_server/` directory guard, so those projects must add `routes.py` and the `routes.bind_routes(mcp)` line in `app.py` manually.
-- Only `ruff` compliance is required for generated files; `mypy --strict` compliance of the generated project is out of scope (`FastMCP.custom_route` is an untyped decorator).
+- Generated `routes.py` and MCP `server.py` must pass `mypy src/<pkg>` alongside `ruff check`. The health route uses `# type: ignore[misc]` on the `FastMCP.custom_route` decorator because the SDK decorator is untyped.
 - The reference `book_smcp/` sample project is not part of this feature's scope.

@@ -16,10 +16,12 @@
 ```python
 def _generate_project_impl(name: str, package: str) -> None: ...
 
+
 @app.command("generate-project", help="Scaffold a CA project.")
 def generate_project(name: str, package: str) -> None:
     """Scaffold a complete Clean Architecture Python project."""
     _generate_project_impl(name, package)
+
 
 @app.command("ca", hidden=True, help="Alias for generate-project.")
 def ca(name: str, package: str) -> None:
@@ -106,6 +108,7 @@ with tempfile.TemporaryDirectory() as tmpdir:
 **Pattern**:
 ```python
 import ast
+
 
 def extract_imports(source: str) -> list[str]:
     tree = ast.parse(source)

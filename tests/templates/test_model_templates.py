@@ -1,12 +1,8 @@
-"""Template rendering tests for model/ group (T084)."""
+"""Template rendering tests for model/ group."""
 
-import importlib.resources
-
-from scaffold_ca_python.core.template_renderer import TemplateRenderer
 from scaffold_ca_python.models.context import ModuleContext, ProjectContext
-from scaffold_ca_python.models.layer import Layer
-
-renderer = TemplateRenderer()
+from tests.helpers import read_template as _tmpl
+from tests.helpers import renderer
 
 
 def _project() -> ProjectContext:
@@ -14,11 +10,7 @@ def _project() -> ProjectContext:
 
 
 def _ctx() -> ModuleContext:
-    return ModuleContext(name="order", layer=Layer.DOMAIN_MODEL, project=_project())
-
-
-def _tmpl(name: str) -> str:
-    return importlib.resources.files("scaffold_ca_python.templates").joinpath(name).read_text(encoding="utf-8")
+    return ModuleContext(name="order", project=_project())
 
 
 def test_model_class_name_present() -> None:

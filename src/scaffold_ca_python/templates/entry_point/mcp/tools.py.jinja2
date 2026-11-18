@@ -1,18 +1,15 @@
-"""MCP tools binding — register FastMCP tools via dependency injection."""
+"""MCP tools binding — tools receive use cases through DI."""
 
 from __future__ import annotations
 
-from dependency_injector.wiring import Provide, inject  # noqa: F401
 from mcp.server.fastmcp import FastMCP
+from wireup import Injected  # noqa: F401
 
-from {{ project.python_package }}.application.config.container import Container  # noqa: F401
 
-
-@inject
 async def bind_tools(
     mcp: FastMCP,
-    # Replace with your actual use-case injection:
-    # some_usecase: SomeUseCase = Provide[Container.usecase_container.some_usecase],
+    # Declare use-case dependencies as: some_usecase: Injected[SomeUseCase]
+    # Example: create_order: Injected[CreateOrderUseCase]
 ) -> None:
     """Bind all MCP tools to the server instance."""
 

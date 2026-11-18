@@ -1,0 +1,54 @@
+"""Tests for build_agent_card()."""
+
+from __future__ import annotations
+
+import pytest
+
+from {{ project.python_package }}.infrastructure.entry_points.a2a_server.agent_card import build_agent_card
+from {{ project.python_package }}.infrastructure.entry_points.a2a_server.agent_settings import AgentSettings
+
+
+def _urls_by_binding(settings: AgentSettings) -> dict[str, str]:
+    card = build_agent_card(settings)
+    return {iface.protocol_binding: iface.url for iface in card.supported_interfaces}
+
+
+def test_card_uses_public_url_for_interfaces() -> None:
+    urls = _urls_by_binding(AgentSettings(public_url="http://my-agent:9000"))
+    assert urls == {"JSONRPC": "http://my-agent:9000/", "HTTP+JSON": "http://my-agent:9000"}
+
+
+def test_card_strips_trailing_slash() -> None:
+    urls = _urls_by_binding(AgentSettings(public_url="http://my-agent:9000/"))
+    assert urls["HTTP+JSON"] == "http://my-agent:9000"
+
+
+def test_card_uses_default_public_url() -> None:
+    urls = _urls_by_binding(AgentSettings())
+    assert urls["JSONRPC"] == "http://localhost:8000/"
+
+
+def test_card_reads_public_url_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("AGENT_PUBLIC_URL", "http://agent.example.com")
+    urls = _urls_by_binding(AgentSettings())
+    assert urls["HTTP+JSON"] == "http://agent.example.com"
+
+
+def test_card_has_hello_world_skill() -> None:
+    card = build_agent_card(AgentSettings())
+    assert [s.id for s in card.skills] == ["hello_world"]
+
+
+def test_card_reports_streaming_capability() -> None:
+    assert build_agent_card(AgentSettings()).capabilities.streaming is True
+
+
+def test_all_interfaces_declare_protocol_version_1_0() -> None:
+    card = build_agent_card(AgentSettings())
+    assert {iface.protocol_version for iface in card.supported_interfaces} == {"1.0"}
+
+
+def test_card_name_and_version() -> None:
+    card = build_agent_card(AgentSettings(name="my-agent", version="2.5"))
+    assert card.name == "my-agent"
+    assert card.version == "2.5"

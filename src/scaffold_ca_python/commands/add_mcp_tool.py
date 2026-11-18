@@ -7,114 +7,102 @@ import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import typer
 from rich.syntax import Syntax
 
-from scaffold_ca_python.commands._shared import console, require_project_root
+from scaffold_ca_python.commands._shared import (
+    auto_format_project,
+    console,
+    fail,
+    require_wireup_context,
+)
 from scaffold_ca_python.core import mcp_tool_spec
+from scaffold_ca_python.core.errors import ScaffoldError
 from scaffold_ca_python.core.module_builder import ModuleBuilder
-from scaffold_ca_python.core.name_utils import ScaffoldError
-from scaffold_ca_python.core.project_detector import load_project_context, resolve_tests_root
+from scaffold_ca_python.core.project_detector import resolve_tests_root
+from scaffold_ca_python.factory.entry_points.ep_mcp import EntryPointMcp
 from scaffold_ca_python.models.context import ProjectContext
 
 if TYPE_CHECKING:
     from scaffold_ca_python.models.options import EntryPointOptions
 
-_TEST_TOOLS_STRUCTURE_ERROR = (
-    "[red]Error:[/red] tests/infrastructure/entry_points/mcp_server/test_tools.py is missing or "
-    "does not have\n"
-    "the structure --add-tool needs to append a registration test.\n"
-    "[dim]Hint:[/dim] Restore test_tools.py, or regenerate the entry point with "
-    "[cyan]scaffold gep --type mcp[/cyan]."
+_MCP_EP_REL = f"infrastructure/entry_points/{EntryPointMcp.subdir}"
+
+_TEST_TOOLS_MSG = (
+    f"tests/{_MCP_EP_REL}/test_tools.py is missing or "
+    "does not have the structure --add-tool needs to append a registration test."
 )
+_TEST_TOOLS_HINT = "Restore test_tools.py, or regenerate the entry point with [cyan]scaffold gep --type mcp[/cyan]."
 
 
 def _check_add_tool_flags(options: EntryPointOptions) -> None:
     flags = options.creation_flags()
     if flags:
-        console.print(f"[red]Error:[/red] --add-tool is incompatible with {flags[0]}.")
-        raise typer.Exit(code=1)
+        fail(f"--add-tool is incompatible with {flags[0]}.")
     if options.type_ != "mcp":
-        console.print("[red]Error:[/red] --add-tool is only valid with --type mcp.")
-        raise typer.Exit(code=1)
+        fail("--add-tool is only valid with --type mcp.")
     if options.name is None:
-        console.print("[red]Error:[/red] --name is required with --add-tool.")
-        raise typer.Exit(code=1)
+        fail("--name is required with --add-tool.")
 
 
 def _build_spec(options: EntryPointOptions) -> mcp_tool_spec.ToolSpec:
-    if options.name is None:  # guard; _check_add_tool_flags exits before this if name is None
-        raise typer.Exit(code=1)
+    assert options.name is not None  # ensured by _check_add_tool_flags
     params = list(options.params) if options.params else None
     try:
         return mcp_tool_spec.build_tool_spec(options.name, params, options.returns, options.description)
     except (ValueError, ScaffoldError) as e:
-        console.print(f"[red]Error:[/red] {e}")
-        raise typer.Exit(code=1) from None
+        fail(str(e))
 
 
 def _resolve_paths(project_root: Path, ctx: ProjectContext) -> tuple[Path, Path]:
-    tools_py = project_root / "src" / ctx.python_package / "infrastructure" / "entry_points" / "mcp_server" / "tools.py"
-    test_tools_py = (
-        resolve_tests_root(project_root) / "infrastructure" / "entry_points" / "mcp_server" / "test_tools.py"
-    )
+    ep_subdir = EntryPointMcp.subdir
+    tools_py = ctx.src_pkg_root / "infrastructure" / "entry_points" / ep_subdir / "tools.py"
+    test_tools_py = resolve_tests_root(project_root) / "infrastructure" / "entry_points" / ep_subdir / "test_tools.py"
     return tools_py, test_tools_py
 
 
 def _read_sources(paths: tuple[Path, Path]) -> tuple[str, str]:
     tools_py, test_tools_py = paths
     if not tools_py.exists():
-        console.print(
-            "[red]Error:[/red] No MCP entry point found at infrastructure/entry_points/mcp_server/.\n"
-            "[dim]Hint:[/dim] Run [cyan]scaffold gep --type mcp[/cyan] first to create one."
+        fail(
+            f"No MCP entry point found at {_MCP_EP_REL}/.",
+            hint="Run [cyan]scaffold gep --type mcp[/cyan] first to create one.",
         )
-        raise typer.Exit(code=1)
     try:
         tools_src = tools_py.read_text(encoding="utf-8")
     except OSError as e:
-        console.print(f"[red]Error:[/red] Cannot read {tools_py}: {e}")
-        raise typer.Exit(code=1) from None
+        fail(f"Cannot read {tools_py}: {e}")
     try:
         test_tools_src = test_tools_py.read_text(encoding="utf-8")
     except OSError:
-        console.print(_TEST_TOOLS_STRUCTURE_ERROR)
-        raise typer.Exit(code=1) from None
+        fail(_TEST_TOOLS_MSG, hint=_TEST_TOOLS_HINT)
     return tools_src, test_tools_src
 
 
 def _check_structure(sources: tuple[str, str], spec: mcp_tool_spec.ToolSpec) -> None:
     tools_src, test_tools_src = sources
     if not mcp_tool_spec.has_bind_tools_function(tools_src):
-        console.print(
-            "[red]Error:[/red] infrastructure/entry_points/mcp_server/tools.py was generated by an older "
-            "scaffold\nversion and does not support --add-tool.\n"
-            "[dim]Hint:[/dim] Make [cyan]async def bind_tools[/cyan] the last function in tools.py, or "
-            "regenerate the entry point\n(back up any custom tools first) with [cyan]scaffold gep --type mcp[/cyan]."
+        fail(
+            f"{_MCP_EP_REL}/tools.py was generated by an older scaffold version and does not support --add-tool.",
+            hint="Make [cyan]async def bind_tools[/cyan] the last function in tools.py, or "
+            "regenerate the entry point (back up any custom tools first) with [cyan]scaffold gep --type mcp[/cyan].",
         )
-        raise typer.Exit(code=1)
     if not mcp_tool_spec.has_test_registration_structure(test_tools_src):
-        console.print(_TEST_TOOLS_STRUCTURE_ERROR)
-        raise typer.Exit(code=1)
+        fail(_TEST_TOOLS_MSG, hint=_TEST_TOOLS_HINT)
     existing = mcp_tool_spec.find_existing_tool_names(tools_src)
     if spec.name in existing:
         if spec.name == "bind_tools":
-            console.print(
-                f"[red]Error:[/red] '{spec.name}' is reserved by the tool-binding function and "
-                "cannot be used as a tool name."
-            )
+            fail(f"'{spec.name}' is reserved by the tool-binding function and cannot be used as a tool name.")
         else:
-            console.print(f"[red]Error:[/red] A tool named '{spec.name}' already exists in tools.py.")
-        raise typer.Exit(code=1)
+            fail(f"A tool named '{spec.name}' already exists in tools.py.")
 
 
 def _check_writable(paths: tuple[Path, Path], project_root: Path) -> None:
     for path in paths:
         if not os.access(path, os.W_OK):
-            console.print(
-                f"[red]Error:[/red] Cannot write to {path.relative_to(project_root)}.\n"
-                "[dim]Hint:[/dim] Check the file's permissions and re-run the command."
+            fail(
+                f"Cannot write to {path.relative_to(project_root)}.",
+                hint="Check the file's permissions and re-run the command.",
             )
-            raise typer.Exit(code=1)
 
 
 def _persist_with_restore(
@@ -125,18 +113,23 @@ def _persist_with_restore(
     try:
         return builder.persist()
     except OSError as e:
+        restore_ok = True
+        restore_msg = ""
         try:
             tools_py.write_text(tools_src, encoding="utf-8")
             test_tools_py.write_text(test_tools_src, encoding="utf-8")
-        except OSError:
-            pass
+        except OSError as restore_err:
+            restore_ok = False
+            restore_msg = str(restore_err)
         fname = Path(e.filename).name if e.filename else "tools.py"
-        console.print(
-            f"[red]Error:[/red] Failed to write {fname} ({e}). "
-            "tools.py was restored; no changes were made.\n"
-            "[dim]Hint:[/dim] Fix the underlying problem (permissions, disk space) and re-run the command."
+        if restore_ok:
+            detail = "tools.py was restored; no changes were made."
+        else:
+            detail = f"Restore also failed ({restore_msg}); tools.py may be in an inconsistent state."
+        fail(
+            f"Failed to write {fname} ({e}). {detail}",
+            hint="Fix the underlying problem (permissions, disk space) and re-run the command.",
         )
-        raise typer.Exit(code=1) from None
 
 
 def _report_add_tool(
@@ -163,8 +156,7 @@ def add_mcp_tool(options: EntryPointOptions) -> None:
     """Add a tool stub to an existing MCP entry point."""
     _check_add_tool_flags(options)
     spec = _build_spec(options)
-    project_root = require_project_root(not_found_message=None)
-    project_ctx = load_project_context(project_root)
+    project_root, project_ctx = require_wireup_context(not_found_message=None)
     paths = _resolve_paths(project_root, project_ctx)
     sources = _read_sources(paths)
     _check_structure(sources, spec)
@@ -187,14 +179,15 @@ def add_mcp_tool(options: EntryPointOptions) -> None:
     try:
         ast.parse(tools_src + tool_stub)
     except SyntaxError:
-        console.print(
-            "[red]Error:[/red] infrastructure/entry_points/mcp_server/tools.py cannot accept the new tool stub.\n"
-            "[dim]Hint:[/dim] Regenerate the entry point with [cyan]scaffold gep --type mcp[/cyan]."
+        fail(
+            f"{_MCP_EP_REL}/tools.py cannot accept the new tool stub.",
+            hint="Regenerate the entry point with [cyan]scaffold gep --type mcp[/cyan].",
         )
-        raise typer.Exit(code=1) from None
 
     _check_writable(paths, project_root)
     builder.append_to_file(tools_py, tool_stub)
     builder.append_to_file(test_tools_py, test_stub)
     modified = _persist_with_restore(builder, (tools_py, tools_src, test_tools_py, test_tools_src))
+    if not options.dry_run:
+        auto_format_project(project_root)
     _report_add_tool(modified, tool_stub, test_stub, spec, project_root, options.dry_run)

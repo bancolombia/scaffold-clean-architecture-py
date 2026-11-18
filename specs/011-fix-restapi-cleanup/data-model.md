@@ -15,11 +15,11 @@ The relevant slice of the TOML document (typed as Python dict after `tomllib.loa
 ```python
 {
     "project": {
-        "name": str,                   # package name
-        "scripts": {                   # dict[str, str] — may be absent before update
-            "<pkg>": str               # entry point target, e.g. "my_app.server:start_server"
+        "name": str,  # package name
+        "scripts": {  # dict[str, str] — may be absent before update
+            "<pkg>": str  # entry point target, e.g. "my_app.server:start_server"
         },
-        "dependencies": list[str],     # managed by inject_dependencies (existing)
+        "dependencies": list[str],  # managed by inject_dependencies (existing)
     }
 }
 ```

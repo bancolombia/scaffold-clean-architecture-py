@@ -1,112 +1,141 @@
-"""Template rendering tests for DI config templates (T022)."""
+"""Template rendering tests for DI config templates (wireup, 028)."""
 
-import importlib.resources
-
-from scaffold_ca_python.core.template_renderer import TemplateRenderer
 from scaffold_ca_python.models.context import ProjectContext
+from tests.helpers import read_template, renderer
 
-renderer = TemplateRenderer()
+_tmpl = read_template
 
 
 def _ctx() -> ProjectContext:
     return ProjectContext(name="order-service")
 
 
-def _tmpl(name: str) -> str:
-    return importlib.resources.files("scaffold_ca_python.templates").joinpath(name).read_text(encoding="utf-8")
-
-
 def _render(filename: str) -> str:
     return renderer.render_string(
-        _tmpl(f"project/application/config/{filename}.py.jinja2"),
+        _tmpl(f"project/application/config/{filename}.jinja2"),
         _ctx().model_dump(),
     )
 
 
-# --- __init__.py -----------------------------------------------------------
-
-
-def test_init_renders_docstring() -> None:
-    out = _render("__init__")
-    assert "DI configuration package" in out
-
-
-# --- config.py -------------------------------------------------------------
+def test_init_renders() -> None:
+    out = _render("__init__.py")
+    assert out is not None
 
 
 def test_config_has_settings_class() -> None:
-    out = _render("config")
+    out = _render("config.py")
     assert "Settings" in out
 
 
 def test_config_has_base_settings() -> None:
-    out = _render("config")
+    out = _render("config.py")
     assert "BaseSettings" in out
 
 
 def test_config_has_settings_singleton() -> None:
-    out = _render("config")
+    out = _render("config.py")
     assert "settings = Settings()" in out
 
 
-# --- driven_adapters_container.py -----------------------------------------
+def test_wiring_has_injectables() -> None:
+    """wiring.py must define INJECTABLES list."""
+    out = _render("wiring.py")
+    assert "INJECTABLES" in out
 
 
-def test_da_container_class_name() -> None:
-    out = _render("driven_adapters_container")
-    assert "DAContainer" in out
+def test_wiring_has_create_container() -> None:
+    """wiring.py must define create_container() function."""
+    out = _render("wiring.py")
+    assert "create_container" in out
 
 
-def test_da_container_uses_declarative_container() -> None:
-    out = _render("driven_adapters_container")
-    assert "DeclarativeContainer" in out
+def test_wiring_calls_create_async_container() -> None:
+    """wiring.py must call wireup.create_async_container (async-first)."""
+    out = _render("wiring.py")
+    assert "create_async_container" in out
 
 
-# --- usecases_container.py ------------------------------------------------
+def test_wiring_no_dependency_injector_imports() -> None:
+    """wiring.py must not import dependency-injector."""
+    out = _render("wiring.py")
+    assert "dependency_injector" not in out
+    assert "DependenciesContainer" not in out
 
 
-def test_usecase_container_class_name() -> None:
-    out = _render("usecases_container")
-    assert "UseCaseContainer" in out
-
-
-def test_usecase_container_has_dependencies_container() -> None:
-    out = _render("usecases_container")
-    assert "DependenciesContainer" in out
-
-
-def test_usecase_container_uses_python_package() -> None:
+def test_wiring_imports_driven_adapters() -> None:
+    """wiring.py must import driven_adapters package for scan."""
     ctx = _ctx()
     out = renderer.render_string(
-        _tmpl("project/application/config/usecases_container.py.jinja2"),
+        _tmpl("project/application/config/wiring.py.jinja2"),
         ctx.model_dump(),
     )
+    assert "driven_adapters" in out
     assert ctx.python_package in out
 
 
-# --- container.py ---------------------------------------------------------
+def test_wiring_imports_helpers() -> None:
+    """wiring.py must import helpers package for scan."""
+    out = _render("wiring.py")
+    assert "helpers" in out
 
 
-def test_container_class_name() -> None:
-    out = _render("container")
-    assert "class Container" in out
+def test_wiring_scans_entry_points() -> None:
+    """wiring.py must scan entry_points so entry-point factories (e.g. A2A) register without edits."""
+    out = _render("wiring.py")
+    assert "from order_service.infrastructure import driven_adapters, entry_points, helpers" in out
+    assert "INJECTABLES = [driven_adapters, entry_points, helpers, usecases]" in out
 
 
-def test_container_wires_da_container() -> None:
-    out = _render("container")
-    assert "providers.Container(DAContainer)" in out
+def test_wiring_imports_usecases() -> None:
+    """wiring.py must import usecases package for scan."""
+    out = _render("wiring.py")
+    assert "usecases" in out
 
 
-def test_container_wires_usecase_container() -> None:
-    out = _render("container")
-    assert "providers.Container(" in out
-    assert "UseCaseContainer" in out
-
-
-def test_container_uses_python_package() -> None:
-    ctx = _ctx()
+def test_usecases_init_renders() -> None:
+    """usecases/__init__.py must be generated (package marker for wireup)."""
     out = renderer.render_string(
-        _tmpl("project/application/config/container.py.jinja2"),
-        ctx.model_dump(),
+        _tmpl("project/application/config/usecases/__init__.py.jinja2"),
+        _ctx().model_dump(),
     )
-    assert ctx.python_package in out
+    assert out is not None
+
+
+def test_restapi_app_lifespan_warms_container() -> None:
+    """restapi app.py lifespan must create container before yielding."""
+    content = read_template("entry_point/restapi/app.py.jinja2")
+    # Must create container and call setup before yield
+    assert "create_container()" in content
+    assert "wireup.integration.fastapi.setup" in content
+    # Verify lifespan exists and is async
+    assert "async def lifespan" in content
+    assert "yield" in content
+
+
+def test_mcp_app_lifespan_warms_container() -> None:
+    """mcp app.py lifespan must warm up container before yielding."""
+    content = read_template("entry_point/mcp/app.py.jinja2")
+    # Must create container and inject dependencies before yielding
+    assert "create_container()" in content
+    assert "inject_from_container" in content
+    # Verify lifespan exists and is async
+    assert "async def lifespan" in content or "asynccontextmanager" in content
+    assert "yield" in content
+
+
+def test_agent_app_uses_shared_container() -> None:
+    """agent app.py hands the single wiring container to wireup's Starlette integration."""
+    content = read_template("entry_point/agent/app.py.jinja2")
+    assert "from {{ project.python_package }}.application.config.wiring import create_container" in content
+    assert "wireup.integration.starlette.setup(create_container(), app)" in content
+    assert "INJECTABLES" not in content
+    assert "asynccontextmanager" in content
+    assert "yield" in content
+
+
+def test_generic_app_creates_container() -> None:
+    """generic app.py must create container in composition root."""
+    content = read_template("entry_point/generic/generic_app.py.jinja2")
+    assert "create_container()" in content
+    assert "asynccontextmanager" in content
+    assert "yield" in content

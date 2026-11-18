@@ -8,7 +8,7 @@ from typing import Any
 from jinja2 import BaseLoader, Environment, TemplateNotFound
 from pydantic import BaseModel
 
-from scaffold_ca_python.core.name_utils import ScaffoldError
+from scaffold_ca_python.core.errors import ScaffoldError
 
 
 class _ResourceLoader(BaseLoader):
@@ -37,7 +37,7 @@ class TemplateRenderer:
         renderer = TemplateRenderer()
 
         # Render a packaged template
-        output = renderer.render("domain_model.py.j2", module_ctx)
+        output = renderer.render("model/book.py.jinja2", module_ctx)
 
         # Render an inline template string (useful for testing / simple cases)
         output = renderer.render_string("class {{ class_name }}:", ctx_dict)
@@ -85,8 +85,4 @@ class TemplateRenderer:
         """Convert a Pydantic model or plain dict to a render context dict."""
         if isinstance(context, dict):
             return context
-        # Pydantic v2 BaseModel
-        if hasattr(context, "model_dump"):
-            return context.model_dump()
-        # Fallback: try __dict__
-        return dict(vars(context))
+        return context.model_dump()

@@ -1,9 +1,24 @@
 """{{ class_name }} use case."""
-
+{% if gateways %}
+from __future__ import annotations
+{% for gw in gateways %}
+from {{ project.python_package }}.domain.model.{{ gw.model_module }}.gateways.{{ gw.name }} import {{ gw.class_name }}
+{%- endfor %}
+{% endif %}
 
 class {{ class_name }}UseCase:
     """{{ class_name }} async use case."""
-
+{% if gateways %}
+    def __init__(
+        self,
+        {%- for gw in gateways %}
+        {{ gw.name }}: {{ gw.class_name }},
+        {%- endfor %}
+    ) -> None:
+        {%- for gw in gateways %}
+        self._{{ gw.name }} = {{ gw.name }}
+        {%- endfor %}
+{% endif %}
     async def execute(self) -> None:
         """Execute the use case."""
         raise NotImplementedError

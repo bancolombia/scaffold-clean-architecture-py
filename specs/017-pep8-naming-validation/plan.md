@@ -116,10 +116,7 @@ Also add integration-level assertions to `tests/commands/test_generate_project.p
    ```
 2. Update `validate_name` error message:
    ```python
-   raise ScaffoldError(
-       f"Invalid name {name!r}. "
-       "Use kebab-case (e.g., 'my-project') or snake_case (e.g., 'my_project')."
-   )
+   raise ScaffoldError(f"Invalid name {name!r}. Use kebab-case (e.g., 'my-project') or snake_case (e.g., 'my_project').")
    ```
 3. Prepend hyphen normalisation in `to_snake_case`:
    ```python

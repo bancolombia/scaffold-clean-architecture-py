@@ -1,12 +1,8 @@
-"""Template rendering tests for entrypoint main.py templates (T032)."""
+"""Template rendering tests for entrypoint main.py templates."""
 
-import importlib.resources
-
-from scaffold_ca_python.core.template_renderer import TemplateRenderer
 from scaffold_ca_python.models.context import ModuleContext, ProjectContext
-from scaffold_ca_python.models.layer import Layer
-
-renderer = TemplateRenderer()
+from tests.helpers import read_template as _tmpl
+from tests.helpers import renderer
 
 
 def _project() -> ProjectContext:
@@ -14,18 +10,11 @@ def _project() -> ProjectContext:
 
 
 def _ctx(name: str = "my-app", subtype: str | None = None) -> ModuleContext:
-    return ModuleContext(name=name, layer=Layer.ENTRY_POINTS, project=_project(), subtype=subtype)
-
-
-def _tmpl(name: str) -> str:
-    return importlib.resources.files("scaffold_ca_python.templates").joinpath(name).read_text(encoding="utf-8")
+    return ModuleContext(name=name, project=_project())
 
 
 def _render(path: str) -> str:
     return renderer.render_string(_tmpl(path), _ctx().model_dump())
-
-
-# --- project/main.py.jinja2 (default Hello World) -------------------------
 
 
 def test_default_main_has_def_main() -> None:
@@ -43,20 +32,14 @@ def test_default_main_has_name_guard() -> None:
     assert '__name__ == "__main__"' in out
 
 
-# --- agent entrypoint_main.py ---------------------------------------------
-
-
-def test_agent_main_has_def_main() -> None:
-    out = _render("entry_point/agent/entrypoint_main.py.jinja2")
+def test_agent_server_has_def_main() -> None:
+    out = _render("entry_point/agent/server.py.jinja2")
     assert "def main" in out
 
 
-def test_agent_main_uses_asyncio() -> None:
-    out = _render("entry_point/agent/entrypoint_main.py.jinja2")
-    assert "asyncio" in out
-
-
-# --- mcp entrypoint_main.py (Phase 4: migrated to server.py.jinja2) ----------
+def test_agent_server_runs_uvicorn() -> None:
+    out = _render("entry_point/agent/server.py.jinja2")
+    assert "uvicorn.run(start_server()" in out
 
 
 def test_mcp_main_has_def_main() -> None:
@@ -64,12 +47,14 @@ def test_mcp_main_has_def_main() -> None:
     assert "def main" in out
 
 
-def test_mcp_main_uses_asyncio() -> None:
+def test_mcp_server_uses_asyncio_run() -> None:
     out = _render("entry_point/mcp/server.py.jinja2")
     assert "uvicorn" in out
 
 
-# --- generic entrypoint_main.py -------------------------------------------
+def test_mcp_main_does_not_use_sys_exit() -> None:
+    out = _render("entry_point/mcp/server.py.jinja2")
+    assert "sys.exit" not in out
 
 
 def test_generic_main_has_def_main() -> None:

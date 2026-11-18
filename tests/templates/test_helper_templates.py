@@ -1,12 +1,8 @@
-"""Template rendering tests for helper/ group (T088)."""
+"""Template rendering tests for helper/ group."""
 
-import importlib.resources
-
-from scaffold_ca_python.core.template_renderer import TemplateRenderer
 from scaffold_ca_python.models.context import ModuleContext, ProjectContext
-from scaffold_ca_python.models.layer import Layer
-
-renderer = TemplateRenderer()
+from tests.helpers import read_template as _tmpl
+from tests.helpers import renderer
 
 
 def _project() -> ProjectContext:
@@ -14,11 +10,7 @@ def _project() -> ProjectContext:
 
 
 def _ctx() -> ModuleContext:
-    return ModuleContext(name="date-utils", layer=Layer.HELPERS, project=_project())
-
-
-def _tmpl(name: str) -> str:
-    return importlib.resources.files("scaffold_ca_python.templates").joinpath(name).read_text(encoding="utf-8")
+    return ModuleContext(name="date-utils", project=_project())
 
 
 def test_helper_class_name_present() -> None:
@@ -26,9 +18,11 @@ def test_helper_class_name_present() -> None:
     assert "DateUtils" in out
 
 
-def test_helper_has_pass_body() -> None:
+def test_helper_has_wireup_injectable() -> None:
+    """Wireup (): helper template must use @wireup.injectable instead of bare pass body."""
     out = renderer.render_string(_tmpl("helper/helper.py.jinja2"), _ctx().model_dump())
-    assert "pass" in out
+    assert "wireup" in out
+    assert "injectable" in out
 
 
 def test_helper_init_contains_docstring() -> None:

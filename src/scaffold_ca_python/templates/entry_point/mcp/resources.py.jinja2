@@ -1,18 +1,14 @@
-"""MCP resources binding — register FastMCP resources via dependency injection."""
+"""MCP resources binding — resources receive use cases through DI."""
 
 from __future__ import annotations
 
-from dependency_injector.wiring import Provide, inject  # noqa: F401
 from mcp.server.fastmcp import FastMCP
+from wireup import Injected  # noqa: F401
 
-from {{ project.python_package }}.application.config.container import Container  # noqa: F401
 
-
-@inject
 async def bind_resources(
     mcp: FastMCP,
-    # Replace with your actual use-case injection:
-    # some_usecase: SomeUseCase = Provide[Container.usecase_container.some_usecase],
+    # Declare use-case dependencies as: some_usecase: Injected[SomeUseCase]
 ) -> None:
     """Bind all MCP resources to the server instance."""
 

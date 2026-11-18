@@ -1,0 +1,47 @@
+"""A2A application composition root."""
+
+from __future__ import annotations
+
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
+import wireup.integration.starlette
+from a2a.server.request_handlers.request_handler import RequestHandler
+from a2a.server.routes import (
+    create_agent_card_routes,
+    create_jsonrpc_routes,
+    create_rest_routes,
+)
+from a2a.types.a2a_pb2 import AgentCard
+from starlette.applications import Starlette
+
+from {{ project.python_package }}.application.config.wiring import create_container
+from {{ project.python_package }}.infrastructure.entry_points.a2a_server import routes
+
+
+@asynccontextmanager
+async def lifespan(app: Starlette) -> AsyncIterator[None]:
+    """Mount A2A protocol routes on startup; wireup closes the container on shutdown."""
+    container = wireup.integration.starlette.get_app_container(app)
+
+    if not getattr(app.state, "a2a_routes_mounted", False):
+        handler = await container.get(RequestHandler)
+        card = await container.get(AgentCard)
+        app.router.routes.extend(
+            [
+                *create_agent_card_routes(card),
+                *create_jsonrpc_routes(handler, rpc_url="/"),
+                *create_rest_routes(handler),
+            ]
+        )
+        app.state.a2a_routes_mounted = True
+
+    yield
+
+
+def start_server() -> Starlette:
+    """Build and return the ASGI app. Called by server.py."""
+    app = Starlette(routes=list(routes.routes), lifespan=lifespan)
+    # setup() must be called last: it adds WireupAsgiMiddleware.
+    wireup.integration.starlette.setup(create_container(), app)
+    return app

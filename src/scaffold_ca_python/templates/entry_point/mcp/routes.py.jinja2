@@ -12,7 +12,7 @@ def bind_routes(mcp: FastMCP) -> None:
     Bind routes to the FastMCP instance.
     """
 
-    @mcp.custom_route(name="health_check", path="/api/v1/health", methods=["GET"])
+    @mcp.custom_route(name="health_check", path="/api/v1/health", methods=["GET"])  # type: ignore[misc]
     async def health_check(_request: Request) -> Response:
         """
         Health check endpoint to verify the server is running.

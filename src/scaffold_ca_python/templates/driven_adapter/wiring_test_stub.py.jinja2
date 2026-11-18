@@ -1,0 +1,11 @@
+
+
+async def test_container_resolves_{{ module_name }}() -> None:
+    """Container must resolve {{ gateway.class_name }} through the {{ module_name }} adapter."""
+    from {{ project.python_package }}.domain.model.{{ gateway.model_module }}.gateways.{{ gateway.name }} import {{ gateway.class_name }}
+
+    container = create_container()
+    try:
+        await container.get({{ gateway.class_name }})
+    finally:
+        await container.close()

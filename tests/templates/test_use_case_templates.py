@@ -1,13 +1,10 @@
-"""Template rendering tests for use_case/ group (T085)."""
+"""Template rendering tests for use_case/ group."""
 
 import ast
-import importlib.resources
 
-from scaffold_ca_python.core.template_renderer import TemplateRenderer
 from scaffold_ca_python.models.context import ModuleContext, ProjectContext
-from scaffold_ca_python.models.layer import Layer
-
-renderer = TemplateRenderer()
+from tests.helpers import read_template as _tmpl
+from tests.helpers import renderer
 
 
 def _project() -> ProjectContext:
@@ -15,11 +12,7 @@ def _project() -> ProjectContext:
 
 
 def _ctx() -> ModuleContext:
-    return ModuleContext(name="create-order", layer=Layer.DOMAIN_USECASE, project=_project())
-
-
-def _tmpl(name: str) -> str:
-    return importlib.resources.files("scaffold_ca_python.templates").joinpath(name).read_text(encoding="utf-8")
+    return ModuleContext(name="create-order", project=_project())
 
 
 def test_use_case_class_name_present() -> None:

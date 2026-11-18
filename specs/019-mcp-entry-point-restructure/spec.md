@@ -5,6 +5,8 @@
 **Status**: Ready  
 **Input**: User description: "Restructure MCP Entry Point — split server.py into tools/resources/prompts primitives, add app.py factory, replace main.py with server.py"
 
+> **Partial supersession**: [Spec 028 — Wireup DI for new projects](../028-wireup-di/spec.md) replaces **MCP DI wiring** (`inject_from_container`, `Injected[…]`, async composition root) for projects generated with scaffold-ca-python 0.6.0+. File layout and primitive split from this spec remain authoritative where compatible.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 — Generate MCP primitives as separate files (Priority: P1)

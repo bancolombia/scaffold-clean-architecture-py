@@ -43,10 +43,10 @@ from scaffold_ca_python.factory.entry_points.ep_grpc import EntryPointGrpc
 
 _REGISTRY: dict[str, type[ModuleFactory]] = {
     "restapi": EntryPointRestApi,
-    "agent":   EntryPointAgent,
-    "mcp":     EntryPointMcp,
+    "agent": EntryPointAgent,
+    "mcp": EntryPointMcp,
     "generic": EntryPointGeneric,
-    "grpc":    EntryPointGrpc,   # ← one line
+    "grpc": EntryPointGrpc,  # ← one line
 }
 ```
 

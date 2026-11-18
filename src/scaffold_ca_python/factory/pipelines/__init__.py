@@ -11,10 +11,12 @@ PIPELINE_PROVIDERS: dict[str, PipelineFactory] = {
         PurePosixPath(".github/workflows/ci.yml"),
         "pipeline/github/ci.yml.jinja2",
         "ci.yml",
+        "GitHub Actions (.github/workflows/ci.yml)",
     ),
     "azure": PipelineFactory(
         PurePosixPath("azure-pipelines.yml"),
         "pipeline/azure/azure_pipelines.yml.jinja2",
         "azure-pipelines.yml",
+        "Azure Pipelines (azure-pipelines.yml)",
     ),
 }

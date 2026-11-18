@@ -6,9 +6,17 @@ from typing import TYPE_CHECKING, Annotated
 
 import typer
 
-from scaffold_ca_python.commands._shared import console, print_dry_run_tree, require_project_root
+from scaffold_ca_python.commands._shared import (
+    DryRun,
+    console,
+    ensure_absent,
+    fail,
+    print_dry_run_tree,
+    register_with_alias,
+    require_wireup_context,
+    show_help_if_missing,
+)
 from scaffold_ca_python.core.module_builder import ModuleBuilder
-from scaffold_ca_python.core.project_detector import load_project_context
 from scaffold_ca_python.factory.pipelines import PIPELINE_PROVIDERS
 
 if TYPE_CHECKING:
@@ -18,9 +26,8 @@ if TYPE_CHECKING:
 _GPIPE_HELP = "Scaffold a CI/CD pipeline configuration file. Alias: 'gpipe'"
 _GPIPE_EPILOG = (
     "Providers:\n\n"
-    "  * github    GitHub Actions (.github/workflows/ci.yml)\n\n"
-    "  * azure     Azure Pipelines (azure-pipelines.yml)\n\n"
-    " ==================================================\n\n"
+    + "".join(f"  * {key:<8} {provider.description}\n\n" for key, provider in PIPELINE_PROVIDERS.items())
+    + " ==================================================\n\n"
     "Note: --provider is required.\n\n"
     "Examples:\n\n"
     "  * scaffold gpipe --provider github\n\n"
@@ -38,25 +45,21 @@ def _generate_pipeline_impl(
     allowed = ", ".join(PIPELINE_PROVIDERS.keys())
 
     if not provider:
-        console.print(f"[red]Error:[/red] --provider is required. Choose from: {allowed}.")
-        raise typer.Exit(code=1)
+        fail(f"--provider is required. Choose from: {allowed}.")
 
     if provider not in PIPELINE_PROVIDERS:
-        console.print(f"[red]Error:[/red] Unknown provider '{provider}'. Allowed: {allowed}.")
-        raise typer.Exit(code=1)
+        fail(f"Unknown provider '{provider}'. Allowed: {allowed}.")
 
     pipeline = PIPELINE_PROVIDERS[provider]
-    project_root = require_project_root()
-    project_ctx = load_project_context(project_root)
+    project_root, project_ctx = require_wireup_context()
     out_path = project_root / pipeline.output_path
 
-    if out_path.exists():
-        console.print(
-            f"[red]Error:[/red] '{pipeline.display_name}' already exists at "
-            f"'{out_path.relative_to(project_root)}'.\n"
-            "[dim]Hint:[/dim] Remove the existing file first or choose a different provider."
-        )
-        raise typer.Exit(code=1)
+    ensure_absent(
+        out_path,
+        project_root,
+        kind="File",
+        hint="Remove the existing file first or choose a different provider.",
+    )
 
     builder = ModuleBuilder(
         project_root=project_root,
@@ -79,14 +82,6 @@ def _generate_pipeline_impl(
 
 
 def register(app: typer.Typer) -> None:
-    """Register gpipe / generate-pipeline commands onto *app*."""
-
-    @app.command(
-        "generate-pipeline",
-        help=_GPIPE_HELP,
-        epilog=_GPIPE_EPILOG,
-    )
-    @app.command("gpipe", hidden=True, help=_GPIPE_HELP, epilog=_GPIPE_EPILOG)
     def generate_pipeline(
         ctx: typer.Context,
         provider: Annotated[
@@ -97,18 +92,9 @@ def register(app: typer.Typer) -> None:
                 rich_help_panel="Required",
             ),
         ] = None,
-        dry_run: Annotated[
-            bool,
-            typer.Option(
-                "--dry-run/--no-dry-run",
-                help="Preview without writing.",
-                rich_help_panel="Options",
-                show_default=True,
-            ),
-        ] = False,
+        dry_run: DryRun = False,
     ) -> None:
-        """Scaffold a CI/CD pipeline file for the specified provider."""
-        if provider is None:
-            typer.echo(ctx.get_help())
-            raise typer.Exit(0)
+        provider = show_help_if_missing(ctx, provider)
         _generate_pipeline_impl(provider, dry_run)
+
+    register_with_alias(app, "generate-pipeline", "gpipe", generate_pipeline, help=_GPIPE_HELP, epilog=_GPIPE_EPILOG)

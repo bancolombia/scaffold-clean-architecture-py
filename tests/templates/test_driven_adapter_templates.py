@@ -1,12 +1,8 @@
-"""Template rendering tests for driven_adapter/ group — all 3 types (T086)."""
+"""Template rendering tests for driven_adapter/ group — all 3 types."""
 
-import importlib.resources
-
-from scaffold_ca_python.core.template_renderer import TemplateRenderer
 from scaffold_ca_python.models.context import ModuleContext, ProjectContext
-from scaffold_ca_python.models.layer import Layer
-
-renderer = TemplateRenderer()
+from tests.helpers import read_template as _tmpl
+from tests.helpers import renderer
 
 
 def _project() -> ProjectContext:
@@ -14,16 +10,10 @@ def _project() -> ProjectContext:
 
 
 def _ctx(name: str = "my-adapter") -> ModuleContext:
-    return ModuleContext(name=name, layer=Layer.DRIVEN_ADAPTERS, project=_project())
+    return ModuleContext(name=name, project=_project())
 
 
-def _tmpl(name: str) -> str:
-    return importlib.resources.files("scaffold_ca_python.templates").joinpath(name).read_text(encoding="utf-8")
-
-
-# ---------------------------------------------------------------------------
 # rest-consumer
-# ---------------------------------------------------------------------------
 
 
 def test_rest_consumer_has_httpx_import() -> None:
@@ -41,9 +31,17 @@ def test_rest_consumer_has_async_get() -> None:
     assert "async def get" in out
 
 
-# ---------------------------------------------------------------------------
+def test_rest_consumer_config_yields_async_client() -> None:
+    out = renderer.render_string(
+        _tmpl("driven_adapter/rest_consumer/rest_consumer_config.py.jinja2"),
+        _ctx().model_dump(),
+    )
+    assert "async def rest_consumer_client" in out
+    assert "yield client" in out
+    assert "await client.aclose()" in out
+
+
 # secrets
-# ---------------------------------------------------------------------------
 
 
 def test_secrets_has_get_secret() -> None:
@@ -56,9 +54,7 @@ def test_secrets_has_async_methods() -> None:
     assert "async def" in out
 
 
-# ---------------------------------------------------------------------------
 # generic
-# ---------------------------------------------------------------------------
 
 
 def test_generic_class_name_present() -> None:

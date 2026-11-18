@@ -4,11 +4,16 @@ from __future__ import annotations
 
 import subprocess
 from pathlib import Path
-from typing import Annotated
 
 import typer
 
-from scaffold_ca_python.commands._shared import console, require_project_root
+from scaffold_ca_python.commands._shared import (
+    DryRunUpdate,
+    console,
+    fail,
+    register_with_alias,
+    require_project_root,
+)
 
 _GUP = "Update project dependencies via uv lock --upgrade + uv sync. Alias: 'up'"
 _GUP_EPILOG = "Example:\n\n  * scaffold up --dry-run\n\n  * scaffold update-project --dry-run"
@@ -19,13 +24,9 @@ def _run_uv(cmd: list[str], cwd: Path, failure_message: str) -> None:
     try:
         subprocess.run(cmd, check=True, cwd=cwd)
     except FileNotFoundError:
-        console.print(
-            "[red]Error:[/red] 'uv' is not installed or not on PATH. Install it from https://docs.astral.sh/uv/"
-        )
-        raise typer.Exit(code=1) from None
+        fail("'uv' is not installed or not on PATH. Install it from https://docs.astral.sh/uv/")
     except subprocess.CalledProcessError:
-        console.print(f"[red]Error:[/red] {failure_message}")
-        raise typer.Exit(code=2) from None
+        fail(failure_message, code=2)
 
 
 def _update_project_impl(dry_run: bool) -> None:
@@ -48,24 +49,9 @@ def _update_project_impl(dry_run: bool) -> None:
 
 
 def register(app: typer.Typer) -> None:
-    """Register up / update-project commands onto *app*."""
-
-    @app.command(
-        "update-project",
-        help=_GUP,
-        epilog=_GUP_EPILOG,
-    )
-    @app.command("up", hidden=True, help=_GUP, epilog=_GUP_EPILOG)
     def update_project(
-        dry_run: Annotated[
-            bool,
-            typer.Option(
-                "--dry-run/--no-dry-run",
-                help="Preview commands without running.",
-                rich_help_panel="Options",
-                show_default=True,
-            ),
-        ] = False,
+        dry_run: DryRunUpdate = False,
     ) -> None:
-        """Update dependencies using uv."""
         _update_project_impl(dry_run)
+
+    register_with_alias(app, "update-project", "up", update_project, help=_GUP, epilog=_GUP_EPILOG)

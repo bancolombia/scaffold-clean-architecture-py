@@ -7,19 +7,21 @@ from typing import Annotated
 import typer
 
 from scaffold_ca_python.commands._shared import (
+    DryRun,
     build_and_persist,
     console,
     ensure_absent,
     print_dry_run_tree,
-    require_project_root,
+    register_with_alias,
+    require_wireup_context,
+    show_help_if_missing,
     validate_name_or_exit,
 )
 from scaffold_ca_python.core.module_builder import ModuleBuilder
 from scaffold_ca_python.core.name_utils import validate_module_name
-from scaffold_ca_python.core.project_detector import load_project_context, resolve_tests_root
+from scaffold_ca_python.core.project_detector import resolve_tests_root
 from scaffold_ca_python.factory.simple.model_factory import ModelFactory
 from scaffold_ca_python.models.context import ModuleContext
-from scaffold_ca_python.models.layer import Layer
 
 _GM_HELP = "Scaffold a Pydantic v2 domain model, its gateway, and test stubs. Alias 'gm'."
 _GM_EPILOG = "Example:\n\n  * scaffold gm --name order\n\n  * scaffold generate-model --name order\n\n"
@@ -27,11 +29,10 @@ _GM_EPILOG = "Example:\n\n  * scaffold gm --name order\n\n  * scaffold generate-
 
 def _generate_model_impl(name: str, dry_run: bool) -> None:
     validate_name_or_exit(name, validate_module_name)
-    project_root = require_project_root()
-    project_ctx = load_project_context(project_root)
-    module_ctx = ModuleContext(name=name, layer=Layer.DOMAIN_MODEL, project=project_ctx)
+    project_root, project_ctx = require_wireup_context()
+    module_ctx = ModuleContext(name=name, project=project_ctx)
 
-    model_root = project_root / "src" / project_ctx.python_package / "domain" / "model"
+    model_root = project_ctx.src_pkg_root / "domain" / "model"
     ensure_absent(
         model_root / module_ctx.module_name,
         project_root,
@@ -63,27 +64,14 @@ def _generate_model_impl(name: str, dry_run: bool) -> None:
 
 
 def register(app: typer.Typer) -> None:
-    """Register gm / generate-model commands onto *app*."""
-
-    @app.command("generate-model", help=_GM_HELP, epilog=_GM_EPILOG)
-    @app.command("gm", hidden=True, help=_GM_HELP, epilog=_GM_EPILOG)
     def generate_model(
         ctx: typer.Context,
         name: Annotated[
             str | None, typer.Option("--name", help="Model name (snake_case).", rich_help_panel="Required")
         ] = None,
-        dry_run: Annotated[
-            bool,
-            typer.Option(
-                "--dry-run/--no-dry-run",
-                help="Preview without writing.",
-                rich_help_panel="Options",
-                show_default=True,
-            ),
-        ] = False,
+        dry_run: DryRun = False,
     ) -> None:
-        """Scaffold a domain model package with its gateway in domain/model/<name>/."""
-        if name is None:
-            typer.echo(ctx.get_help())
-            raise typer.Exit(0)
+        name = show_help_if_missing(ctx, name)
         _generate_model_impl(name, dry_run)
+
+    register_with_alias(app, "generate-model", "gm", generate_model, help=_GM_HELP, epilog=_GM_EPILOG)

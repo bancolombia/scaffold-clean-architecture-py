@@ -99,8 +99,14 @@ scaffold gm --name order --dry-run
 
 Scaffold a use case in `domain/usecase/`. The module is always named `<name>_usecase.py` and the class `<Name>UseCase`. Writing `_usecase` in `--name` is optional and the suffix is never duplicated: `create_order`, `create_order_usecase` and `create_order_use_case` all create `create_order_usecase.py` with `CreateOrderUseCase`.
 
+Use `--uses` with one or more **domain gateway** names (comma-separated) to generate a typed constructor and a wireup factory under `application/config/usecases/`. Gateway names must match ABCs in `domain/model/*/gateways/`. Helpers and adapters are not valid `--uses` targets.
+
 ```bash
 scaffold guc --name create_order
+```
+
+```bash
+scaffold guc --name create_order --uses order_repository
 ```
 
 ```bash
@@ -111,8 +117,14 @@ scaffold guc --name create_order --dry-run
 
 Scaffold a driven adapter such as an HTTP client, secrets adapter, or generic outbound adapter.
 
+Use `--gateway` with a domain gateway ABC name so the adapter is registered as `@injectable(as_type=<Gateway>)` and wired to that port.
+
 ```bash
 scaffold gda --type rest-consumer
+```
+
+```bash
+scaffold gda --type generic --name order_repository_adapter --gateway order_repository
 ```
 
 ```bash
@@ -134,6 +146,18 @@ scaffold gep --type mcp --with-resources --with-prompts --dry-run
 ```bash
 scaffold gep --type mcp --add-tool --name create_file --param path:str --param content:str --returns str --description "Creates a file on disk"
 ```
+
+```bash
+scaffold gep --type agent
+```
+
+`--type agent` generates an [A2A](https://a2a-protocol.org) server (a2a-sdk, Starlette, uvicorn) under `infrastructure/entry_points/a2a_server/` and replaces `main.py` with `server.py`. It runs with zero configuration (`uv run <project-script>`):
+
+- `GET /api/v1/health` — liveness probe.
+- `GET /.well-known/agent-card.json` — agent card built from `AGENT_NAME`, `AGENT_DESCRIPTION`, `AGENT_VERSION`, and `AGENT_PUBLIC_URL`.
+- `POST /` (JSON-RPC) and `POST /message:send` (REST) — `SendMessage` answers `Hello, World! You said: <text>`. Clients send the `A2A-Version: 1.0` header.
+
+`HOST` and `PORT` (default `0.0.0.0:8000`) are added to `application/config/config.py`. To call a use case, uncomment the `some_usecase` hooks in `a2a_config.py` and `agent_executor.py`. Only one entry-point type per project: `agent` conflicts with `restapi` and `mcp`.
 
 ### scaffold gh
 
@@ -195,11 +219,23 @@ scaffold up --dry-run
 scaffold update-project --dry-run
 ```
 
+## Dependency injection (wireup)
+
+New projects generated with `scaffold ca` use [wireup](https://pypi.org/project/wireup/) for async-first dependency injection:
+
+- `application/config/wiring.py` defines `create_container()` and package scan targets (`driven_adapters`, `helpers`, `usecases`).
+- Use cases declare gateway dependencies with `scaffold guc --uses …`; adapters bind to gateways with `scaffold gda --gateway …`.
+- Entry points inject use cases with `Injected[…]` (REST/MCP), through constructor injection in a wireup factory (agent), or resolve types from the container (generic)—without importing `application` from infrastructure.
+- Generated code enables ruff rule `ASYNC` and pytest `asyncio_mode = auto`.
+
+**Legacy projects** (generated with scaffold-ca-python ≤ 0.5.0, `dependency-injector`, no `scaffold_version` in `[tool.scaffold-ca-python]`) are not modified by generate commands. Migrate to wireup manually, then set `scaffold_version` in `pyproject.toml` before using newer scaffold commands on that repo.
+
 ## Technologies
 
 | Tool / Library | Version | Role |
 |----------------|---------|------|
 | Python | >=3.13 | Runtime |
+| wireup | 2.13.0 | DI in generated projects |
 | uv | latest | Dependency management, build, and publish |
 | Typer | >=0.27.2 | CLI framework |
 | Rich | >=15.0.0 | Terminal output formatting |
@@ -215,9 +251,9 @@ scaffold update-project --dry-run
 
 - Generates full Clean Architecture project skeletons with `scaffold ca`.
 - Generates domain models with `scaffold gm`.
-- Generates domain use cases with `scaffold guc`.
-- Generates driven adapters with `scaffold gda`.
-- Generates entry points for REST API, agent, MCP, and generic modes with `scaffold gep`.
+- Generates domain use cases with `scaffold guc` (optional `--uses` for gateway wiring and DI factories).
+- Generates driven adapters with `scaffold gda` (optional `--gateway` for port binding).
+- Generates entry points for REST API, A2A agent, MCP, and generic modes with `scaffold gep`.
 - Generates helper utilities with `scaffold gh`.
 - Generates CI/CD pipeline files with `scaffold gpipe`.
 - Validates import boundaries with `scaffold vs`.
@@ -257,6 +293,20 @@ git checkout -b your-branch-feature-name
 ```bash
 uv run pytest
 ```
+
+To run end-to-end tests (these generate real projects and run quality checks on them):
+
+```bash
+uv run pytest -m e2e
+```
+
+**Troubleshooting E2E tests**: If you see `uv sync failed` errors during e2e tests due to TLS/certificate issues (typically in corporate environments with custom CAs or proxies), set `UV_SYSTEM_CERTS=1` to make `uv` use your system's certificate store:
+
+```bash
+UV_SYSTEM_CERTS=1 uv run pytest -m e2e
+```
+
+You can also export this variable in your shell configuration (`.zshrc`, `.bashrc`) to make it permanent for your local environment.
 
 6. Check linting.
 

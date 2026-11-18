@@ -7,6 +7,8 @@ A Clean Architecture Python project.
 ```bash
 uv sync
 uv run pytest
+uv run ruff check .
+uv run mypy --strict src/
 ```
 
 ## Architecture
@@ -24,6 +26,25 @@ src/{{ python_package }}/
 
 tests/                    # Mirrors src/ structure
 ```
+
+## Dependency injection
+
+This project uses **wireup** with an async container (`application/config/wiring.py`).
+
+- **Use cases** depend only on domain gateway ABCs. Add wiring with `scaffold guc --uses <gateway>`.
+- **Driven adapters** implement gateways: `scaffold gda --gateway <gateway>`. Adapters may declare `<Name>Settings` (pydantic-settings) for configuration.
+- **Helpers** are `@injectable` in infrastructure only—they must not be injected into use cases or domain. Use a gateway port if a use case needs a technical capability.
+- **Entry points** use `Injected[UseCase]` or container resolution; do not import the application layer from infrastructure.
+
+### Async-first and resources
+
+- Prefer async I/O in adapters and entry points. The container validates the graph at startup.
+- Adapters that own a long-lived resource (HTTP client, pool, etc.) should read configuration from generated `*Settings` modules (pydantic-settings) and register shared clients in `wiring.py` when needed. Settings without defaults fail fast when env vars are missing.
+- Calling blocking libraries from async code: use `asyncio.to_thread(...)` rather than blocking the event loop.
+
+### Scoped (per-request) dependencies
+
+wireup supports scoped lifetimes, but this scaffold does not generate them. Add `scoped=…` on `@injectable` manually if you need per-request instances.
 
 ## Package
 

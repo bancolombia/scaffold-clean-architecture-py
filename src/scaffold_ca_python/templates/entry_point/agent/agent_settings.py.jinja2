@@ -1,0 +1,32 @@
+"""A2A agent identity settings — loaded from environment (prefix: AGENT_)."""
+
+from __future__ import annotations
+
+import wireup
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class AgentSettings(BaseSettings):
+    """Identity and public URL of this A2A agent.
+
+    All fields carry defaults so the agent runs without any ``.env`` file.
+    Override with environment variables, e.g. ``AGENT_PUBLIC_URL``.
+    """
+
+    name: str = "{{ project.name }}"
+    description: str = "A2A agent built with scaffold-ca-python."
+    version: str = "0.1.0"
+    # URL seen by A2A clients. Override when running behind a proxy or in a container.
+    public_url: str = "http://localhost:8000"
+
+    model_config = SettingsConfigDict(
+        env_prefix="AGENT_",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+
+@wireup.injectable
+def agent_settings_factory() -> AgentSettings:
+    return AgentSettings()

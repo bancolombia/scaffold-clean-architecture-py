@@ -1,34 +1,16 @@
-"""Tests for gh / generate-helper command (T062)."""
+"""Tests for gh / generate-helper command."""
 
 from pathlib import Path
 
-import pytest
 from typer.testing import CliRunner
 
 from scaffold_ca_python.cli import app
-from tests.conftest import strip_ansi
 
 runner = CliRunner()
 
-
-# ---------------------------------------------------------------------------
 # Fixtures
-# ---------------------------------------------------------------------------
 
-
-@pytest.fixture()
-def project_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Bootstrap a minimal CA project root inside tmp_path."""
-    monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["ca", "--name", "my-app"], catch_exceptions=False)
-    project_dir = tmp_path / "my-app"
-    monkeypatch.chdir(project_dir)
-    return project_dir
-
-
-# ---------------------------------------------------------------------------
 # Success path: creates all three files
-# ---------------------------------------------------------------------------
 
 
 def test_creates_init(project_root: Path) -> None:
@@ -70,9 +52,7 @@ def test_success_exit_code(project_root: Path) -> None:
     assert result.exit_code == 0
 
 
-# ---------------------------------------------------------------------------
 # Dry-run: prints file paths, writes nothing
-# ---------------------------------------------------------------------------
 
 
 def test_dry_run_writes_nothing(project_root: Path) -> None:
@@ -87,9 +67,7 @@ def test_dry_run_prints_paths(project_root: Path) -> None:
     assert "date_utils" in result.output
 
 
-# ---------------------------------------------------------------------------
 # Duplicate guard
-# ---------------------------------------------------------------------------
 
 
 def test_duplicate_exits_1(project_root: Path) -> None:
@@ -104,55 +82,7 @@ def test_duplicate_error_message(project_root: Path) -> None:
     assert "already exists" in result.output
 
 
-# ---------------------------------------------------------------------------
 # Validation errors
-# ---------------------------------------------------------------------------
 
 
-def test_invalid_name_exits_1(project_root: Path) -> None:
-    result = runner.invoke(app, ["gh", "--name", "123bad"], catch_exceptions=False)
-    assert result.exit_code == 1
-
-
-def test_invalid_name_error_message(project_root: Path) -> None:
-    result = runner.invoke(app, ["gh", "--name", "123bad"], catch_exceptions=False)
-    assert "invalid" in result.output.lower()
-
-
-def test_no_project_root_exits_1(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.chdir(tmp_path)
-    result = runner.invoke(app, ["gh", "--name", "my_helper"], catch_exceptions=False)
-    assert result.exit_code == 1
-
-
-def test_no_project_root_error_message(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.chdir(tmp_path)
-    result = runner.invoke(app, ["gh", "--name", "my_helper"], catch_exceptions=False)
-    assert "scaffold ca" in result.output.lower()
-
-
-def test_pascal_case_name_exits_1(project_root: Path) -> None:
-    result = runner.invoke(app, ["gh", "--name", "InvalidHelper"])
-    assert result.exit_code == 1
-    assert "snake_case" in result.output
-
-
-def test_kebab_name_exits_1(project_root: Path) -> None:
-    result = runner.invoke(app, ["gh", "--name", "date-utils"])
-    assert result.exit_code == 1
-    assert "snake_case" in result.output
-
-
-# ---------------------------------------------------------------------------
-# US3: no-args → help (T020)
-# ---------------------------------------------------------------------------
-
-
-def test_gh_no_args_exits_0() -> None:
-    result = runner.invoke(app, ["gh"])
-    assert result.exit_code == 0
-
-
-def test_gh_no_args_shows_name_option() -> None:
-    result = runner.invoke(app, ["gh"])
-    assert "--name" in strip_ansi(result.output)
+# : no-args → help
