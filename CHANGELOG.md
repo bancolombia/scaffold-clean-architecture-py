@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0](https://github.com/bancolombia/scaffold-clean-architecture-py/compare/v0.5.0...v1.0.0) (2026-11-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* **scaffold:** gep --type agent now generates infrastructure/entry_points/a2a_server instead of agent/, uses server.py, and no longer accepts --enable-kafka or --enable-mcp-client.
+
+### Features
+
+* **scaffold:** wireup DI for new projects ([bdbc252](https://github.com/bancolombia/scaffold-clean-architecture-py/commit/bdbc2524e83c7bb5643d565cffbc3f3bf954d80f))
+
 ## [0.5.0](https://github.com/bancolombia/scaffold-clean-architecture-py/compare/v0.4.0...v0.5.0) (2026-10-27)
 
 
