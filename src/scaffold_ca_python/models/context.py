@@ -14,7 +14,7 @@ class ProjectContext(BaseModel):
 
     @property
     def is_legacy(self) -> bool:
-        """Return True when the project was generated without scaffold-ca-python ≥ 0.6.0."""
+        """Return True when the project was generated without scaffold-ca-python ≥ 1.0.0."""
         return self.scaffold_version is None
 
     @field_validator("name")
