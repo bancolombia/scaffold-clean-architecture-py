@@ -106,7 +106,7 @@ def test_project_context_is_legacy_false_when_version_set() -> None:
     """ProjectContext.is_legacy is False when scaffold_version is present."""
     from scaffold_ca_python.models.context import ProjectContext
 
-    ctx = ProjectContext(name="my-app", scaffold_version="0.6.0")
+    ctx = ProjectContext(name="my-app", scaffold_version="1.0.0")
     assert ctx.is_legacy is False
 
 
@@ -114,10 +114,10 @@ def test_load_project_context_reads_scaffold_version(tmp_path: Path) -> None:
     """load_project_context reads scaffold_version from [tool.scaffold-ca-python] (, )."""
     _write_pyproject(
         tmp_path / "pyproject.toml",
-        '[tool.scaffold-ca-python]\nname = "my-app"\nscaffold_version = "0.6.0"\n',
+        '[tool.scaffold-ca-python]\nname = "my-app"\nscaffold_version = "1.0.0"\n',
     )
     ctx = load_project_context(tmp_path)
-    assert ctx.scaffold_version == "0.6.0"
+    assert ctx.scaffold_version == "1.0.0"
     assert ctx.is_legacy is False
 
 

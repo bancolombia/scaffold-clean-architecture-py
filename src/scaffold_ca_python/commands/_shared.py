@@ -186,7 +186,7 @@ def require_wireup_project(ctx: ProjectContext) -> None:
     if ctx.is_legacy:
         fail(
             f"Project [bold]{ctx.name}[/bold] was generated with scaffold-ca-python ≤ 0.5.0 (dependency-injector).\n"
-            "[dim]This scaffolder only modifies wireup projects (0.6.0+). "
+            "[dim]This scaffolder only modifies wireup projects (1.0.0+). "
             f"{_LEGACY_MIGRATION_HINT}[/dim]"
         )
 

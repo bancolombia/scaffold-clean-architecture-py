@@ -144,12 +144,14 @@ def test_require_wireup_project_message_mentions_manual_migration(
     assert "manually" in output.lower()
     assert "wireup" in output.lower()
     assert "scaffold_version" in output
+    assert "1.0.0+" in output
+    assert "0.6.0" not in output
 
 
 def test_require_wireup_project_passes_for_wireup_project(tmp_path: Path) -> None:
     """require_wireup_project must not raise for a project with scaffold_version set."""
     from scaffold_ca_python.commands._shared import require_wireup_project
 
-    ctx = ProjectContext(name="my-app", scaffold_version="0.6.0")
+    ctx = ProjectContext(name="my-app", scaffold_version="1.0.0")
     # Should not raise
     require_wireup_project(ctx)
