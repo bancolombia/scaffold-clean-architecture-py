@@ -62,7 +62,7 @@ description: "Task list for Upgrade framework in scaffold up"
 ### Tests first
 
 - [x] T016 [US1] Integration test: `scaffold up --dry-run` on `legacy_050_project` → no git dirty; stdout/stderr contract smoke.
-- [ ] T017 [US1] Golden test: apply `up` on fixture → ≥70% line delta vs manual wireup reference (SC-001).
+- [x] T017 [US1] Golden test: apply `up` on fixture → ≥70% line delta vs manual wireup reference (SC-001).
 - [x] T018 [US1] JSON schema test for `--report json` against `contracts/upgrade-actions.md` and pending kinds in `contracts/pending-items.md`.
 - [x] T019 [US1] Idempotence: second `up` on migrated fixture → no applied items.
 

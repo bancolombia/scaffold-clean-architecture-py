@@ -28,7 +28,6 @@ def test_up_migrates_fixture(legacy_copy: Path) -> None:
         mock_run.return_value = MagicMock(returncode=0)
         result = runner.invoke(app, ["up", "--allow-dirty"], catch_exceptions=False)
     assert result.exit_code == 0, result.output
-    assert result.exit_code == 0
     pyproject = (legacy_copy / "pyproject.toml").read_text(encoding="utf-8")
     assert "wireup" in pyproject
     assert "dependency-injector" not in pyproject
