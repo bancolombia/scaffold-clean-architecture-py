@@ -20,7 +20,7 @@ description: "Task list for Upgrade framework in scaffold up"
 
 - [x] T001 Confirm branch `feature/029-upgrade-framework` and baseline `uv run pytest` (record pass count).
 - [x] T002 Add `libcst` to scaffolder dependencies in `pyproject.toml` (runtime or optional extra per R8—default runtime for migrate action).
-- [ ] T003 [P] Generate static fixture `tests/fixtures/legacy_050_project/` via `uvx scaffold-ca-python==0.5.0` once; commit tree + README for regeneration (L3).
+- [x] T003 [P] Generate static fixture `tests/fixtures/legacy_050_project/` via `uvx scaffold-ca-python==0.5.0` once; commit tree + README for regeneration (L3).
 
 ---
 
@@ -63,18 +63,18 @@ description: "Task list for Upgrade framework in scaffold up"
 
 - [x] T016 [US1] Integration test: `scaffold up --dry-run` on `legacy_050_project` → no git dirty; stdout/stderr contract smoke.
 - [ ] T017 [US1] Golden test: apply `up` on fixture → ≥70% line delta vs manual wireup reference (SC-001).
-- [ ] T018 [US1] JSON schema test for `--report json` against `contracts/upgrade-actions.md` and pending kinds in `contracts/pending-items.md`.
-- [ ] T019 [US1] Idempotence: second `up` on migrated fixture → no applied items.
+- [x] T018 [US1] JSON schema test for `--report json` against `contracts/upgrade-actions.md` and pending kinds in `contracts/pending-items.md`.
+- [x] T019 [US1] Idempotence: second `up` on migrated fixture → no applied items.
 
 ### Implementation
 
 - [x] T020 [US1] Extend `core/file_writer.py` / `module_builder.py` for unified diffs in dry-run (H5).
 - [x] T021 [US1] Implement DI `applies()` — `dependency-injector` dep or container modules present (H1).
-- [ ] T022 [US1] Implement DI `up()` — pyproject, libcst codemod, injectable/Injected transforms, wiring/usecases, container deletion (FR-005).
-- [ ] T023 [US1] Fingerprint table for 0.5.0 composition roots; pending `composition_root_modified` (clarification).
+- [x] T022 [US1] Implement DI `up()` — pyproject, libcst codemod, injectable/Injected transforms, wiring/usecases, container deletion (FR-005).
+- [x] T023 [US1] Fingerprint table for 0.5.0 composition roots; pending `composition_root_modified` (clarification).
 - [x] T024 [US1] Wire `commands/update_project.py`: order actions → lock → sync (H2); flags `--report`, `--skip-upgrades`, `--allow-dirty`; stderr/stdout split (M2); exit code 1 on uv failure (M3).
 - [x] T025 [US1] Runner updates `scaffold_version` after applied items (H4).
-- [ ] T026 [US1] T016–T019 pass.
+- [x] T026 [US1] T016–T019 pass.
 
 **Checkpoint**: US1 deliverable on fixture.
 
@@ -85,14 +85,14 @@ description: "Task list for Upgrade framework in scaffold up"
 ### Tests first
 
 - [x] T027 [US3] Test `install-skill migrate-di` copies files and respects `--force` (FR-012).
-- [ ] T028 [US3] Test recipe/guide alignment for all pending kinds (FR-013, SC-003).
+- [x] T028 [US3] Test recipe/guide alignment for all pending kinds (FR-013, SC-003).
 
 ### Implementation
 
 - [x] T029 [US3] Package `skills/migrate-di/` with SKILL, recipes, errors, checklist (verification steps from retired FR-006).
 - [x] T030 [US3] Implement `commands/install_skill.py` and register on CLI (L1).
 - [x] T031 [US3] Add `docs/migration/dependency-injector-to-wireup.md` and README section (FR-014).
-- [ ] T032 [US3] T027–T028 pass.
+- [x] T032 [US3] T027–T028 pass.
 
 ---
 

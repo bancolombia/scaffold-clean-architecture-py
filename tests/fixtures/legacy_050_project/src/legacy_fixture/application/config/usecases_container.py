@@ -1,0 +1,18 @@
+"""Use-case DI container."""
+
+from dependency_injector import containers, providers
+
+# Import use-case classes here to wire them in the UseCaseContainer below.
+# legacy_fixture.application.usecases.my_use_case.MyUseCase
+
+
+class UseCaseContainer(containers.DeclarativeContainer):
+    """Wire use-case singletons here, injecting driven adapters."""
+
+    da_container = providers.DependenciesContainer()
+
+    # Example:
+    # my_use_case = providers.Singleton(
+    #     MyUseCase,
+    #     arg1=da_container.my_repo,
+    # )
