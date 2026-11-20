@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/bancolombia/scaffold-clean-architecture-py/compare/v1.0.0...v1.0.1) (2026-11-19)
+
+
+### Bug Fixes
+
+* **cli:** state that wireup projects start at 1.0.0 in legacy guard ([3766218](https://github.com/bancolombia/scaffold-clean-architecture-py/commit/376621817ef451186409aa2cb023bc3b65d4585b))
+
 ## [1.0.0](https://github.com/bancolombia/scaffold-clean-architecture-py/compare/v0.5.0...v1.0.0) (2026-11-18)
 
 
