@@ -190,7 +190,7 @@ uv run --project <scaffold-repo> scaffold gep --type agent --enable-kafka; echo 
 
 ---
 
-> **Migration scenarios** (0.5.0 → wireup, agent skill): see [docs/spec-029-migrate-di/quickstart.md](../../docs/spec-029-migrate-di/quickstart.md).
+> **Migration scenarios** (0.5.0 → wireup, agent skill): see [specs/029-upgrade-framework/quickstart.md](../../specs/029-upgrade-framework/quickstart.md).
 
 ---
 

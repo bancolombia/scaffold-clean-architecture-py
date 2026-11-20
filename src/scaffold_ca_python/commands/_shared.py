@@ -134,8 +134,8 @@ def build_and_persist(factory: ModuleFactory, builder: ModuleBuilder) -> list[Pa
 
 
 _LEGACY_MIGRATION_HINT = (
-    "Migrate from dependency-injector to wireup manually, then set "
-    "[bold]scaffold_version[/bold] under [bold][tool.scaffold-ca-python][/bold] in pyproject.toml."
+    "Run [bold]scaffold up[/bold] to migrate from dependency-injector to wireup "
+    "(or install the agent skill with [bold]scaffold install-skill migrate-di[/bold])."
 )
 
 

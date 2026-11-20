@@ -9,6 +9,7 @@ from scaffold_ca_python.commands import (
     generate_pipeline,
     generate_project,
     generate_use_case,
+    install_skill,
     update_project,
     validate_structure,
 )
@@ -29,6 +30,7 @@ _COMMAND_MODULES = (
     generate_helper,
     generate_pipeline,
     update_project,
+    install_skill,
     delete_module,
     validate_structure,
 )

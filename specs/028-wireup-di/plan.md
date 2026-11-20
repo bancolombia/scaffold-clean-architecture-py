@@ -8,7 +8,7 @@
 
 ## Summary
 
-Replace `dependency-injector` with `wireup==2.13.0` in all **new** generated projects. Generated projects gain a validated async dependency graph (discovered by package scan), typed adapter settings, and entry points that inject by type without importing from `application`. Eight commands are updated; two entry-point bugs are fixed; legacy projects are refused with a pointer to [docs/spec-029-migrate-di](../../docs/spec-029-migrate-di/README.md) for future `scaffold migrate-di`.
+Replace `dependency-injector` with `wireup==2.13.0` in all **new** generated projects. Generated projects gain a validated async dependency graph (discovered by package scan), typed adapter settings, and entry points that inject by type without importing from `application`. Eight commands are updated; two entry-point bugs are fixed; legacy projects are refused with a pointer to [specs/029-upgrade-framework](../../specs/029-upgrade-framework/README.md) for future `scaffold migrate-di`.
 
 ---
 
@@ -72,7 +72,7 @@ Latest re-test (round 3, requested 2026-10-30 17:18 -05:00): 36/36 manual checks
 
 **Performance Goals**: No regression in command execution time; all existing tests continue to pass
 
-**Constraints**: Must not break any existing `generate-*` command for new (wireup) projects; legacy projects (missing `scaffold_version` key) are refused (exit 1) with a message pointing to [docs/spec-029-migrate-di](../../docs/spec-029-migrate-di/README.md) — no legacy templates are shipped
+**Constraints**: Must not break any existing `generate-*` command for new (wireup) projects; legacy projects (missing `scaffold_version` key) are refused (exit 1) with a message pointing to [specs/029-upgrade-framework](../../specs/029-upgrade-framework/README.md) — no legacy templates are shipped
 
 **Scale/Scope**: 8 commands modified, ~30 files in the scaffolder, ~15 template files replaced/added (migration command is spec 029)
 
@@ -103,7 +103,7 @@ specs/028-wireup-di/
 ├── data-model.md        ← Phase 1
 ├── quickstart.md        ← Phase 1
 ├── contracts/
-│   └── generated-files.md    ← per-command file layout (migration contract → docs/spec-029-migrate-di)
+│   └── generated-files.md    ← per-command file layout (migration contract → specs/029-upgrade-framework)
 ├── checklists/
 │   └── requirements.md
 └── tasks.md             ← /speckit-tasks (not yet created)
@@ -215,7 +215,7 @@ No constitution violations. All new code complies with every principle.
 1. Add `scaffold_version: str | None = None` to `ProjectContext` and `is_legacy` property (`scaffold_version is None`). Legacy projects that lack the key are detected by absence, not version comparison.
 2. `load_project_context` reads the `scaffold_version` key from `[tool.scaffold-ca-python]`.
 3. `pyproject_toml.jinja2` emits `scaffold_version = "{{ scaffold_version }}"`.
-4. Add `require_wireup_project(ctx: ProjectContext)` guard in `_shared.py` for all project-modifying `generate-*` commands; exits 1 with message pointing to [docs/spec-029-migrate-di](../../docs/spec-029-migrate-di/README.md) when `ctx.is_legacy`.
+4. Add `require_wireup_project(ctx: ProjectContext)` guard in `_shared.py` for all project-modifying `generate-*` commands; exits 1 with message pointing to [specs/029-upgrade-framework](../../specs/029-upgrade-framework/README.md) when `ctx.is_legacy`.
 
 **Tests first**:
 - `test_project_context_scaffold_version`: `scaffold_version` is `None` for a project without the key (`is_legacy=True`); non-None for a project that has it.
@@ -314,11 +314,11 @@ No constitution violations. All new code complies with every principle.
 **Files**: `README.md`, template project README, spec notes in 006, 008, 019
 
 **Changes**:
-1. `README.md`: updated command sections for `ca`, `guc` (with `--uses`), `gda`, `gh`, `gep`, `dm`; link legacy upgrades to [docs/spec-029-migrate-di](../../docs/spec-029-migrate-di/README.md).
+1. `README.md`: updated command sections for `ca`, `guc` (with `--uses`), `gda`, `gh`, `gep`, `dm`; link legacy upgrades to [specs/029-upgrade-framework](../../specs/029-upgrade-framework/README.md).
 2. Template `README.md` for generated projects: injectable scope rules (D7), adapter-with-resource convention (D6), async-to-sync bridge (`asyncio.to_thread`), `scoped` lifecycle (documented, not generated).
 3. Notes in `specs/006`, `specs/008`, `specs/019` plan/spec files that spec 028 supersedes those sections.
 
-**Deferred to spec 029**: `migrate-di` codemod, migration guide, agent skill — see [plan.md](../../docs/spec-029-migrate-di/plan.md).
+**Deferred to spec 029**: `migrate-di` codemod, migration guide, agent skill — see [plan.md](../../specs/029-upgrade-framework/plan.md).
 
 ---
 

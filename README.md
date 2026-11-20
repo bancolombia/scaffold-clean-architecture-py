@@ -228,7 +228,7 @@ New projects generated with `scaffold ca` use [wireup](https://pypi.org/project/
 - Entry points inject use cases with `Injected[…]` (REST/MCP), through constructor injection in a wireup factory (agent), or resolve types from the container (generic)—without importing `application` from infrastructure.
 - Generated code enables ruff rule `ASYNC` and pytest `asyncio_mode = auto`.
 
-**Legacy projects** (generated with scaffold-ca-python ≤ 0.5.0, `dependency-injector`, no `scaffold_version` in `[tool.scaffold-ca-python]`) are not modified by generate commands. Migrate to wireup manually, then set `scaffold_version` in `pyproject.toml` before using newer scaffold commands on that repo.
+**Legacy projects** (scaffold-ca-python ≤ 0.5.0, no `scaffold_version` in `[tool.scaffold-ca-python]`) are not modified by generate commands. Run **`scaffold up`** to migrate to wireup, or **`scaffold install-skill migrate-di`** for agent-guided completion. See [spec 029](specs/029-upgrade-framework/spec.md).
 
 ## Technologies
 

@@ -57,7 +57,7 @@ This document records the research and spike findings that informed the design d
 
 ## Decision 4: Codemod library — libcst
 
-**Moved to [docs/spec-029-migrate-di](../../docs/spec-029-migrate-di/README.md)** (future `scaffold migrate-di`).
+**Moved to [specs/029-upgrade-framework](../../specs/029-upgrade-framework/README.md)** (future `scaffold migrate-di`).
 
 **Decision**: libcst for all source-to-source transformations in `migrate-di`
 
@@ -74,7 +74,7 @@ This document records the research and spike findings that informed the design d
 
 ## Decision 5: Migration exit codes
 
-**Moved to [docs/spec-029-migrate-di](../../docs/spec-029-migrate-di/README.md)**.
+**Moved to [specs/029-upgrade-framework](../../specs/029-upgrade-framework/README.md)**.
 
 **Decision**: 0 = no changes needed; 1 = applied, no pending; 2 = applied, pending items remain; 3 = precondition failure; 4 = post-verification failure
 
@@ -108,7 +108,7 @@ This document records the research and spike findings that informed the design d
 
 ## Decision 8: Agent skill packaging — inside the wheel
 
-**Moved to [docs/spec-029-migrate-di](../../docs/spec-029-migrate-di/README.md)**.
+**Moved to [specs/029-upgrade-framework](../../specs/029-upgrade-framework/README.md)**.
 
 **Decision**: `src/scaffold_ca_python/skills/migrate-di/` included in the wheel via `package-data`
 

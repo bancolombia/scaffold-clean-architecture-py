@@ -97,7 +97,7 @@ def test_uv_not_found_error_message(project_root: Path) -> None:
 # Error: uv lock fails (non-zero exit)
 
 
-def test_uv_lock_failure_exits_2(project_root: Path) -> None:
+def test_uv_lock_failure_exits_1(project_root: Path) -> None:
     import subprocess
 
     with patch(
@@ -105,7 +105,7 @@ def test_uv_lock_failure_exits_2(project_root: Path) -> None:
         side_effect=subprocess.CalledProcessError(1, ["uv", "lock", "--upgrade"]),
     ):
         result = runner.invoke(app, ["up"], catch_exceptions=False)
-        assert result.exit_code == 2
+        assert result.exit_code == 1
 
 
 # Error: no project root

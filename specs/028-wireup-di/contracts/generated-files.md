@@ -213,12 +213,12 @@ tests/.../test_entry_point.py
 
 ## Legacy Projects (FR-020)
 
-All `generate-*` commands that modify an existing project (`gm`, `guc`, `gda`, `gh`, `gep`, `--add-tool`, `gp`, `dm`, `up`) MUST refuse (exit 1) when the project's `[tool.scaffold-ca-python]` section lacks the `scaffold_version` key. The error message MUST point to [docs/spec-029-migrate-di](../../../docs/spec-029-migrate-di/README.md) and MAY name the planned `scaffold migrate-di` / `--install-skill` commands.
+All `generate-*` commands that modify an existing project (`gm`, `guc`, `gda`, `gh`, `gep`, `--add-tool`, `gp`, `dm`) MUST refuse (exit 1) when the project's `[tool.scaffold-ca-python]` section lacks the `scaffold_version` key. The error message MUST point to [specs/029-upgrade-framework](../../../specs/029-upgrade-framework/spec.md) and name `scaffold up` / `scaffold install-skill migrate-di`. *Superseded in part by spec 029 (`up` is exempt and is the migration path).*
 
-No files are written. `ca` (creates a new project) and `vs` (read-only) are exempt.
+No files are written. `ca` (creates a new project), `vs` (read-only), and `up` (upgrade/migrate) are exempt.
 
 ---
 
-## Migration (`scaffold migrate-di`)
+## Migration (`scaffold up`)
 
-**Out of scope for spec 028.** File layout, flags, and report schema: [docs/spec-029-migrate-di/contracts/migrate-di.md](../../../docs/spec-029-migrate-di/contracts/migrate-di.md).
+**Out of scope for spec 028.** Contract: [specs/029-upgrade-framework/contracts/upgrade-actions.md](../../../specs/029-upgrade-framework/contracts/upgrade-actions.md).

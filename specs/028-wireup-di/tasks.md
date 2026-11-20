@@ -9,7 +9,7 @@
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Parallelizable (different files, no dependencies on incomplete tasks)
-- **[Story]**: User story label (US1–US4). The former migration stories (labelled US4/US5 before the split) now live as US1/US2 in [docs/spec-029-migrate-di/tasks.md](../../docs/spec-029-migrate-di/tasks.md); US4 here is the A2A agent entry point.
+- **[Story]**: User story label (US1–US4). The former migration stories (labelled US4/US5 before the split) now live as US1/US2 in [specs/029-upgrade-framework/tasks.md](../../specs/029-upgrade-framework/tasks.md); US4 here is the A2A agent entry point.
 - All paths relative to repo root
 
 ---
@@ -205,7 +205,7 @@
 
 ## Deferred — Spec 029 (migration)
 
-The former migration user stories (US4/US5 before the split; now US1/US2 in spec 029) and tasks **T047–T067** (`scaffold migrate-di`, skill, migration guide) moved to [docs/spec-029-migrate-di/tasks.md](../../docs/spec-029-migrate-di/tasks.md). Do not implement under spec 028.
+The former migration user stories (US4/US5 before the split; now US1/US2 in spec 029) and tasks **T047–T067** (`scaffold migrate-di`, skill, migration guide) moved to [specs/029-upgrade-framework/tasks.md](../../specs/029-upgrade-framework/tasks.md). Do not implement under spec 028.
 
 ---
 
@@ -315,7 +315,7 @@ T025: Update da_secrets.py + secrets_adapter.py.jinja2
 1. MVP (US1+US2) → new projects work correctly
 2. US3 (T042–T046) → fail-fast validation hardened
 3. Polish (T069–T074) → docs and coverage
-4. Migration → [docs/spec-029-migrate-di/tasks.md](../../docs/spec-029-migrate-di/tasks.md) after 028 ships
+4. Migration → [specs/029-upgrade-framework/tasks.md](../../specs/029-upgrade-framework/tasks.md) after 028 ships
 
 ### Parallel Team Strategy
 

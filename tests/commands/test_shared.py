@@ -130,10 +130,10 @@ def test_require_wireup_project_exits_1_for_legacy(tmp_path: Path) -> None:
     assert exc_info.value.exit_code == 1
 
 
-def test_require_wireup_project_message_mentions_manual_migration(
+def test_require_wireup_project_message_mentions_scaffold_up(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """require_wireup_project exit message must explain manual wireup migration."""
+    """require_wireup_project exit message must point to scaffold up."""
     from scaffold_ca_python.commands._shared import require_wireup_project
 
     ctx = ProjectContext(name="old-app")
@@ -141,9 +141,8 @@ def test_require_wireup_project_message_mentions_manual_migration(
         require_wireup_project(ctx)
     captured = capsys.readouterr()
     output = captured.out + captured.err
-    assert "manually" in output.lower()
+    assert "scaffold up" in output.lower()
     assert "wireup" in output.lower()
-    assert "scaffold_version" in output
     assert "1.0.0+" in output
     assert "0.6.0" not in output
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import difflib
 import os
 import tempfile
 from pathlib import Path
@@ -25,8 +26,12 @@ class FileWriter:
                 reach the target tree.
 
     Dry-run mode: Returns a list of target :class:`Path` objects that *would*
-                  be created or deleted, without touching disk.
+                  be created or deleted, without touching disk. Unified diffs are
+                  accumulated in :attr:`dry_run_diffs`.
     """
+
+    def __init__(self) -> None:
+        self.dry_run_diffs: list[str] = []
 
     def execute(
         self,
@@ -45,12 +50,98 @@ class FileWriter:
 
     def _dry_run(self, operations: list[FileOperation]) -> list[Path]:
         result: list[Path] = []
+        self.dry_run_diffs = []
         for op in operations:
             if isinstance(op, CreateFile):
                 result.append(op.file.path)
-            elif isinstance(op, (DeleteFile, InsertAfter, AppendToFile)):
+                self._record_create_diff(op)
+            elif isinstance(op, DeleteFile):
                 result.append(op.path)
+                self._record_delete_diff(op.path)
+            elif isinstance(op, InsertAfter):
+                result.append(op.path)
+                self._record_insert_diff(op)
+            elif isinstance(op, AppendToFile):
+                result.append(op.path)
+                self._record_append_diff(op)
         return result
+
+    def _record_create_diff(self, op: CreateFile) -> None:
+        path = op.file.path
+        before = path.read_text(encoding="utf-8") if path.exists() else ""
+        after = op.file.content
+        label = str(path)
+        if not before:
+            lines = difflib.unified_diff(
+                [],
+                after.splitlines(keepends=True),
+                fromfile="/dev/null",
+                tofile=label,
+                lineterm="",
+            )
+        else:
+            lines = difflib.unified_diff(
+                before.splitlines(keepends=True),
+                after.splitlines(keepends=True),
+                fromfile=label,
+                tofile=label,
+                lineterm="",
+            )
+        diff = "".join(lines)
+        if diff:
+            self.dry_run_diffs.append(diff)
+
+    def _record_delete_diff(self, path: Path) -> None:
+        if not path.exists():
+            return
+        before = path.read_text(encoding="utf-8")
+        lines = difflib.unified_diff(
+            before.splitlines(keepends=True),
+            [],
+            fromfile=str(path),
+            tofile="/dev/null",
+            lineterm="",
+        )
+        diff = "".join(lines)
+        if diff:
+            self.dry_run_diffs.append(diff)
+
+    def _record_insert_diff(self, op: InsertAfter) -> None:
+        if not op.path.exists():
+            return
+        before = op.path.read_text(encoding="utf-8")
+        lines = before.splitlines(keepends=True)
+        for i, line in enumerate(lines):
+            if op.anchor in line:
+                insertion = op.content if op.content.endswith("\n") else op.content + "\n"
+                lines.insert(i + 1, insertion)
+                break
+        after = "".join(lines)
+        diff_lines = difflib.unified_diff(
+            before.splitlines(keepends=True),
+            after.splitlines(keepends=True),
+            fromfile=str(op.path),
+            tofile=str(op.path),
+            lineterm="",
+        )
+        diff = "".join(diff_lines)
+        if diff:
+            self.dry_run_diffs.append(diff)
+
+    def _record_append_diff(self, op: AppendToFile) -> None:
+        before = op.path.read_text(encoding="utf-8") if op.path.exists() else ""
+        normalized = before.rstrip("\n") + "\n" if before else ""
+        after = normalized + op.content
+        lines = difflib.unified_diff(
+            before.splitlines(keepends=True),
+            after.splitlines(keepends=True),
+            fromfile=str(op.path),
+            tofile=str(op.path),
+            lineterm="",
+        )
+        diff = "".join(lines)
+        if diff:
+            self.dry_run_diffs.append(diff)
 
     def _partition(self, operations: list[FileOperation]) -> tuple[list[CreateFile], list[DeleteFile]]:
         creates = [op for op in operations if isinstance(op, CreateFile)]
