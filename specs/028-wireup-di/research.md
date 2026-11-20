@@ -57,9 +57,9 @@ This document records the research and spike findings that informed the design d
 
 ## Decision 4: Codemod library — libcst
 
-**Moved to [specs/029-upgrade-framework](../../specs/029-upgrade-framework/README.md)** (future `scaffold migrate-di`).
+**Moved to [specs/029-upgrade-framework](../../specs/029-upgrade-framework/spec.md)** (implemented as the `scaffold up` upgrade action).
 
-**Decision**: libcst for all source-to-source transformations in `migrate-di`
+**Decision**: libcst for all source-to-source transformations in the `scaffold up` dependency-injector → wireup action
 
 **Rationale**:
 - Preserves comments, blank lines, and formatting that `ast`-based rewriting would destroy.
@@ -68,13 +68,13 @@ This document records the research and spike findings that informed the design d
 
 **Alternatives considered**: `ast` + `astor` — loses comments; regex — too fragile for Python syntax.
 
-**Risk**: libcst adds a runtime dependency to the scaffolder. Acceptable because `migrate-di` is a core command, not a plugin. If this becomes a concern, it can be moved to an optional extra in a future release.
+**Risk**: libcst adds a runtime dependency to the scaffolder. Acceptable because `scaffold up` is a core command; libcst is imported only when the action runs. If this becomes a concern, it can be moved to an optional extra in a future release.
 
 ---
 
 ## Decision 5: Migration exit codes
 
-**Moved to [specs/029-upgrade-framework](../../specs/029-upgrade-framework/README.md)**.
+**Moved to [specs/029-upgrade-framework](../../specs/029-upgrade-framework/spec.md)**.
 
 **Decision**: 0 = no changes needed; 1 = applied, no pending; 2 = applied, pending items remain; 3 = precondition failure; 4 = post-verification failure
 
@@ -108,9 +108,9 @@ This document records the research and spike findings that informed the design d
 
 ## Decision 8: Agent skill packaging — inside the wheel
 
-**Moved to [specs/029-upgrade-framework](../../specs/029-upgrade-framework/README.md)**.
+**Moved to [specs/029-upgrade-framework](../../specs/029-upgrade-framework/spec.md)**.
 
-**Decision**: `src/scaffold_ca_python/skills/migrate-di/` included in the wheel via `package-data`
+**Decision**: `src/scaffold_ca_python/skills/migrate-di/` included in the wheel (shipped by the hatch `packages` setting)
 
 **Rationale**:
 - Skill version is always in sync with the scaffolder version (no separate install step).

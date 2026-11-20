@@ -5,7 +5,11 @@ from pathlib import Path
 import pytest
 
 from scaffold_ca_python.core.errors import ScaffoldError
-from scaffold_ca_python.core.project_detector import find_project_root, resolve_tests_root
+from scaffold_ca_python.core.project_detector import (
+    MissingScaffoldSectionError,
+    find_project_root,
+    resolve_tests_root,
+)
 
 # Helpers
 
@@ -98,3 +102,45 @@ def test_resolve_tests_root_falls_back_to_root_tests(tmp_path: Path) -> None:
 
 def test_resolve_tests_root_defaults_to_src_tests_when_neither_exists(tmp_path: Path) -> None:
     assert resolve_tests_root(tmp_path) == tmp_path / "src" / "tests"
+
+
+# Pre-scaffold projects: pyproject.toml without [tool.scaffold-ca-python]
+
+
+def _pre_scaffold_project(
+    root: Path, *, project_name: str = "mcp-server-code-review", pkg: str = "mcp_server_code_review"
+) -> Path:
+    (root / "pyproject.toml").write_text(f'[project]\nname = "{project_name}"\n', encoding="utf-8")
+    package = root / "src" / pkg
+    for subdir in ("domain", "infrastructure", "application"):
+        (package / subdir).mkdir(parents=True)
+    (package / "__init__.py").write_text("", encoding="utf-8")
+    (root / "src" / "tests").mkdir()
+    return package
+
+
+def test_pyproject_without_section_explains_how_to_adopt(tmp_path: Path) -> None:
+    _pre_scaffold_project(tmp_path)
+    with pytest.raises(MissingScaffoldSectionError) as info:
+        find_project_root(cwd=tmp_path)
+    message = str(info.value)
+    assert str(tmp_path / "pyproject.toml") in message
+    assert '[tool.scaffold-ca-python]\nname = "mcp-server-code-review"' in message
+
+
+def test_adoption_message_from_inside_the_src_package(tmp_path: Path) -> None:
+    package = _pre_scaffold_project(tmp_path)
+    with pytest.raises(MissingScaffoldSectionError):
+        find_project_root(cwd=package / "domain")
+
+
+def test_adoption_name_follows_the_src_package(tmp_path: Path) -> None:
+    _pre_scaffold_project(tmp_path, project_name="something-else", pkg="code_review_agent")
+    with pytest.raises(MissingScaffoldSectionError, match='name = "code-review-agent"'):
+        find_project_root(cwd=tmp_path)
+
+
+def test_root_layout_without_section_still_uses_ca_fallback(tmp_path: Path) -> None:
+    _make_pyproject(tmp_path, with_section=False)
+    _make_ca_layout(tmp_path)
+    assert find_project_root(cwd=tmp_path) == tmp_path

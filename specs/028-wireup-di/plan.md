@@ -8,7 +8,7 @@
 
 ## Summary
 
-Replace `dependency-injector` with `wireup==2.13.0` in all **new** generated projects. Generated projects gain a validated async dependency graph (discovered by package scan), typed adapter settings, and entry points that inject by type without importing from `application`. Eight commands are updated; two entry-point bugs are fixed; legacy projects are refused with a pointer to [specs/029-upgrade-framework](../../specs/029-upgrade-framework/README.md) for future `scaffold migrate-di`.
+Replace `dependency-injector` with `wireup==2.13.0` in all **new** generated projects. Generated projects gain a validated async dependency graph (discovered by package scan), typed adapter settings, and entry points that inject by type without importing from `application`. Eight commands are updated; two entry-point bugs are fixed; legacy projects are refused with a pointer to [specs/029-upgrade-framework](../../specs/029-upgrade-framework/spec.md) where the `scaffold up` migration path is specified.
 
 ---
 
@@ -72,7 +72,7 @@ Latest re-test (round 3, requested 2026-10-30 17:18 -05:00): 36/36 manual checks
 
 **Performance Goals**: No regression in command execution time; all existing tests continue to pass
 
-**Constraints**: Must not break any existing `generate-*` command for new (wireup) projects; legacy projects (missing `scaffold_version` key) are refused (exit 1) with a message pointing to [specs/029-upgrade-framework](../../specs/029-upgrade-framework/README.md) — no legacy templates are shipped
+**Constraints**: Must not break any existing `generate-*` command for new (wireup) projects; legacy projects (missing `scaffold_version` key) are refused (exit 1) with a message pointing to [specs/029-upgrade-framework](../../specs/029-upgrade-framework/spec.md) — no legacy templates are shipped
 
 **Scale/Scope**: 8 commands modified, ~30 files in the scaffolder, ~15 template files replaced/added (migration command is spec 029)
 
@@ -215,11 +215,11 @@ No constitution violations. All new code complies with every principle.
 1. Add `scaffold_version: str | None = None` to `ProjectContext` and `is_legacy` property (`scaffold_version is None`). Legacy projects that lack the key are detected by absence, not version comparison.
 2. `load_project_context` reads the `scaffold_version` key from `[tool.scaffold-ca-python]`.
 3. `pyproject_toml.jinja2` emits `scaffold_version = "{{ scaffold_version }}"`.
-4. Add `require_wireup_project(ctx: ProjectContext)` guard in `_shared.py` for all project-modifying `generate-*` commands; exits 1 with message pointing to [specs/029-upgrade-framework](../../specs/029-upgrade-framework/README.md) when `ctx.is_legacy`.
+4. Add `require_wireup_project(ctx: ProjectContext)` guard in `_shared.py` for all project-modifying `generate-*` commands; exits 1 with message pointing to [specs/029-upgrade-framework](../../specs/029-upgrade-framework/spec.md) when `ctx.is_legacy`.
 
 **Tests first**:
 - `test_project_context_scaffold_version`: `scaffold_version` is `None` for a project without the key (`is_legacy=True`); non-None for a project that has it.
-- `test_require_wireup_project`: a legacy project causes `require_wireup_project` to exit 1 with a message naming both `migrate-di` and `--install-skill`.
+- `test_require_wireup_project`: a legacy project causes `require_wireup_project` to exit 1 with a message naming `scaffold up` and `scaffold install-skill migrate-di` (wording updated by spec 029).
 
 ---
 
@@ -304,7 +304,7 @@ No constitution violations. All new code complies with every principle.
 - ~~`test_ep_agent_class_name_pascalcase`~~ / ~~`test_ep_agent_main_imports_existing_function`~~: removed by Block G (agent no longer generates a class or `main.py`).
 - `test_ep_generic_main_imports_existing_function`: same for generic.
 - `test_add_mcp_tool_wireup_stub`: stub uses `Injected[...]`.
-- `test_ep_legacy_project_refused`: a legacy project (no `scaffold_version`) causes `gep` to exit 1 with a message naming `migrate-di`.
+- `test_ep_legacy_project_refused`: a legacy project (no `scaffold_version`) causes `gep` to exit 1 with a message naming `scaffold up` (wording updated by spec 029).
 - End-to-end: generate project + all entry-point types → `uv sync && ruff && mypy --strict && pytest && scaffold vs` (skip if `uv sync` fails, following existing pattern).
 
 ---
@@ -314,11 +314,11 @@ No constitution violations. All new code complies with every principle.
 **Files**: `README.md`, template project README, spec notes in 006, 008, 019
 
 **Changes**:
-1. `README.md`: updated command sections for `ca`, `guc` (with `--uses`), `gda`, `gh`, `gep`, `dm`; link legacy upgrades to [specs/029-upgrade-framework](../../specs/029-upgrade-framework/README.md).
+1. `README.md`: updated command sections for `ca`, `guc` (with `--uses`), `gda`, `gh`, `gep`, `dm`; link legacy upgrades to [specs/029-upgrade-framework](../../specs/029-upgrade-framework/spec.md).
 2. Template `README.md` for generated projects: injectable scope rules (D7), adapter-with-resource convention (D6), async-to-sync bridge (`asyncio.to_thread`), `scoped` lifecycle (documented, not generated).
 3. Notes in `specs/006`, `specs/008`, `specs/019` plan/spec files that spec 028 supersedes those sections.
 
-**Deferred to spec 029**: `migrate-di` codemod, migration guide, agent skill — see [plan.md](../../specs/029-upgrade-framework/plan.md).
+**Deferred to spec 029**: the `scaffold up` dependency-injector → wireup upgrade action, migration guide, agent skill — see [plan.md](../../specs/029-upgrade-framework/plan.md).
 
 ---
 

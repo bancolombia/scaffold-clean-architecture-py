@@ -1,0 +1,64 @@
+"""FastAPI application factory for legacy-fixture."""
+
+from __future__ import annotations
+
+import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
+import uvicorn
+import wireup.integration.fastapi
+from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException
+
+from legacy_fixture.application.config.config import Settings
+from legacy_fixture.application.config.wiring import create_container
+from legacy_fixture.infrastructure.entry_points.api.v1 import rest_controller
+from legacy_fixture.infrastructure.entry_points.api.v1.exception_handler import (
+    generic_exception_handler,
+    http_exception_handler,
+    validation_exception_handler,
+)
+
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Build the wireup container, warm up resources, then serve."""
+    container = create_container()
+    wireup.integration.fastapi.setup(container, app)
+    logger.info("Application startup complete.")
+    yield
+    await container.close()
+    logger.info("Application shutdown complete.")
+
+
+def create_app() -> FastAPI:
+    """Create and configure the FastAPI application."""
+    app = FastAPI(title="legacy-fixture", lifespan=lifespan, root_path="/api")
+
+    app.add_exception_handler(HTTPException, http_exception_handler)  # type: ignore[arg-type]
+    app.add_exception_handler(RequestValidationError, validation_exception_handler)  # type: ignore[arg-type]
+    app.add_exception_handler(Exception, generic_exception_handler)
+
+    app.include_router(rest_controller.router)
+
+    return app
+
+
+def start_server() -> None:
+    """Launch uvicorn — called from the [project.scripts] entrypoint."""
+    settings = Settings()
+    uvicorn.run(
+        "legacy_fixture.application.app:create_app",
+        host=getattr(settings, "HOST", "0.0.0.0"),
+        port=int(getattr(settings, "PORT", 8000)),
+        factory=True,
+        reload=False,
+    )
+
+
+if __name__ == "__main__":
+    start_server()

@@ -8,7 +8,7 @@
 
 **Input**: Migrate the DI layer in scaffold-ca-python from dependency-injector to wireup (Option 3, Variant B, async-first) for **new** projects generated with 0.6.0+.
 
-**Related (out of scope here)**: Upgrading existing 0.5.0 projects is specified in [specs/029-upgrade-framework](../../specs/029-upgrade-framework/README.md) (`scaffold migrate-di`, guide, agent skill).
+**Related (out of scope here)**: Upgrading existing 0.5.0 projects is specified in [specs/029-upgrade-framework](../../specs/029-upgrade-framework/spec.md) (`scaffold up` upgrade actions, migration guide, `scaffold install-skill migrate-di`).
 
 ---
 
@@ -178,7 +178,7 @@ A developer runs `scaffold ca` and then `scaffold gep --type agent`. Running `uv
 
 ## Assumptions
 
-- Legacy projects are identified by the absence of `scaffold_version` in `[tool.scaffold-ca-python]`; upgrading them is specified in [specs/029-upgrade-framework](../../specs/029-upgrade-framework/README.md), not in this spec.
+- Legacy projects are identified by the absence of `scaffold_version` in `[tool.scaffold-ca-python]`; upgrading them is specified in [specs/029-upgrade-framework](../../specs/029-upgrade-framework/spec.md), not in this spec.
 - The wireup version is pinned at `==2.13.0` in the generated pyproject; the scaffolder's own factories use `~=2.13.0` (per pinning policy).
 - A `scoped` (per-request) lifecycle is not generated; it may be documented as a manual pattern using wireup's `scoped` parameter.
 - The DB adapter templates (`asyncpg`, `DynamoDB`, etc.) are not in scope for this spec; the D6 convention is defined and documented here so that a future spec can add them without design changes.
@@ -192,7 +192,7 @@ A developer runs `scaffold ca` and then `scaffold gep --type agent`. Running `uv
 
 ## Out of Scope
 
-- **`scaffold migrate-di`**, migration guide, agent skill, and libcst codemod → [specs/029-upgrade-framework](../../specs/029-upgrade-framework/README.md)
+- **Upgrading 0.5.0 projects** (`scaffold up` upgrade action, migration guide, agent skill, libcst codemod) → [specs/029-upgrade-framework](../../specs/029-upgrade-framework/spec.md)
 - DB adapter templates (`asyncpg`, `DynamoDB`, `SQLAlchemy`, etc.)
 - Lifting the single-entry-point restriction
 - Scoped (per-request) lifecycle generation

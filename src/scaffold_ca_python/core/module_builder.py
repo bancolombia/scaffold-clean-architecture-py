@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import difflib
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
-from scaffold_ca_python.core.file_writer import FileWriter
+from scaffold_ca_python.core.file_writer import FileWriter, append_text, insert_after_text
 from scaffold_ca_python.core.pyproject_writer import (
     inject_dependencies,
     inject_group_dependencies,
@@ -163,6 +164,35 @@ class ModuleBuilder:
     def get_param(self, key: str, default: object | None = None) -> object | None:
         """Read a previously stored parameter value."""
         return self._params.get(key, default)
+
+    def preview_diffs(self) -> list[str]:
+        """Return a unified diff per queued file operation, with project-relative paths."""
+        diffs: list[str] = []
+        for op in self._operations:
+            path = op.file.path if isinstance(op, CreateFile) else op.path
+            before = path.read_text(encoding="utf-8") if path.exists() else None
+            after: str | None
+            if isinstance(op, CreateFile):
+                after = op.file.content
+            elif isinstance(op, DeleteFile):
+                after = None
+            elif isinstance(op, InsertAfter):
+                after = insert_after_text(before or "", op.anchor, op.content, path=path)
+            else:
+                after = append_text(before, op.content, op.marker)
+                if after is None:
+                    continue
+            rel = path.relative_to(self.project_root).as_posix() if path.is_relative_to(self.project_root) else path
+            lines = difflib.unified_diff(
+                (before or "").splitlines(keepends=True),
+                (after or "").splitlines(keepends=True),
+                fromfile=f"a/{rel}" if before is not None else "/dev/null",
+                tofile=f"b/{rel}" if after is not None else "/dev/null",
+            )
+            diff = "".join(line if line.endswith("\n") else line + "\n" for line in lines)
+            if diff:
+                diffs.append(diff)
+        return diffs
 
     def persist(self) -> list[Path]:
         """Persist queued file and dependency operations.

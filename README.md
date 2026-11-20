@@ -209,26 +209,38 @@ scaffold dm --name order --dry-run
 
 ### scaffold up
 
-Update project dependencies using `uv lock --upgrade` and `uv sync`.
+Run the pending upgrade actions for the project, then refresh dependencies with `uv lock --upgrade` and `uv sync`. Today there is one action: it migrates a 0.5.0 project from dependency-injector to wireup and reports what it could not migrate (file, line and guide section). Running it again changes nothing that is already migrated.
 
 ```bash
-scaffold up --dry-run
+scaffold up --dry-run            # unified diff + report, no writes
+scaffold up                      # requires a clean git tree (or --allow-dirty)
+scaffold up --report json        # stdout carries only the JSON report
+scaffold up --skip-upgrades      # dependencies only
 ```
 
+See [docs/migration/dependency-injector-to-wireup.md](docs/migration/dependency-injector-to-wireup.md) for what is automated and how to resolve each pending item. `scaffold up` does not run ruff, mypy or pytest.
+
+Projects created **before the scaffolder** with the same layout can be migrated too: add a `[tool.scaffold-ca-python]` section with `name` (the scaffolder prints the exact block when it is missing), then run `scaffold up`. See [Projects created before the scaffolder](docs/migration/dependency-injector-to-wireup.md#projects-created-before-the-scaffolder).
+
+### scaffold install-skill
+
+Copy a packaged agent skill into the project so an AI agent can finish a migration. `migrate-di` guides the agent through `scaffold up`, the pending-item recipes and the verification checklist.
+
 ```bash
-scaffold update-project --dry-run
+scaffold install-skill migrate-di                 # .claude/, .cursor/ and .agents/ skills dirs
+scaffold install-skill migrate-di --target claude --force
 ```
 
 ## Dependency injection (wireup)
 
 New projects generated with `scaffold ca` use [wireup](https://pypi.org/project/wireup/) for async-first dependency injection:
 
-- `application/config/wiring.py` defines `create_container()` and package scan targets (`driven_adapters`, `helpers`, `usecases`).
+- `application/config/wiring.py` defines `create_container()` and package scan targets (`driven_adapters`, `entry_points`, `helpers`, `usecases`).
 - Use cases declare gateway dependencies with `scaffold guc --uses …`; adapters bind to gateways with `scaffold gda --gateway …`.
 - Entry points inject use cases with `Injected[…]` (REST/MCP), through constructor injection in a wireup factory (agent), or resolve types from the container (generic)—without importing `application` from infrastructure.
 - Generated code enables ruff rule `ASYNC` and pytest `asyncio_mode = auto`.
 
-**Legacy projects** (scaffold-ca-python ≤ 0.5.0, no `scaffold_version` in `[tool.scaffold-ca-python]`) are not modified by generate commands. Run **`scaffold up`** to migrate to wireup, or **`scaffold install-skill migrate-di`** for agent-guided completion. See [spec 029](specs/029-upgrade-framework/spec.md).
+**Legacy projects** (scaffold-ca-python ≤ 0.5.0, no `scaffold_version` in `[tool.scaffold-ca-python]`) are not modified by generate commands. Run **`scaffold up`** to migrate to wireup, or **`scaffold install-skill migrate-di`** for agent-guided completion. See the [migration guide](docs/migration/dependency-injector-to-wireup.md).
 
 ## Technologies
 

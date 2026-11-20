@@ -18,7 +18,7 @@
 
 ### Session 2026-11-20
 
-- **Composition root auto-replace threshold**: Replace `application/app.py`, `main.py`, or other composition-root files only when their on-disk SHA-256 digest matches the digest of the file as rendered by scaffold-ca-python **0.5.0** for the same project metadata; otherwise report `composition_root_modified` as a pending item.
+- **Composition root auto-replace threshold**: Replace a composition-root file only when its on-disk SHA-256 digest equals the digest of the file rendered by scaffold-ca-python **0.5.0** for the same project metadata (name, package). The scaffolder ships the 0.5.0 restapi `application/app.py` and `src/tests/application/test_app.py` templates for this comparison and replaces them with the 1.0.0 templates. Any other bootstrap module that still uses the legacy container (mcp, agent, generic, or an edited restapi app) is reported as `composition_root_modified`.
 - **Dry-run diff format**: Show a unified diff (standard `---` / `+++` hunks) for every planned overwrite, insert, and append; list-only dry-run for paths alone is not sufficient for migration review.
 
 ---
@@ -76,10 +76,30 @@ A developer runs `scaffold install-skill migrate-di [--target all] [--force]` to
 
 ---
 
+### User Story 4 — Pre-scaffold Clean Architecture projects (Priority: P3)
+
+A team owns Python services written **before** the scaffolder existed. They follow the same Clean Architecture layout and dependency-injector containers, but have no `[tool.scaffold-ca-python]` section and use slightly different names (`domain/use_cases/`, `domain/model/<m>/gateway/`). The developer is told exactly how to adopt the project, then uses the same `scaffold up` + skill flow; the larger share of manual work (configuration passed by value, resources, custom composition roots, container tests) is guided by a dedicated skill reference.
+
+**Why this priority**: Several production services predate the scaffolder; without an adoption path they cannot reach the wireup layout with the shared tooling.
+
+**Independent Test**: Run `scaffold up` in a copy of a pre-scaffold project: it exits 1 with an adoption snippet; after adding the section, `scaffold up --dry-run --report json` migrates use cases under `use_cases/` and infers `as_type` from `gateway/` modules.
+
+**Acceptance Scenarios**:
+
+1. **Given** a `pyproject.toml` without `[tool.scaffold-ca-python]` (from the project root or any directory below it), **When** any command that needs a project runs, **Then** it exits 1 without a traceback, names the `pyproject.toml` found, and prints the section to add with `name` derived from the single package under `src/`.
+2. **Given** the section is added without `scaffold_version`, **When** `scaffold up` runs, **Then** the project is treated as legacy and the dependency-injector action applies.
+3. **Given** use cases under `domain/use_cases/` (or `usecases/`, `use_case/`) and gateways under `.../gateway/`, **When** the action runs, **Then** use-case bindings become factories and adapters implementing those gateways receive `as_type`.
+4. **Given** the skill is installed, **When** the agent handles a pre-scaffold project, **Then** it follows `references/pre-scaffold.md` (adoption, settings-by-value conversion, container tests, MCP/A2A composition roots) and stops for design decisions it cannot infer.
+
+---
+
 ### Edge Cases
 
 - `providers.Resource`, `Configuration`, `Selector`, or nested containers → reported as typed pending items with guide anchors and optional skeletons; not silently skipped.
 - Composition root or `main.py` edited after generation → `composition_root_modified` pending item unless SHA-256 matches the 0.5.0 render.
+- `Provide[...]` parameter without annotation, or placed after a parameter with a default (dropping its default would be invalid Python) → `injection_unresolved`; the parameter is left untouched.
+- Binding with non-provider arguments (settings fields, literals, positional args) → `provider_arguments`; no factory or decorator is generated for it and its container stays.
+- Not a git repository, or git not installed → treated as "cannot verify a clean tree": exit 1 unless `--allow-dirty`.
 - Dry-run chains multiple actions: later actions do not see in-memory effects of earlier actions on disk (documented limitation; users run a real `up` to refresh).
 - Legacy guard on `generate-*` commands continues to refuse legacy projects; **only** `scaffold up` (and read-only commands) accept legacy trees for modification via upgrades.
 
@@ -95,8 +115,8 @@ A developer runs `scaffold install-skill migrate-di [--target all] [--force]` to
 - **FR-002**: `scaffold up --dry-run` MUST print unified diffs for all planned file changes and MUST NOT write any file. It MAY list paths that would be created or deleted.
 - **FR-003**: `scaffold up` MUST require a clean git working tree only when at least one upgrade action applies and the run is not dry-run, unless `--allow-dirty` is set.
 - **FR-004**: Upgrade actions MUST be selected by **content** (e.g. presence of `dependency-injector` imports or dependency declarations), not by filtering solely on `scaffold_version`, so a second run still reports unresolved pending items where needed.
-- **FR-005**: The first wireup migration action MUST apply these transforms when applicable: pyproject dependency and tooling keys; container modules to `application/config/usecases/<name>_usecase.py` factories; `@injectable` on adapters/helpers; `Provide` / `Depends(Provide[...])` to `Injected[...]`; create `wiring.py` and usecase package init; remove obsolete container modules; write `scaffold_version` to mark wireup adoption when the action applies changes.
-- **FR-006**: Composition root and bootstrap files MUST be replaced automatically only on SHA-256 match against the 0.5.0 render; otherwise they MUST appear as pending items.
+- **FR-005**: The first wireup migration action MUST apply these transforms when applicable: pyproject dependency swap, `mypy` dev dependency and tooling keys (`[tool.pytest.ini_options] asyncio_mode`, ruff `ASYNC`/`TC`); use-case bindings in `container.py` / `*_container.py` to `application/config/usecases/<module>.py` factories built from the use-case constructor signature; `@wireup.injectable` (with `as_type` for gateway implementations, `lifetime="transient"` for `providers.Factory`) on bound adapters/helpers; `Provide` / `Depends(Provide[...])` parameters to `Injected[T]` with `@inject` and legacy imports removed; create `wiring.py`, the usecases package init and `src/tests/application/config/test_wiring.py`; delete each container module whose providers were all migrated (modules with pending providers stay, so a re-run reports them again); write `scaffold_version` in the same pyproject edit. Transforms MUST use a concrete syntax tree (libcst) and MUST NOT emit code that fails to compile.
+- **FR-006**: Composition root and bootstrap files MUST be replaced automatically only on SHA-256 match against the 0.5.0 render (restapi `application/app.py` and its `test_app.py`); otherwise, when they use the legacy container, they MUST appear as `composition_root_modified` pending items. Files that the action does not write MUST NOT be reformatted.
 - **FR-007**: `scaffold up --report json` MUST print a single JSON document on **stdout**; human-oriented and tool logs (including `uv` and Rich) MUST go to **stderr**.
 - **FR-008**: Any failure (precondition, action error, `uv` failure) MUST exit with code **1**. Pending manual items MUST appear in the report and MUST NOT by themselves change the exit code when automated steps succeed.
 - **FR-009**: `scaffold up` MUST NOT run `ruff`, `mypy`, or `pytest` after upgrades; verification is defined in the migration skill checklist.
@@ -108,6 +128,13 @@ A developer runs `scaffold install-skill migrate-di [--target all] [--force]` to
 - **FR-012**: `scaffold install-skill migrate-di [--target claude|cursor|agents|all] [--force]` MUST copy the skill to the selected harness directories and append a reference line to `AGENTS.md` (creating it if missing). Without `--force`, an existing installation MUST NOT be overwritten.
 - **FR-013**: Pending-item `kind` values in JSON output MUST align with recipe keys in `references/recipes.md` and section anchors in `docs/migration/dependency-injector-to-wireup.md`; a test MUST verify alignment.
 - **FR-014**: Root `README.md` MUST document `scaffold up` as the migration entry point and `install-skill migrate-di` once implemented.
+
+#### Pre-scaffold projects (US4)
+
+- **FR-016**: When the nearest `pyproject.toml` lacks `[tool.scaffold-ca-python]` and no project root is found, commands MUST exit 1 with a message that names that file and shows the section to add (`name` derived from the single package under `src/`, else `[project].name`, else the directory name). This MUST also hold when the command runs inside `src/<pkg>/` (no traceback).
+- **FR-017**: The dependency-injector action MUST treat `domain.usecase`, `domain.usecases`, `domain.use_case` and `domain.use_cases` modules as use cases, and `gateways` / `gateway` modules as gateways (factory generation, `as_type` inference, `MISSING_ADAPTERS`).
+- **FR-018**: The migration skill MUST include `references/pre-scaffold.md` covering adoption, converting configuration passed by value into typed settings, replacing container tests, and porting custom MCP/A2A composition roots, with explicit stop conditions for design decisions.
+- **FR-019**: The migration guide, README and quickstart MUST document the pre-scaffold path (adoption snippet, naming variants, what remains manual).
 
 #### Cross-spec governance (028)
 
@@ -125,7 +152,7 @@ A developer runs `scaffold install-skill migrate-di [--target all] [--force]` to
 
 ### Measurable Outcomes
 
-- **SC-001**: On the committed 0.5.0 test fixture, `scaffold up` automatically applies at least **70%** of required migration edits (by line count or file count agreed in the implementation plan); the remainder appear as pending items with file and line.
+- **SC-001**: On the committed 0.5.0 test fixture, `scaffold up` automatically applies at least **70%** of the required migration edits, measured in changed lines: *required* = lines changed from the fixture to the fully migrated reference (golden output plus the committed manual resolution of pending items); *automated* = 1 − (lines still changed from the golden output to the reference) / required. Every remaining difference lies in a file reported as pending.
 - **SC-002**: `scaffold up --dry-run` on any legacy project never mutates the working tree (verified by checksum or git status).
 - **SC-003**: Every `kind` emitted in `--report json` pending output has a matching recipe and migration-guide section.
 
@@ -134,7 +161,7 @@ A developer runs `scaffold install-skill migrate-di [--target all] [--force]` to
 ## Assumptions
 
 - Spec 028 is released (wireup for new projects at 1.0.0+).
-- Only 0.5.0-style legacy projects are in scope; older scaffolder outputs are unsupported.
+- 0.5.0-style legacy projects are the primary target; pre-scaffold projects with the same layout are supported through adoption (US4). Older scaffolder outputs (< 0.5.0) are untested.
 - `libcst` may be added as a scaffolder dependency for the DI codemod; import is deferred inside the action to keep CLI startup lean when unused.
 - Agent skill targets Claude Code, Cursor, and Agent Skills (`.agents/skills/`).
 - A static 0.5.0 fixture is generated once with `uvx scaffold-ca-python==0.5.0` and committed for regression tests.
@@ -148,6 +175,7 @@ A developer runs `scaffold install-skill migrate-di [--target all] [--force]` to
 - A separate `scaffold migrate-di` command.
 - Running quality gates inside `scaffold up`.
 - Showing cumulative dry-run diffs across chained in-memory actions (limitation documented in plan).
+- Automatic replacement of mcp, agent and generic 0.5.0 composition roots (reported as `composition_root_modified` with a recipe).
 
 ---
 

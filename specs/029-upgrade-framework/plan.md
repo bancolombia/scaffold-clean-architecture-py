@@ -78,14 +78,20 @@ src/scaffold_ca_python/
 │   └── upgrades/
 │       ├── __init__.py          # UPGRADE_ACTIONS, get_action_registry
 │       ├── base.py              # UpgradeAction ABC
-│       ├── runner.py            # UpgradeRunner
+│       ├── report.py            # PENDING_KINDS / AUTOMATED_KINDS, report types
+│       ├── runner.py            # UpgradeRunner, git/version guards
 │       └── actions/
-│           └── upgrade_2026_11_20_dependency_injector_to_wireup.py
+│           ├── upgrade_2026_11_20_dependency_injector_to_wireup.py
+│           └── di_wireup/
+│               ├── project.py   # applies(), pyproject rewrite, fingerprint (no libcst)
+│               └── codemod.py   # libcst transforms (lazy import)
+├── templates/upgrades/dependency_injector_to_wireup/  # 0.5.0 restapi renders for SHA-256 match
 ├── commands/
 │   ├── update_project.py        # orchestration + flags
 │   └── install_skill.py         # migrate-di skill copy
 ├── core/
-│   └── file_writer.py           # unified diff in dry-run
+│   ├── module_builder.py        # preview_diffs()
+│   └── file_writer.py           # pure insert/append helpers shared with previews
 └── skills/
     └── migrate-di/              # packaged skill
 
@@ -93,7 +99,11 @@ tests/
 ├── factory/upgrades/
 ├── commands/test_update_project.py
 ├── commands/test_install_skill.py
-└── fixtures/legacy_050_project/   # static 0.5.0 tree
+├── e2e/test_legacy_upgrade.py
+└── fixtures/
+    ├── legacy_050_project/      # wired 0.5.0 project (its tests pass on dependency-injector)
+    ├── upgrade_di_golden/       # expected `up` output
+    └── upgrade_di_resolution/   # manual resolution of the pending item
 ```
 
 **Structure Decision**: Mirror `factory/entry_points/` registry pattern (M5); runner lives beside actions, not under `commands/`.
@@ -116,12 +126,13 @@ Delivered in [research.md](research.md) (content-based detection, execution orde
 
 ## Phase 2 — Implementation outline (see tasks.md)
 
-1. **Framework**: ABC, registry, runner with `persist_and_format` between actions; version guard.
-2. **DI action**: libcst codemod, pyproject rewrite, fingerprint store for 0.5.0 composition files.
+1. **Framework**: ABC, registry, runner persisting between actions; version and clean-tree guards; formatting of written files only.
+2. **DI action**: libcst codemod, pyproject rewrite, SHA-256 match against shipped 0.5.0 restapi renders.
 3. **CLI**: Flags on `up`; stderr/stdout split for JSON; `--skip-upgrades`, `--allow-dirty`.
-4. **Diffs**: `FileWriter` accumulates patches for dry-run.
+4. **Diffs**: `ModuleBuilder.preview_diffs()` with project-relative paths.
 5. **Skill**: Wheel package + `install-skill` command + migration guide doc.
 6. **028 delta**: FR-020, generated-files contract, link rewrites, delete obsolete `contracts/migrate-di.md`, update `_LEGACY_MIGRATION_HINT`.
+7. **Pre-scaffold projects (US4)**: `MissingScaffoldSectionError` in `core/project_detector.py`; naming predicates `is_usecase_module` / `is_gateway_module`; skill `references/pre-scaffold.md`.
 
 ---
 

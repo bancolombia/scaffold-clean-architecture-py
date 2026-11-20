@@ -36,19 +36,19 @@
 
 | Field | Type |
 |-------|------|
-| `kind` | `str` |
-| `file` | `str` (repo-relative) |
-| `description` | `str | None` |
+| `kind` | `str`, one of `AUTOMATED_KINDS` (validated on construction) |
+| `file` | `str` (project-relative POSIX path) |
+| `description` | `str` (may be empty) |
 
 ### `PendingItem`
 
-See [contracts/pending-items.md](contracts/pending-items.md).
+`kind` (one of `PENDING_KINDS`, validated), `file`, `line`, optional `suggested_skeleton`; `guide_section` is derived from `kind`. See [contracts/pending-items.md](contracts/pending-items.md).
 
 ### `UpgradeReport`
 
 | Field | Type |
 |-------|------|
-| `actions` | list of per-action results + metadata |
+| `action_runs` | per-action `ActionRun(name, applied, skipped, reason, result)` |
 | `automated` | flattened applied items |
 | `pending` | flattened pending items |
 | `scaffold_version` | declared / installed / guard flags |
@@ -66,7 +66,9 @@ See [contracts/pending-items.md](contracts/pending-items.md).
 | Signal | Legacy | After migration |
 |--------|--------|-----------------|
 | `dependency-injector` in pyproject | yes | no (wireup) |
-| `*_container.py` under `application/config` | yes | removed |
+| `container.py` / `*_container.py` under `application/config` | yes | removed when fully migrated; kept while they hold pending providers |
+| `import dependency_injector` / root `Container` import in `src/` | yes | none (otherwise the action still applies and re-reports) |
+| `src/tests/application/config/test_wiring.py` | absent | present |
 | `application/config/wiring.py` | absent | present |
 | `scaffold_version` in pyproject | absent | set |
 

@@ -12,7 +12,7 @@ git status   # must be clean for real apply
 scaffold up --dry-run
 ```
 
-Expect unified diffs for pyproject, new factory files, and entry-point param changes; pending list for `Resource` providers or edited `application/app.py`.
+Expect unified diffs (project-relative paths) for pyproject, new factory files, deleted containers and entry-point parameter changes; the pending list names `Resource` providers, edited composition roots, etc., each with `file:line` and a guide anchor.
 
 ---
 
@@ -32,7 +32,7 @@ Expect: actions run, then `uv lock --upgrade`, then `uv sync`. Review stderr rep
 scaffold install-skill migrate-di --target all
 ```
 
-Follow `SKILL.md` and `references/checklist.md` for ruff, mypy, and pytest. Do not expect `scaffold up` to run those tools.
+Follow `SKILL.md` and `references/checklist.md` for ruff, mypy, and pytest. Do not expect `scaffold up` to run those tools. Run `uv run ruff format .` once: 0.5.0 never formatted its generated files, and `up` only formats the files it writes.
 
 ---
 
@@ -42,7 +42,9 @@ Follow `SKILL.md` and `references/checklist.md` for ruff, mypy, and pytest. Do n
 scaffold up --report json > report.json
 ```
 
-Only JSON on stdout; read human messages from stderr.
+Only JSON on stdout; human messages, `uv` output and dry-run diffs go to stderr.
+
+Re-run it after resolving items: the action is reported `"skipped": true` and `pending` is empty once nothing legacy remains.
 
 ---
 
@@ -53,6 +55,20 @@ scaffold up --skip-upgrades
 ```
 
 Same as today: lock + sync only.
+
+---
+
+## Scenario 6 — Project created before the scaffolder
+
+```bash
+cd my_older_service              # same layout, no [tool.scaffold-ca-python]
+scaffold up --dry-run            # exit 1: prints the section to add
+# add the printed [tool.scaffold-ca-python] block (no scaffold_version)
+scaffold up --dry-run --report json
+scaffold install-skill migrate-di   # agent follows references/pre-scaffold.md
+```
+
+Expect use cases in `domain/use_cases/` and gateways in `gateway/` to be recognized, and a larger pending list (configuration passed by value, resources, custom composition roots, container tests).
 
 ---
 

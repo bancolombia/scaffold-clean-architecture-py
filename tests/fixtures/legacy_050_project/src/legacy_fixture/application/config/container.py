@@ -1,5 +1,4 @@
 """Root application DI container."""
-
 from dependency_injector import containers, providers
 
 from legacy_fixture.application.config.driven_adapters_container import DAContainer

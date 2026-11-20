@@ -1,9 +1,7 @@
 """Use-case DI container."""
-
 from dependency_injector import containers, providers
 
-# Import use-case classes here to wire them in the UseCaseContainer below.
-# legacy_fixture.application.usecases.my_use_case.MyUseCase
+from legacy_fixture.domain.usecase.get_book_usecase import GetBookUseCase
 
 
 class UseCaseContainer(containers.DeclarativeContainer):
@@ -11,8 +9,7 @@ class UseCaseContainer(containers.DeclarativeContainer):
 
     da_container = providers.DependenciesContainer()
 
-    # Example:
-    # my_use_case = providers.Singleton(
-    #     MyUseCase,
-    #     arg1=da_container.my_repo,
-    # )
+    get_book = providers.Singleton(
+        GetBookUseCase,
+        book_repository=da_container.book_store,
+    )

@@ -13,6 +13,48 @@ _CA_MARKERS: frozenset[str] = frozenset({"domain", "infrastructure", "applicatio
 _SCAFFOLD_SECTION = "scaffold-ca-python"
 
 
+class MissingScaffoldSectionError(ScaffoldError):
+    """A ``pyproject.toml`` exists but lacks ``[tool.scaffold-ca-python]`` (project predates the scaffolder)."""
+
+    def __init__(self, pyproject: Path) -> None:
+        self.pyproject = pyproject
+        self.suggested_name = _suggested_name(pyproject)
+        super().__init__(
+            f"{pyproject} has no [tool.scaffold-ca-python] section.\n"
+            "If this is a Clean Architecture project, add:\n\n"
+            f'[tool.scaffold-ca-python]\nname = "{self.suggested_name}"\n\n'
+            "then run `scaffold up --dry-run` to migrate it "
+            "(see docs/migration/dependency-injector-to-wireup.md)."
+        )
+
+
+def _load_toml(pyproject: Path) -> dict[str, object] | None:
+    try:
+        with pyproject.open("rb") as fh:
+            return tomllib.load(fh)
+    except (OSError, tomllib.TOMLDecodeError):
+        return None
+
+
+def _suggested_name(pyproject: Path) -> str:
+    """Kebab-case name whose snake form matches the single package under ``src/``."""
+    src = pyproject.parent / "src"
+    packages = (
+        [p.name for p in src.iterdir() if p.is_dir() and (p / "__init__.py").is_file() and p.name != "tests"]
+        if src.is_dir()
+        else []
+    )
+    if len(packages) == 1:
+        return packages[0].replace("_", "-")
+    project = (_load_toml(pyproject) or {}).get("project", {})
+    name = project.get("name") if isinstance(project, dict) else None
+    return str(name) if name else pyproject.parent.name
+
+
+def _nearest_pyproject(start: Path) -> Path | None:
+    return next((d / "pyproject.toml" for d in _iter_parents(start) if (d / "pyproject.toml").is_file()), None)
+
+
 def find_project_root(cwd: Path | None = None) -> Path:
     """Walk upward from *cwd* to locate the project root.
 
@@ -48,10 +90,17 @@ def find_project_root(cwd: Path | None = None) -> Path:
         return candidate
 
     # Strategy 2: canonical CA directory layout
+    nearest = _nearest_pyproject(current)
     for directory in _iter_parents(current):
         children = {p.name for p in directory.iterdir() if p.is_dir()}
         if _CA_MARKERS.issubset(children):
+            if nearest is not None and nearest.parent != directory and directory.is_relative_to(nearest.parent):
+                # src/<pkg>/ of a project whose pyproject.toml lacks the section.
+                raise MissingScaffoldSectionError(nearest)
             return directory
+
+    if nearest is not None:
+        raise MissingScaffoldSectionError(nearest)
 
     raise ScaffoldError(
         "Could not find a scaffold-ca-python project root. "

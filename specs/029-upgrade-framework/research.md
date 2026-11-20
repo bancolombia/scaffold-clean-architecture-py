@@ -27,7 +27,7 @@
 
 ## R3 — `scaffold_version` lifecycle
 
-**Decision**: The DI migration action writes `scaffold_version` when it applies automated edits. After a successful non-dry-run with any applied items, the runner sets `scaffold_version` to the **installed** scaffolder version. If declared version > installed, warn and skip all actions (H4).
+**Decision**: The DI migration action writes `scaffold_version` (installed version) inside its single pyproject edit, because adopting wireup is what the key marks (FR-020 of 028). The runner only *aligns* a key that already exists: after a non-dry-run with applied items, if the declared version differs from the installed one it rewrites it and reports `scaffold_version_updated`. So the key has one writer per run: the DI action on legacy projects, the runner on already-wireup projects touched by future actions. If declared version > installed, warn and skip all actions (H4).
 
 **Rationale**: Aligns with FR-020 legacy detection in 028; wireup adoption is explicit in pyproject.
 
@@ -57,15 +57,17 @@
 
 ## R7 — Dry-run diffs
 
-**Decision**: Extend `FileWriter` / `ModuleBuilder` dry-run to accumulate before/after text and emit `difflib.unified_diff` (H5 FR-002). Path-only dry-run remains for non-upgrade commands.
+**Decision**: `ModuleBuilder.preview_diffs()` renders a `difflib.unified_diff` per queued operation with project-relative `a/`/`b/` paths (H5, FR-002). `FileWriter` keeps its path-only dry-run, so every other command's preview is unchanged; insert/append previews reuse the same pure helpers (`insert_after_text`, `append_text`) the writer applies.
 
-**Limitation (M1)**: Runner calls `persist_and_format` after each action; in dry-run, action N+1 does not see N's in-memory writes on disk—document in quickstart.
+**Formatting**: the runner returns the paths it wrote and `update_project` formats only those (`auto_format_project(root, paths)`), so the applied tree equals the reviewed diff plus formatting of written files.
+
+**Limitation (M1)**: the runner persists after each action; in dry-run, action N+1 does not see N's planned writes—documented in quickstart.
 
 ---
 
 ## R8 — libcst import
 
-**Decision**: Import `libcst` inside the DI action module only (L2).
+**Decision**: libcst code lives in `factory/upgrades/actions/di_wireup/codemod.py` and is imported inside `UpgradeDependencyInjectorToWireup.up()` only; `applies()` uses plain regex/TOML checks. `tests/factory/upgrades/test_lazy_libcst.py` asserts that importing the CLI and the registry does not load libcst (L2).
 
 ---
 
@@ -77,12 +79,28 @@
 
 ## R10 — Fixture strategy
 
-**Decision**: One committed static tree from `uvx scaffold-ca-python==0.5.0` (L3); golden tests for `up` and JSON report.
+**Decision**: `tests/fixtures/legacy_050_project/` is generated with 0.5.0 (`ca`, `gm book`, `guc get_book`, `gda generic book_store`, `gep restapi`) plus the hand wiring a 0.5.0 developer writes (Singleton bindings, `Depends(Provide[...])` endpoint, a `providers.Resource`); its own 18 tests pass under dependency-injector. `upgrade_di_golden/` is the expected `up` output; `upgrade_di_resolution/` is the manual resolution of the pending `resource_provider`. Golden + resolution is the reference for SC-001, and the e2e test proves it passes ruff, mypy --strict, pytest and `vs` (L3).
 
 ---
 
 ## R11 — Composition root fingerprint
 
-**Decision**: SHA-256 of file bytes compared to precomputed digest from 0.5.0 render for the same package metadata (clarification session 2026-11-20).
+**Decision**: The 0.5.0 restapi `app.py` and `test_app.py` templates are shipped under `templates/upgrades/dependency_injector_to_wireup/`, rendered with the project's name and package, and compared by SHA-256 with the file on disk (clarification session 2026-11-20). A match is replaced with the 1.0.0 template; anything else that uses the legacy container is pending.
 
-**Alternatives considered**: Byte-for-byte only (brittle on line endings); always pending (reduces automation below SC-001).
+**Alternatives considered**: Precomputed digests (cannot account for project metadata); normalized comparison (accepts edited files silently); always pending (reduces automation below SC-001).
+
+---
+
+## R13 — Pre-scaffold projects (US4)
+
+**Decision**: Adoption is explicit: the user adds `[tool.scaffold-ca-python]` (the error prints the block, with `name` derived from the single `src/` package). `scaffold up` does not write the section itself, because it cannot confirm that an arbitrary repository follows the layout. Naming variants (`use_cases/`, `gateway/`) are recognized by the codemod; configuration passed by value is **not** converted automatically. Choosing settings classes, env prefixes and field names is a design decision, so it is delegated to the skill (`references/pre-scaffold.md`).
+
+**Evidence**: dry-run on copies of two pre-scaffold services (MCP server and A2A agent). After adoption, 10/26 and 4/25 items were automated; most of the pending items were `provider_arguments` with `settings.X` values (7–8 each), followed by resources, custom composition roots and container tests.
+
+**Alternatives considered**: an `up --adopt` flag (silently accepts non-conforming repos); heuristic settings generation (produces classes the team would redesign).
+
+---
+
+## R12 — Injection rewrite safety
+
+**Decision**: A `Provide` parameter is converted to `Injected[T]` only when it is annotated and no earlier positional parameter keeps a default; otherwise it is left as is and reported `injection_unresolved`. Reordering parameters was rejected because it changes positional call semantics.
