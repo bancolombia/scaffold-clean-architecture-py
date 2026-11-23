@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/bancolombia/scaffold-clean-architecture-py/compare/v1.0.1...v1.1.0) (2026-11-23)
+
+
+### Features
+
+* **up:** upgrade framework for legacy dependency-injector to wireup ([2098bb2](https://github.com/bancolombia/scaffold-clean-architecture-py/commit/2098bb2193355f2ac252005fe3fde1b0bb40ddd3))
+
 ## [1.0.1](https://github.com/bancolombia/scaffold-clean-architecture-py/compare/v1.0.0...v1.0.1) (2026-11-19)
 
 
