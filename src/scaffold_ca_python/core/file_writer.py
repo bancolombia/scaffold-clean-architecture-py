@@ -107,30 +107,37 @@ class FileWriter:
         if not op.path.exists():
             raise FileNotFoundError(f"insert_after target not found: {op.path}")
         original = op.path.read_text(encoding="utf-8")
-        lines = original.splitlines(keepends=True)
-        for i, line in enumerate(lines):
-            if op.anchor in line:
-                insertion = op.content if op.content.endswith("\n") else op.content + "\n"
-                lines.insert(i + 1, insertion)
-                op.path.write_text("".join(lines), encoding="utf-8")
-                return
-        raise ValueError(f"insert_after anchor {op.anchor!r} not found in {op.path}")
+        op.path.write_text(insert_after_text(original, op.anchor, op.content, path=op.path), encoding="utf-8")
 
     @staticmethod
     def _apply_append_to_file(op: AppendToFile) -> None:
-        """Append *op.content* to the end of *op.path*, or create the file.
+        """Append *op.content* to the end of *op.path*, or create the file."""
+        original = op.path.read_text(encoding="utf-8") if op.path.exists() else None
+        updated = append_text(original, op.content, op.marker)
+        if updated is None:
+            return
+        op.path.parent.mkdir(parents=True, exist_ok=True)
+        op.path.write_text(updated, encoding="utf-8")
 
-        When the file exists, trailing blank lines are normalized to a single newline
-        before appending. When it doesn't exist, it's created with *op.content* as
-        initial contents (leading blank lines stripped).
-        """
-        if op.path.exists():
-            original = op.path.read_text(encoding="utf-8")
-            if op.marker and op.marker in original:
-                return
-            normalized = original.rstrip("\n") + "\n"
-            op.path.write_text(normalized + op.content, encoding="utf-8")
-        else:
-            op.path.parent.mkdir(parents=True, exist_ok=True)
-            content = op.content.lstrip("\n")
-            op.path.write_text(content, encoding="utf-8")
+
+def insert_after_text(original: str, anchor: str, content: str, *, path: Path) -> str:
+    """Return *original* with *content* inserted after the first line containing *anchor*."""
+    lines = original.splitlines(keepends=True)
+    for i, line in enumerate(lines):
+        if anchor in line:
+            lines.insert(i + 1, content if content.endswith("\n") else content + "\n")
+            return "".join(lines)
+    raise ValueError(f"insert_after anchor {anchor!r} not found in {path}")
+
+
+def append_text(original: str | None, content: str, marker: str | None) -> str | None:
+    """Return the appended text, or None when *marker* is already present.
+
+    Existing files get trailing blank lines normalized to one newline; new files
+    start with *content* minus leading blank lines.
+    """
+    if original is None:
+        return content.lstrip("\n")
+    if marker and marker in original:
+        return None
+    return original.rstrip("\n") + "\n" + content

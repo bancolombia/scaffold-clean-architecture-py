@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -79,6 +80,12 @@ def remove_test_function(source: str, fn_name: str) -> str | None:
 
 
 MISSING_ADAPTERS_VAR = "MISSING_ADAPTERS"
+_GATEWAY_MODULE = re.compile(r"(?:^|\.)gateways?(?:\.|$)")
+
+
+def is_gateway_module(module: str) -> bool:
+    """True for ``...gateways...`` modules and the singular ``...gateway...`` used by pre-scaffold projects."""
+    return bool(_GATEWAY_MODULE.search(module))
 
 
 def find_missing_adapters(src_pkg_root: Path) -> list[str]:
@@ -92,7 +99,7 @@ def find_missing_adapters(src_pkg_root: Path) -> list[str]:
     used: set[str] = set()
     for path in _py_files(base / "application" / "config" / "usecases"):
         for node in ast.walk(_parse(path)):
-            if isinstance(node, ast.ImportFrom) and node.module and ".gateways." in node.module:
+            if isinstance(node, ast.ImportFrom) and node.module and is_gateway_module(node.module):
                 used.update(alias.name for alias in node.names)
 
     implemented: set[str] = set()
@@ -105,19 +112,12 @@ def find_missing_adapters(src_pkg_root: Path) -> list[str]:
     return sorted(used - implemented)
 
 
-def sync_missing_adapters_marker(wiring_test_path: Path, missing: list[str]) -> bool:
-    """Rewrite the ``MISSING_ADAPTERS = [...]`` assignment in *wiring_test_path*.
-
-    Returns True when the file was changed. No-op (False) when the file or the
-    assignment does not exist, so projects generated before this marker are untouched.
-    """
-    if not wiring_test_path.is_file():
-        return False
-    source = wiring_test_path.read_text(encoding="utf-8")
+def replace_missing_adapters_marker(source: str, missing: list[str]) -> str | None:
+    """Return *source* with ``MISSING_ADAPTERS = [...]`` rewritten, or None when absent or unchanged."""
     try:
         tree = ast.parse(source)
     except SyntaxError:
-        return False
+        return None
     target = next(
         (
             node
@@ -129,12 +129,24 @@ def sync_missing_adapters_marker(wiring_test_path: Path, missing: list[str]) -> 
         None,
     )
     if target is None or target.end_lineno is None:
-        return False
+        return None
     items = ", ".join(f'"{name}"' for name in sorted(missing))
     new_line = f"{MISSING_ADAPTERS_VAR}: list[str] = [{items}]\n"
     lines = source.splitlines(keepends=True)
     updated = "".join([*lines[: target.lineno - 1], new_line, *lines[target.end_lineno :]])
-    if updated == source:
+    return None if updated == source else updated
+
+
+def sync_missing_adapters_marker(wiring_test_path: Path, missing: list[str]) -> bool:
+    """Rewrite the ``MISSING_ADAPTERS = [...]`` assignment in *wiring_test_path*.
+
+    Returns True when the file was changed. No-op (False) when the file or the
+    assignment does not exist, so projects generated before this marker are untouched.
+    """
+    if not wiring_test_path.is_file():
+        return False
+    updated = replace_missing_adapters_marker(wiring_test_path.read_text(encoding="utf-8"), missing)
+    if updated is None:
         return False
     wiring_test_path.write_text(updated, encoding="utf-8")
     return True

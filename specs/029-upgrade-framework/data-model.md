@@ -1,0 +1,79 @@
+# Data model: Upgrade framework
+
+**Spec**: [spec.md](spec.md)
+
+---
+
+## Project classification
+
+| Class | Rule |
+|-------|------|
+| Wireup | `[tool.scaffold-ca-python].scaffold_version` present; generated at 1.0.0+ |
+| Legacy | Key absent; typically scaffold-ca-python ≤ 0.5.0 output |
+| Unknown version | Editable install may report `0.0.0+unknown` for **installed** tool only |
+
+---
+
+## Runtime objects (scaffolder)
+
+### `UpgradeAction` (ABC)
+
+| Attribute / method | Purpose |
+|--------------------|---------|
+| `name: ClassVar[str]` | Stable action id (e.g. `dependency-injector-to-wireup`) |
+| `description: ClassVar[str]` | One-line user-facing summary |
+| `applies(builder) -> bool` | Content-based gate |
+| `up(builder) -> UpgradeResult` | Apply transforms via `ModuleBuilder` |
+
+### `UpgradeResult`
+
+| Field | Type |
+|-------|------|
+| `applied` | `list[AppliedItem]` |
+| `pending` | `list[PendingItem]` |
+
+### `AppliedItem`
+
+| Field | Type |
+|-------|------|
+| `kind` | `str`, one of `AUTOMATED_KINDS` (validated on construction) |
+| `file` | `str` (project-relative POSIX path) |
+| `description` | `str` (may be empty) |
+
+### `PendingItem`
+
+`kind` (one of `PENDING_KINDS`, validated), `file`, `line`, optional `suggested_skeleton`; `guide_section` is derived from `kind`. See [contracts/pending-items.md](contracts/pending-items.md).
+
+### `UpgradeReport`
+
+| Field | Type |
+|-------|------|
+| `action_runs` | per-action `ActionRun(name, applied, skipped, reason, result)` |
+| `automated` | flattened applied items |
+| `pending` | flattened pending items |
+| `scaffold_version` | declared / installed / guard flags |
+
+---
+
+## Registry
+
+`UPGRADE_ACTIONS: list[type[UpgradeAction]]` — explicit order. Test: `tests/factory/upgrades/test_registry_order.py` compares filename date tokens.
+
+---
+
+## On-disk markers (DI action)
+
+| Signal | Legacy | After migration |
+|--------|--------|-----------------|
+| `dependency-injector` in pyproject | yes | no (wireup) |
+| `container.py` / `*_container.py` under `application/config` | yes | removed when fully migrated; kept while they hold pending providers |
+| `import dependency_injector` / root `Container` import in `src/` | yes | none (otherwise the action still applies and re-reports) |
+| `src/tests/application/config/test_wiring.py` | absent | present |
+| `application/config/wiring.py` | absent | present |
+| `scaffold_version` in pyproject | absent | set |
+
+---
+
+## Legacy guard message (028 integration)
+
+`_LEGACY_MIGRATION_HINT` in `commands/_shared.py` MUST reference `scaffold up` (not `migrate-di`). FR-020 in 028 updated to exempt `up`.

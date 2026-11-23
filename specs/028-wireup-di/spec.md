@@ -8,7 +8,7 @@
 
 **Input**: Migrate the DI layer in scaffold-ca-python from dependency-injector to wireup (Option 3, Variant B, async-first) for **new** projects generated with 0.6.0+.
 
-**Related (out of scope here)**: Upgrading existing 0.5.0 projects is specified in [docs/spec-029-migrate-di](../../docs/spec-029-migrate-di/README.md) (`scaffold migrate-di`, guide, agent skill).
+**Related (out of scope here)**: Upgrading existing 0.5.0 projects is specified in [specs/029-upgrade-framework](../../specs/029-upgrade-framework/spec.md) (`scaffold up` upgrade actions, migration guide, `scaffold install-skill migrate-di`).
 
 ---
 
@@ -128,7 +128,7 @@ A developer runs `scaffold ca` and then `scaffold gep --type agent`. Running `uv
 - **FR-017**: `generate-entry-point generic` MUST generate an async composition root in `application/generic_app.py` using `async with create_generic()` that closes the container on exit; `main.py` MUST use `asyncio.run` and import an existing function. For `agent`, see FR-040–FR-048.
 - **FR-018**: *Superseded by FR-040.* `gep agent` no longer generates a `<Pascal>Agent` class; the executor class is `A2AExecutor` and the agent name comes from `AgentSettings`.
 - **FR-019**: `add-mcp-tool` MUST generate tool stubs that use `Injected[UseCaseClass]` for dependency injection, consistent with the wireup entry-point templates.
-- **FR-020**: All `generate-*` commands that modify an existing project MUST refuse (exit 1) when the project is legacy (i.e., `scaffold_version` key absent from `[tool.scaffold-ca-python]`). The error message MUST point developers to [docs/spec-029-migrate-di](../../docs/spec-029-migrate-di/README.md) and MAY name the planned commands `scaffold migrate-di` and `scaffold migrate-di --install-skill`. No legacy templates are shipped in the scaffolder.
+- **FR-020**: All `generate-*` commands that modify an existing project MUST refuse (exit 1) when the project is legacy (i.e., `scaffold_version` key absent from `[tool.scaffold-ca-python]`), except `scaffold up` (migration path; see spec 029) and read-only `ca` / `vs`. The error message MUST point developers to [specs/029-upgrade-framework](../029-upgrade-framework/spec.md) and name `scaffold up` and `scaffold install-skill migrate-di`. *Superseded in part by spec 029.* No legacy templates are shipped in the scaffolder.
 
 #### A2A agent entry point (US4)
 
@@ -178,7 +178,7 @@ A developer runs `scaffold ca` and then `scaffold gep --type agent`. Running `uv
 
 ## Assumptions
 
-- Legacy projects are identified by the absence of `scaffold_version` in `[tool.scaffold-ca-python]`; upgrading them is specified in [docs/spec-029-migrate-di](../../docs/spec-029-migrate-di/README.md), not in this spec.
+- Legacy projects are identified by the absence of `scaffold_version` in `[tool.scaffold-ca-python]`; upgrading them is specified in [specs/029-upgrade-framework](../../specs/029-upgrade-framework/spec.md), not in this spec.
 - The wireup version is pinned at `==2.13.0` in the generated pyproject; the scaffolder's own factories use `~=2.13.0` (per pinning policy).
 - A `scoped` (per-request) lifecycle is not generated; it may be documented as a manual pattern using wireup's `scoped` parameter.
 - The DB adapter templates (`asyncpg`, `DynamoDB`, etc.) are not in scope for this spec; the D6 convention is defined and documented here so that a future spec can add them without design changes.
@@ -192,7 +192,7 @@ A developer runs `scaffold ca` and then `scaffold gep --type agent`. Running `uv
 
 ## Out of Scope
 
-- **`scaffold migrate-di`**, migration guide, agent skill, and libcst codemod → [docs/spec-029-migrate-di](../../docs/spec-029-migrate-di/README.md)
+- **Upgrading 0.5.0 projects** (`scaffold up` upgrade action, migration guide, agent skill, libcst codemod) → [specs/029-upgrade-framework](../../specs/029-upgrade-framework/spec.md)
 - DB adapter templates (`asyncpg`, `DynamoDB`, `SQLAlchemy`, etc.)
 - Lifting the single-entry-point restriction
 - Scoped (per-request) lifecycle generation

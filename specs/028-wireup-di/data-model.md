@@ -108,7 +108,7 @@ def create_container(settings: Settings | None = None) -> AsyncContainer:
 ```
 State: Legacy project (scaffold_version key absent)
   └─ any project-modifying generate-* command → EXIT 1
-       message points to docs/spec-029-migrate-di/
+       message points to specs/029-upgrade-framework/
 ```
 
-Migration state transitions: [docs/spec-029-migrate-di/data-model.md](../../docs/spec-029-migrate-di/data-model.md).
+Migration state transitions: [specs/029-upgrade-framework/data-model.md](../../specs/029-upgrade-framework/data-model.md).

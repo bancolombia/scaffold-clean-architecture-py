@@ -9,7 +9,7 @@
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Parallelizable (different files, no dependencies on incomplete tasks)
-- **[Story]**: User story label (US1–US4). The former migration stories (labelled US4/US5 before the split) now live as US1/US2 in [docs/spec-029-migrate-di/tasks.md](../../docs/spec-029-migrate-di/tasks.md); US4 here is the A2A agent entry point.
+- **[Story]**: User story label (US1–US4). The former migration stories (labelled US4/US5 before the split) now live as US1/US2 in [specs/029-upgrade-framework/tasks.md](../../specs/029-upgrade-framework/tasks.md); US4 here is the A2A agent entry point.
 - All paths relative to repo root
 
 ---
@@ -21,7 +21,7 @@
 - [X] T004 [P] Write tests for Block A in `tests/commands/test_generate_project.py` and `tests/core/test_project_detector.py`: `di` field defaults; legacy toml without key loads as dependency-injector; warning prints correctly — confirm tests FAIL, then implement T001–T003 <!-- superseded by T091 (scaffold_version) -->
 - [X] T001 Add `di: Literal["wireup", "dependency-injector"]` field to `ProjectContext` in `src/scaffold_ca_python/models/context.py` (defaults to `"wireup"`) <!-- superseded by T091 (scaffold_version) -->
 - [X] T002 Update `load_project_context` in `src/scaffold_ca_python/core/project_detector.py` to read the `di` key; if absent, return `"dependency-injector"` (legacy detection) <!-- superseded by T091 (scaffold_version) -->
-- [X] T003 [P] Add `warn_legacy_project(ctx: ProjectContext)` helper in `src/scaffold_ca_python/commands/_shared.py` that prints a Rich-formatted warning pointing to `scaffold migrate-di`
+- [X] T003 [P] Add `warn_legacy_project(ctx: ProjectContext)` helper in `src/scaffold_ca_python/commands/_shared.py` that prints a Rich-formatted warning pointing to `scaffold migrate-di` *(later renamed: the hint names `scaffold up`, spec 029)*
 
 ---
 
@@ -90,7 +90,7 @@
 - [X] T083 [US1] Implement `gda --gateway`: add CLI option, move `_find_gateway` to `commands/_shared.py`, add `gateway` context to adapter factories, update adapter templates with `{% if gateway %}` blocks for `@injectable(as_type=...)` and class inheritance; re-mark T021 `[X]`
 - [X] T084 [US1] `delete-module`: remove wiring test function via AST line ranges; also delete the factory test file <!-- adapter wiring test + marker sync completed in T100 -->
 - [X] T085 [US1] `guc --uses`: print hint when no adapter with `as_type=<Gw>` found under `infrastructure/driven_adapters/`
-- [X] T086 [US1] Write failing tests: `require_wireup_project` exits 1 with `migrate-di`/`--install-skill` message; `gda`/`guc`/`gep`/`dm` on a legacy project exit 1 and write nothing
+- [X] T086 [US1] Write failing tests: `require_wireup_project` exits 1 with the migration message (now `scaffold up` / `install-skill migrate-di`, spec 029); `gda`/`guc`/`gep`/`dm` on a legacy project exit 1 and write nothing
 - [X] T087 [US1] Implement `require_wireup_project` in `commands/_shared.py`; remove `warn_legacy_project`; call guard in all project-modifying commands
 - [X] T088 [US1] Remove legacy branches from `ep_mcp.py` and `ep_restapi.py`; delete `templates/legacy/`; delete legacy tests
 - [X] T089 [US1] Rewrite T056 description in `tasks.md` to use sha256 fingerprints in `core/migrations/fingerprints_050.py` instead of rendered templates
@@ -205,7 +205,7 @@
 
 ## Deferred — Spec 029 (migration)
 
-The former migration user stories (US4/US5 before the split; now US1/US2 in spec 029) and tasks **T047–T067** (`scaffold migrate-di`, skill, migration guide) moved to [docs/spec-029-migrate-di/tasks.md](../../docs/spec-029-migrate-di/tasks.md). Do not implement under spec 028.
+The former migration user stories (US4/US5 before the split; now US1/US2 in spec 029) and tasks **T047–T067** (then `scaffold migrate-di`, now the `scaffold up` upgrade action; skill, migration guide) moved to [specs/029-upgrade-framework/tasks.md](../../specs/029-upgrade-framework/tasks.md). Do not implement under spec 028.
 
 ---
 
@@ -315,7 +315,7 @@ T025: Update da_secrets.py + secrets_adapter.py.jinja2
 1. MVP (US1+US2) → new projects work correctly
 2. US3 (T042–T046) → fail-fast validation hardened
 3. Polish (T069–T074) → docs and coverage
-4. Migration → [docs/spec-029-migrate-di/tasks.md](../../docs/spec-029-migrate-di/tasks.md) after 028 ships
+4. Migration → [specs/029-upgrade-framework/tasks.md](../../specs/029-upgrade-framework/tasks.md) after 028 ships
 
 ### Parallel Team Strategy
 

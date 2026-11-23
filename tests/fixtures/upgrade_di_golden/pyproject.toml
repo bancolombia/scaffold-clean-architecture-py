@@ -1,0 +1,98 @@
+[project]
+name = "legacy_fixture"
+version = "0.1.0"
+description = "Clean Architecture Python project"
+requires-python = ">=3.13"
+dependencies = [
+    "wireup~=2.13.0",
+    "pydantic-settings==2.15.0",
+    "fastapi[standard]~=0.141.1",
+    "uvicorn[standard]~=0.53.0",
+]
+
+[project.scripts]
+legacy-fixture = "legacy_fixture.server:start_server"
+
+[dependency-groups]
+test = [
+    "pytest==9.1.1",
+    "pytest-cov==7.1.0",
+    "pytest-asyncio==1.4.0",
+]
+dev = [
+    "mypy~=1.16.1",
+    "ruff==0.16.8",
+    { include-group = "test" },
+]
+
+[build-system]
+requires = [
+    "hatchling",
+]
+build-backend = "hatchling.build"
+
+[tool.scaffold-ca-python]
+name = "legacy-fixture"
+python_package = "legacy_fixture"
+created_at = "2026-11-20T17:04:24.499108+00:00"
+scaffold_version = "1.0.0"
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "I",
+    "UP",
+    "ANN",
+    "ASYNC",
+]
+ignore = [
+    "TC",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"src/tests/**/*.py" = [
+    "ANN",
+]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+
+[tool.coverage.run]
+source = [
+    "legacy_fixture",
+]
+omit = [
+    "*/tests/*",
+]
+
+[tool.coverage.report]
+exclude_also = [
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.pytest.ini_options]
+addopts = "--cov=legacy_fixture --cov-fail-under=75 --import-mode=importlib"
+testpaths = [
+    "src/tests",
+]
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = [
+    "ignore:.*httpx.*:DeprecationWarning",
+    "ignore:.*BlockingPortal.*:DeprecationWarning",
+]
+asyncio_mode = "auto"

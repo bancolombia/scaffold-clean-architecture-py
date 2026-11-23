@@ -13,7 +13,11 @@ from rich.markup import escape
 from rich.tree import Tree
 
 from scaffold_ca_python.core.errors import ScaffoldError
-from scaffold_ca_python.core.project_detector import find_project_root, load_project_context
+from scaffold_ca_python.core.project_detector import (
+    MissingScaffoldSectionError,
+    find_project_root,
+    load_project_context,
+)
 
 if TYPE_CHECKING:
     from scaffold_ca_python.core.module_builder import ModuleBuilder
@@ -57,6 +61,8 @@ def require_project_root(not_found_message: str | None = PROJECT_NOT_FOUND) -> P
     """
     try:
         return find_project_root()
+    except MissingScaffoldSectionError as exc:
+        fail(escape(str(exc)))
     except ScaffoldError as exc:
         fail(not_found_message or str(exc))
 
@@ -105,18 +111,24 @@ def print_pending_dependencies(builder: ModuleBuilder) -> None:
         console.print(f"[dim]Would add to {target}: {escape(', '.join(pkgs))}[/dim]")
 
 
-def auto_format_project(project_root: Path) -> None:
-    """Run ruff check --fix (I rules) then ruff format on *project_root* (best-effort).
+def auto_format_project(project_root: Path, paths: list[Path] | None = None) -> None:
+    """Run ruff check --fix (I rules) then ruff format on *paths* (default: whole project), best-effort.
 
     Silently skips when ruff is not importable in the active interpreter.
     """
     import sys
 
+    if paths is None:
+        targets = ["."]
+    else:
+        targets = [str(p.relative_to(project_root)) for p in paths if p.suffix == ".py" and p.is_file()]
+        if not targets:
+            return
     ruff = [sys.executable, "-m", "ruff"]
     for cmd in (
-        [*ruff, "check", "--fix", "--select", "I", "--quiet", "--no-cache", "."],
-        [*ruff, "format", "--quiet", "--no-cache", "."],
-        [*ruff, "check", "--fix", "--select", "I", "--quiet", "--no-cache", "."],
+        [*ruff, "check", "--fix", "--select", "I", "--quiet", "--no-cache", *targets],
+        [*ruff, "format", "--quiet", "--no-cache", *targets],
+        [*ruff, "check", "--fix", "--select", "I", "--quiet", "--no-cache", *targets],
     ):
         try:
             subprocess.run(cmd, cwd=project_root, check=False, capture_output=True)
@@ -134,8 +146,8 @@ def build_and_persist(factory: ModuleFactory, builder: ModuleBuilder) -> list[Pa
 
 
 _LEGACY_MIGRATION_HINT = (
-    "Migrate from dependency-injector to wireup manually, then set "
-    "[bold]scaffold_version[/bold] under [bold][tool.scaffold-ca-python][/bold] in pyproject.toml."
+    "Run [bold]scaffold up[/bold] to migrate from dependency-injector to wireup "
+    "(or install the agent skill with [bold]scaffold install-skill migrate-di[/bold])."
 )
 
 

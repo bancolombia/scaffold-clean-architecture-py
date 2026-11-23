@@ -3,7 +3,10 @@
 
 # SDD documentation and Spec-Kit tooling are authored artifacts, not source code:
 # keep the fixer/formatter hooks out of them so runs stay scoped to code changes.
-exclude: '^(\.specify/|specs/|\.github/agents/)'
+# tests/fixtures/ holds verbatim scaffolder output (0.5.0 projects are unformatted and the
+# migration matches them by SHA-256); each fixture has its own [tool.ruff], so ruff's
+# extend-exclude in pyproject.toml does not apply to files passed by the hook.
+exclude: '^(\.specify/|specs/|\.github/agents/|tests/fixtures/)'
 
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
