@@ -1,0 +1,34 @@
+"""Settings for SQLAlchemy adapter — loaded from environment."""
+
+from __future__ import annotations
+
+import wireup
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class SQLAlchemySettings(BaseSettings):
+    """Environment-sourced settings for the SQLAlchemy adapter.
+
+    All fields without defaults are required; a missing env var fails at startup.
+
+    Set the SQLALCHEMY_DATABASE_URL environment variable, e.g.:
+
+    * postgresql+psycopg://user:pass@localhost:5432/mydb   (PostgreSQL with psycopg driver)
+    * sqlite+aiosqlite:///./local.db                        (SQLite for local dev)
+    * sqlite+aiosqlite:///:memory:                          (in-memory SQLite for tests)
+    """
+
+    database_url: str
+    echo: bool = False
+
+    model_config = SettingsConfigDict(
+        env_prefix="{{ module_name | upper }}_",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+
+@wireup.injectable
+def sqlalchemy_settings_factory() -> SQLAlchemySettings:
+    return SQLAlchemySettings()

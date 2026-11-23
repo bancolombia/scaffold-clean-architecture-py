@@ -1,0 +1,30 @@
+"""Tests for SQLAlchemyRepository — real async SQLite engine (no mocks)."""
+
+from __future__ import annotations
+
+import pytest
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import StaticPool
+
+from {{ project.python_package }}.infrastructure.driven_adapters.sqlalchemy.sqlalchemy_models import Base
+from {{ project.python_package }}.infrastructure.driven_adapters.sqlalchemy.sqlalchemy_repository import (
+    SQLAlchemyRepository,
+)
+
+
+@pytest.fixture()
+async def sessions() -> async_sessionmaker[AsyncSession]:
+    """In-memory SQLite session factory shared across the fixture scope."""
+    engine = create_async_engine(
+        "sqlite+aiosqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    return async_sessionmaker(engine, expire_on_commit=False)
+
+
+async def test_ping_returns_true(sessions: async_sessionmaker[AsyncSession]) -> None:
+    repo = SQLAlchemyRepository(sessions)
+    assert await repo.ping() is True

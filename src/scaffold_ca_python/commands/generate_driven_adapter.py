@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from enum import StrEnum
+from pathlib import Path
 from typing import Annotated
 
 import typer
@@ -35,7 +37,41 @@ _GDA_EPILOG = (
     "Examples:\n\n"
     "  * scaffold gda --type rest-consumer\n\n"
     "  * scaffold generate-driven-adapter --type generic --name my_adapter\n\n"
+    "  * scaffold gda --type sqlalchemy --gateway book_repository\n\n"
+    "  * scaffold gda --type sqlalchemy --driver sqlite\n\n"
 )
+
+
+class DbDriver(StrEnum):
+    postgresql = "postgresql"
+    sqlite = "sqlite"
+
+
+def _apply_driver_param(builder: ModuleBuilder, type_: str, driver: DbDriver | None) -> None:
+    if driver is not None and type_ != "sqlalchemy":
+        fail(f"--driver is only valid with --type sqlalchemy (got --type {type_!r}).")
+    if type_ == "sqlalchemy":
+        resolved = driver if driver is not None else DbDriver.postgresql
+        suffix = " (default)" if driver is None else ""
+        console.print(f"[dim]Driver: {resolved}{suffix}[/dim]")
+        builder.add_param("driver", resolved)
+
+
+def _apply_gateway_param(builder: ModuleBuilder, src_pkg_root: Path, gateway: str) -> None:
+    model_module = find_gateway(src_pkg_root, gateway)
+    if model_module is None:
+        fail(
+            f"Gateway '{gateway}' not found in domain/model/*/gateways/.",
+            hint="Run 'scaffold gm --name <model>' to create a model with a gateway first.",
+        )
+    builder.add_param(
+        "gateway",
+        {
+            "name": gateway,
+            "class_name": to_pascal_case(gateway),
+            "model_module": model_module,
+        },
+    )
 
 
 def _generate_driven_adapter_impl(
@@ -43,6 +79,7 @@ def _generate_driven_adapter_impl(
     name: str | None,
     dry_run: bool,
     gateway: str | None = None,
+    driver: DbDriver | None = None,
 ) -> None:
     if type_ not in DRIVEN_ADAPTER_FACTORIES:
         allowed = ", ".join(DRIVEN_ADAPTER_FACTORIES.keys())
@@ -77,21 +114,10 @@ def _generate_driven_adapter_impl(
         dry_run=dry_run,
     )
 
+    _apply_driver_param(builder, type_, driver)
+
     if gateway:
-        model_module = find_gateway(project_ctx.src_pkg_root, gateway)
-        if model_module is None:
-            fail(
-                f"Gateway '{gateway}' not found in domain/model/*/gateways/.",
-                hint="Run 'scaffold gm --name <model>' to create a model with a gateway first.",
-            )
-        builder.add_param(
-            "gateway",
-            {
-                "name": gateway,
-                "class_name": to_pascal_case(gateway),
-                "model_module": model_module,
-            },
-        )
+        _apply_gateway_param(builder, project_ctx.src_pkg_root, gateway)
 
     created = build_and_persist(factory, builder)
 
@@ -113,7 +139,7 @@ def register(app: typer.Typer) -> None:
             str | None,
             typer.Option(
                 "--type",
-                help="Adapter type: rest-consumer, secrets, generic.",
+                help="Adapter type: rest-consumer, secrets, generic, sqlalchemy.",
                 rich_help_panel="Required",
             ),
         ] = None,
@@ -134,9 +160,17 @@ def register(app: typer.Typer) -> None:
                 rich_help_panel="Options",
             ),
         ] = None,
+        driver: Annotated[
+            DbDriver | None,
+            typer.Option(
+                "--driver",
+                help="Database driver for --type sqlalchemy: postgresql (default) or sqlite.",
+                rich_help_panel="Options",
+            ),
+        ] = None,
     ) -> None:
         type_ = show_help_if_missing(ctx, type_)
-        _generate_driven_adapter_impl(type_, name, dry_run, gateway)
+        _generate_driven_adapter_impl(type_, name, dry_run, gateway, driver)
 
     register_with_alias(
         app, "generate-driven-adapter", "gda", generate_driven_adapter, help=_GDA_HELP, epilog=_GDA_EPILOG

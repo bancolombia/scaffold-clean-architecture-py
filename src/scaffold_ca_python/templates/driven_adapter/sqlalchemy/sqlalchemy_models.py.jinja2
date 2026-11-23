@@ -1,0 +1,25 @@
+"""SQLAlchemy declarative base and ORM models."""
+
+from __future__ import annotations
+
+from sqlalchemy.orm import DeclarativeBase
+
+
+class Base(DeclarativeBase):
+    """Shared declarative base for all ORM models in this adapter.
+
+    Pass ``Base.metadata`` to Alembic env.py or use
+    ``await conn.run_sync(Base.metadata.create_all)`` in tests.
+    """
+
+
+# Example model — uncomment and adapt to your domain:
+#
+# from sqlalchemy import String
+# from sqlalchemy.orm import Mapped, mapped_column
+#
+# class ExampleItem(Base):
+#     __tablename__ = "example_items"
+#
+#     id: Mapped[int] = mapped_column(primary_key=True)
+#     name: Mapped[str] = mapped_column(String(255))

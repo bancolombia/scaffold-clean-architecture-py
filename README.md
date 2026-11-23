@@ -115,7 +115,7 @@ scaffold guc --name create_order --dry-run
 
 ### scaffold gda
 
-Scaffold a driven adapter such as an HTTP client, secrets adapter, or generic outbound adapter.
+Scaffold a driven adapter such as an HTTP client, secrets adapter, async SQLAlchemy repository, or generic outbound adapter.
 
 Use `--gateway` with a domain gateway ABC name so the adapter is registered as `@injectable(as_type=<Gateway>)` and wired to that port.
 
@@ -130,6 +130,43 @@ scaffold gda --type generic --name order_repository_adapter --gateway order_repo
 ```bash
 scaffold gda --type generic --name my_adapter --dry-run
 ```
+
+#### SQLAlchemy async adapter
+
+The `sqlalchemy` type generates an async SQLAlchemy 2 adapter with a session factory, settings, and an example repository.
+
+```bash
+scaffold gda --type sqlalchemy
+scaffold gda --type sqlalchemy --driver sqlite
+scaffold gda --type sqlalchemy --gateway book_repository
+```
+
+The default driver is `postgresql` (uses `psycopg[binary]`). Pass `--driver sqlite` to use `aiosqlite` instead.
+
+Set the required environment variable before running the project:
+
+```bash
+# PostgreSQL (default)
+export SQLALCHEMY_DATABASE_URL="postgresql+psycopg://user:pass@localhost:5432/mydb"
+
+# SQLite for local dev
+export SQLALCHEMY_DATABASE_URL="sqlite+aiosqlite:///./local.db"
+```
+
+To add ORM models, extend `Base` in `sqlalchemy_models.py` using SQLAlchemy 2 mapped columns:
+
+```python
+from sqlalchemy import String
+from sqlalchemy.orm import Mapped, mapped_column
+from my_app.infrastructure.driven_adapters.sqlalchemy.sqlalchemy_models import Base
+
+class BookORM(Base):
+    __tablename__ = "books"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(String(255))
+```
+
+Schema migrations (Alembic or other tools) are not generated — configure them separately in your project.
 
 ### scaffold gep
 

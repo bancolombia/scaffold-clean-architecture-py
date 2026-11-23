@@ -97,7 +97,42 @@ def test_gda_generic_requires_name(project_root: Path) -> None:
 def test_gda_unknown_type(project_root: Path) -> None:
     result = runner.invoke(app, ["gda", "--type", "x"])
     assert result.exit_code == 1
-    assert "Unknown type 'x'. Allowed: rest-consumer, secrets, generic." in strip_ansi(result.output)
+    out = strip_ansi(result.output)
+    assert "Unknown type 'x'." in out
+    for allowed in ("rest-consumer", "secrets", "generic", "sqlalchemy"):
+        assert allowed in out
+
+
+def test_conftest_header_written_once_with_two_adapters(project_root: Path) -> None:
+    """Generating rest-consumer then sqlalchemy must produce only one header in conftest."""
+    runner.invoke(app, ["gda", "--type", "rest-consumer"], catch_exceptions=False)
+    runner.invoke(app, ["gda", "--type", "sqlalchemy"], catch_exceptions=False)
+    conftest = (project_root / "src" / "tests" / "conftest.py").read_text()
+    assert conftest.count("from __future__ import annotations") == 1
+
+
+def test_dm_sqlalchemy_removes_fixture_leaves_rest_consumer(project_root: Path) -> None:
+    """dm --name sqlalchemy removes sqlalchemy_env and preserves rest_consumer_env."""
+    runner.invoke(app, ["gda", "--type", "rest-consumer"], catch_exceptions=False)
+    runner.invoke(app, ["gda", "--type", "sqlalchemy"], catch_exceptions=False)
+    result = runner.invoke(app, ["dm", "--name", "sqlalchemy", "--confirm"], catch_exceptions=False)
+    assert result.exit_code == 0
+    conftest = (project_root / "src" / "tests" / "conftest.py").read_text()
+    assert "sqlalchemy_env" not in conftest
+    assert "rest_consumer_env" in conftest
+
+
+def test_driver_flag_on_rest_consumer_exits_1(project_root: Path) -> None:
+    """--driver must only be used with --type sqlalchemy."""
+    result = runner.invoke(app, ["gda", "--type", "rest-consumer", "--driver", "postgresql"])
+    assert result.exit_code == 1
+    assert "sqlalchemy" in strip_ansi(result.output).lower()
+
+
+def test_driver_unknown_value_exits_nonzero(project_root: Path) -> None:
+    """An unrecognized --driver value must produce a non-zero exit."""
+    result = runner.invoke(app, ["gda", "--type", "sqlalchemy", "--driver", "oracle"])
+    assert result.exit_code != 0
 
 
 def test_gpipe_unknown_provider(project_root: Path) -> None:

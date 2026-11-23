@@ -12,6 +12,9 @@ HTTPX = "httpx~=0.28.1"
 RESPX = "respx~=0.23.1"
 BOTO3 = "boto3~=1.43.98"
 A2A_SDK_HTTP_SERVER = "a2a-sdk[http-server]~=1.1.4"
+SQLALCHEMY = "sqlalchemy[asyncio]~=2.1.8"
+AIOSQLITE = "aiosqlite~=0.22.1"
+PSYCOPG_BINARY = "psycopg[binary]~=3.3.9"
 MYPY = "mypy~=1.16.1"
 
 RESTAPI_RUNTIME = (FASTAPI_STANDARD, UVICORN_STANDARD, WIREUP, PYDANTIC_SETTINGS)

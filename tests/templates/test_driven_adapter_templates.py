@@ -72,3 +72,30 @@ def test_generic_has_adapter_suffix() -> None:
 def test_generic_has_async_execute() -> None:
     out = renderer.render_string(_tmpl("driven_adapter/generic/adapter.py.jinja2"), _ctx().model_dump())
     assert "async def execute" in out
+
+
+# sqlalchemy
+
+
+def test_sqlalchemy_config_has_sessionmaker_expire_on_commit_false() -> None:
+    out = renderer.render_string(_tmpl("driven_adapter/sqlalchemy/sqlalchemy_config.py.jinja2"), _ctx().model_dump())
+    assert "async_sessionmaker" in out
+    assert "expire_on_commit=False" in out
+
+
+def test_sqlalchemy_models_has_declarative_base() -> None:
+    out = renderer.render_string(_tmpl("driven_adapter/sqlalchemy/sqlalchemy_models.py.jinja2"), _ctx().model_dump())
+    assert "DeclarativeBase" in out
+    assert "class Base" in out
+
+
+def test_sqlalchemy_repository_uses_sessionmaker() -> None:
+    tpl = _tmpl("driven_adapter/sqlalchemy/sqlalchemy_repository.py.jinja2")
+    out = renderer.render_string(tpl, _ctx().model_dump())
+    assert "async_sessionmaker" in out or "_sessions" in out
+
+
+def test_sqlalchemy_test_adapter_uses_staticpool() -> None:
+    tpl = _tmpl("driven_adapter/sqlalchemy/test_sqlalchemy_adapter.py.jinja2")
+    out = renderer.render_string(tpl, _ctx().model_dump())
+    assert "StaticPool" in out

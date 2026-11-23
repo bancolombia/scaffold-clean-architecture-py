@@ -248,8 +248,12 @@ def test_rest_consumer_conftest_fixture_appended(tmp_path: Path) -> None:
 
 
 def test_rest_consumer_conftest_fixture_is_idempotent(tmp_path: Path) -> None:
-    """Calling _append_rest_consumer_conftest twice must not duplicate the fixture."""
-    from scaffold_ca_python.factory.driven_adapters.da_rest_consumer import _append_rest_consumer_conftest
+    """append_env_fixture called twice must not duplicate the fixture."""
+    from scaffold_ca_python.factory.driven_adapters.base import DrivenAdapterFactory
+    from scaffold_ca_python.factory.driven_adapters.da_rest_consumer import (
+        _CONFTEST_FIXTURE,
+        _CONFTEST_MARKER,
+    )
 
     write_minimal_pyproject(tmp_path)
     project = ProjectContext(name="ms-demo")
@@ -257,9 +261,9 @@ def test_rest_consumer_conftest_fixture_is_idempotent(tmp_path: Path) -> None:
     builder = ModuleBuilder(project_root=tmp_path, project_ctx=project, module_ctx=module_ctx, dry_run=False)
 
     conftest_path = tmp_path / "src" / "tests" / "conftest.py"
-    _append_rest_consumer_conftest(builder, conftest_path)
+    DrivenAdapterFactory.append_env_fixture(builder, conftest_path, _CONFTEST_MARKER, _CONFTEST_FIXTURE)
     builder.persist()
-    _append_rest_consumer_conftest(builder, conftest_path)
+    DrivenAdapterFactory.append_env_fixture(builder, conftest_path, _CONFTEST_MARKER, _CONFTEST_FIXTURE)
     builder.persist()
 
     content = conftest_path.read_text(encoding="utf-8")

@@ -7,8 +7,6 @@ from scaffold_ca_python.factory.dependencies import HTTPX, PYDANTIC_SETTINGS, RE
 from scaffold_ca_python.factory.driven_adapters.base import DrivenAdapterFactory
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from scaffold_ca_python.core.module_builder import ModuleBuilder
 
 _CONFTEST_FIXTURE = """\
@@ -19,24 +17,7 @@ def rest_consumer_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("REST_CONSUMER_BASE_URL", "https://example.com")
 """
 
-_CONFTEST_HEADER = '''\
-"""Test fixtures for the generated project."""
-
-from __future__ import annotations
-
-import pytest
-'''
-
 _CONFTEST_MARKER = "rest_consumer_env"
-
-
-def _append_rest_consumer_conftest(builder: ModuleBuilder, conftest_path: Path) -> None:
-    """Append REST_CONSUMER_BASE_URL autouse fixture to conftest.py (idempotent)."""
-    builder.append_to_file(
-        conftest_path,
-        _CONFTEST_HEADER + _CONFTEST_FIXTURE,
-        marker=_CONFTEST_MARKER,
-    )
 
 
 class DrivenAdapterRestConsumer(DrivenAdapterFactory):
@@ -58,4 +39,4 @@ class DrivenAdapterRestConsumer(DrivenAdapterFactory):
     def build_extra(self, builder: ModuleBuilder, ctx: dict[str, object]) -> None:
         del ctx
         conftest_path = resolve_tests_root(builder.project_root) / "conftest.py"
-        _append_rest_consumer_conftest(builder, conftest_path)
+        self.append_env_fixture(builder, conftest_path, _CONFTEST_MARKER, _CONFTEST_FIXTURE)

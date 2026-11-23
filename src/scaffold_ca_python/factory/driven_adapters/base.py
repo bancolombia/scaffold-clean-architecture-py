@@ -87,6 +87,26 @@ class DrivenAdapterFactory(ABC):
         return
 
     @staticmethod
+    def append_env_fixture(builder: ModuleBuilder, conftest_path: Path, fixture_name: str, fixture_body: str) -> None:
+        """Append an autouse env fixture to conftest.py (idempotent, header written only once).
+
+        The fixture_body must start with two blank lines and contain the @pytest.fixture block.
+        The header (docstring + imports) is prepended only when conftest.py does not yet contain
+        'import pytest', so multiple adapter types can safely call this method without duplicating
+        the header.
+        """
+        existing = conftest_path.read_text(encoding="utf-8") if conftest_path.exists() else ""
+        _HEADER = '''\
+"""Test fixtures for the generated project."""
+
+from __future__ import annotations
+
+import pytest
+'''
+        content = fixture_body if "import pytest" in existing else _HEADER + fixture_body
+        builder.append_to_file(conftest_path, content, marker=fixture_name)
+
+    @staticmethod
     def append_wiring_test(builder: ModuleBuilder, ctx_dict: dict[str, Any]) -> None:
         """Append ``test_container_resolves_<module>`` to test_wiring.py when a gateway is bound."""
         if not ctx_dict.get("gateway"):

@@ -1,0 +1,28 @@
+"""Async SQLAlchemy engine and session factory (wireup resource / injectable)."""
+
+from __future__ import annotations
+
+from collections.abc import AsyncIterator
+
+import wireup
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+
+from {{ project.python_package }}.infrastructure.driven_adapters.sqlalchemy.sqlalchemy_settings import (
+    SQLAlchemySettings,
+)
+
+
+@wireup.injectable
+async def sqlalchemy_engine(settings: SQLAlchemySettings) -> AsyncIterator[AsyncEngine]:
+    """Create the shared async engine; dispose it when the container closes."""
+    engine = create_async_engine(settings.database_url, echo=settings.echo)
+    try:
+        yield engine
+    finally:
+        await engine.dispose()
+
+
+@wireup.injectable
+def sqlalchemy_sessionmaker(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
+    """Return a session factory bound to the shared engine."""
+    return async_sessionmaker(engine, expire_on_commit=False)
