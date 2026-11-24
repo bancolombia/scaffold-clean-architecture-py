@@ -145,6 +145,13 @@ def _scenario_12_rest_consumer_and_sqlalchemy(project: Path) -> None:
     assert "rest_consumer_env" in content_after
 
 
+def _scenario_13_sqlalchemy_sqlite_restapi(project: Path) -> None:
+    _run(project, "gm", "--name", "book")
+    _run(project, "guc", "--name", "book", "--uses", "book_repository")
+    _run(project, "gda", "--type", "sqlalchemy", "--gateway", "book_repository", "--driver", "sqlite")
+    _run(project, "gep", "--type", "restapi")
+
+
 _SCENARIOS: dict[str, Callable[..., None]] = {
     "01_restapi_swagger": _scenario_01_restapi_swagger,
     "02_agent": _scenario_02_agent,
@@ -158,6 +165,7 @@ _SCENARIOS: dict[str, Callable[..., None]] = {
     "10_delete_module_conftest": _scenario_10_delete_module_conftest,
     "11_sqlalchemy_gateway": _scenario_11_sqlalchemy_gateway,
     "12_rest_consumer_and_sqlalchemy": _scenario_12_rest_consumer_and_sqlalchemy,
+    "13_sqlalchemy_sqlite_restapi": _scenario_13_sqlalchemy_sqlite_restapi,
 }
 
 
