@@ -1,3 +1,13 @@
+<p align="center">
+  <img
+    src="assets/logo/logo-icon-cli.png"
+    width="144"
+    height="144"
+    alt="scaffold-ca-python logo"
+    style="display: block; margin: 0 auto;"
+  />
+</p>
+
 <h1 align="center">scaffold-ca-python</h1>
 
 <p align="center">
