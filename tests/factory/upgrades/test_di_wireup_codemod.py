@@ -95,7 +95,9 @@ def test_rewrite_injections_uses_annotated_type_and_cleans_imports() -> None:
     out = result.source
     compile(out, "controller.py", "exec")
     assert "use_case: Injected[GetBookUseCase]" in out
-    assert "Provide" not in out and "@inject" not in out and "Container" not in out
+    assert "Provide" not in out
+    assert "@inject" not in out
+    assert "Container" not in out
     assert "Depends" not in out
     assert "from wireup import Injected" in out
 
@@ -188,7 +190,8 @@ def test_analyze_containers_ignores_commented_examples(tmp_path: Path) -> None:
         """,
     )
     analysis = codemod.analyze_containers([path])
-    assert analysis.findings == [] and analysis.bindings == []
+    assert analysis.findings == []
+    assert analysis.bindings == []
 
 
 def test_analyze_containers_accepts_known_sub_containers(tmp_path: Path) -> None:

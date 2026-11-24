@@ -77,6 +77,7 @@ class EntryPointFactory(ABC):
         Default: the main.py replacement notice. Override for types that
         also update [project.scripts] (e.g. restapi).
         """
+        del src_pkg_root, pkg
         verb = "will be replaced" if dry_run else "replaced"
         return [f"[yellow]⚠[/yellow] main.py {verb} with {type_key} entrypoint."]
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, override
 
 from scaffold_ca_python.core.project_detector import resolve_tests_root
 from scaffold_ca_python.factory.dependencies import A2A_RUNTIME
@@ -30,6 +30,7 @@ class EntryPointAgent(EntryPointFactory):
         EntryPointConflict(type_key="mcp"),
     )
 
+    @override
     def result_notes(self, src_pkg_root: Path, pkg: str, type_key: str, *, dry_run: bool) -> list[str]:
         return server_entry_notes(src_pkg_root, pkg, "main", dry_run=dry_run)
 

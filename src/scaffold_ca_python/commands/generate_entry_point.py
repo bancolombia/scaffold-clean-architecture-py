@@ -141,6 +141,7 @@ def _generate_entry_point(options: EntryPointOptions) -> None:
 def register(app: typer.Typer) -> None:
     def generate_entry_point(
         ctx: typer.Context,
+        *,
         type_: Annotated[str | None, typer.Option("--type", help=_TYPE_HELP, rich_help_panel="Required")] = None,
         swagger: Annotated[str | None, typer.Option("--swagger", help=_SWAGGER_HELP, rich_help_panel="Options")] = None,
         with_resources: Annotated[

@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import override
 
 import libcst as cst
 from libcst import matchers as m
@@ -78,7 +79,8 @@ def import_map(module: cst.Module) -> dict[str, str]:
 
 def _provider_attr(value: cst.BaseExpression) -> tuple[str, cst.Call] | None:
     if m.matches(value, m.Call(func=m.Attribute(value=m.Name("providers")))):
-        assert isinstance(value, cst.Call) and isinstance(value.func, cst.Attribute)
+        assert isinstance(value, cst.Call)
+        assert isinstance(value.func, cst.Attribute)
         return value.func.attr.value, value
     return None
 
@@ -288,6 +290,7 @@ class _AddDecorator(cst.CSTTransformer):
         self.decorator = decorator
         self.changed = False
 
+    @override
     def leave_ClassDef(self, original_node: cst.ClassDef, updated_node: cst.ClassDef) -> cst.ClassDef:
         if updated_node.name.value != self.class_name or any(
             _is_injectable_decorator(d) for d in updated_node.decorators
@@ -367,6 +370,7 @@ class _InjectionTransformer(cst.CSTTransformer):
             equal=cst.MaybeSentinel.DEFAULT,
         )
 
+    @override
     def leave_FunctionDef(self, original_node: cst.FunctionDef, updated_node: cst.FunctionDef) -> cst.FunctionDef:
         kept = [
             d

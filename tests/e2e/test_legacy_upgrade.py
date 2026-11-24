@@ -37,4 +37,5 @@ def test_legacy_project_upgrades_to_green_wireup_project(
     rerun = scaffold_in(project, "up", "--dry-run", "--report", "json")
     assert rerun.exit_code == 0, rerun.output  # type: ignore[attr-defined]
     report = json.loads(rerun.stdout)  # type: ignore[attr-defined]
-    assert report["pending"] == [] and all(a["skipped"] for a in report["actions_run"])
+    assert report["pending"] == []
+    assert all(a["skipped"] for a in report["actions_run"])

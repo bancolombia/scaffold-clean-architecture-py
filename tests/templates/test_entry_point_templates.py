@@ -96,7 +96,8 @@ def test_entry_point_restapi_test_server_template_references_start_server() -> N
 
 def test_entry_point_restapi_test_exception_handler_template_has_status_codes() -> None:
     out = renderer.render_string(_tmpl("entry_point/restapi/test_exception_handler.py.jinja2"), _ctx().model_dump())
-    assert "422" in out and "HTTPException" in out
+    assert "422" in out
+    assert "HTTPException" in out
 
 
 # restapi — test_rest_controller.py template correctness (, )

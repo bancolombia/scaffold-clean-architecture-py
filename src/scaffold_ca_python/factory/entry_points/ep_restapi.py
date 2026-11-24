@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, override
 
 from rich.markup import escape
 
@@ -28,6 +28,7 @@ class EntryPointRestApi(EntryPointFactory):
         EntryPointConflict(type_key="agent"),
     )
 
+    @override
     def result_notes(self, src_pkg_root: Path, pkg: str, type_key: str, *, dry_run: bool) -> list[str]:
         notes: list[str] = []
         main_py = src_pkg_root / "main.py"

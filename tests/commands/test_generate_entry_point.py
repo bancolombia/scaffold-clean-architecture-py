@@ -13,7 +13,7 @@ from tests.helpers import strip_ansi
 runner = CliRunner()
 
 
-@pytest.fixture()
+@pytest.fixture
 def swagger_file(tmp_path: Path) -> Path:
     """A minimal valid OpenAPI YAML file for --swagger tests."""
     spec_path = tmp_path / "spec.yaml"
@@ -715,7 +715,7 @@ def test_add_tool_fails_when_entry_point_missing(project_root: Path) -> None:
 
 
 @pytest.mark.parametrize(
-    "name,reason",
+    ("name", "reason"),
     [
         ("create_file", "duplicate_after_second_run"),
         ("bind_tools", "reserved_name"),
@@ -803,7 +803,7 @@ def test_add_tool_fails_on_decorator_vs_function_name_duplicate(mcp_project: Pat
 
 
 @pytest.mark.parametrize(
-    "flag_name,flag_value",
+    ("flag_name", "flag_value"),
     [
         ("--swagger", "spec.yaml"),
         ("--with-resources", None),
@@ -841,7 +841,8 @@ def test_add_tool_requires_type_mcp(project_root: Path, type_value: str | None) 
     result = runner.invoke(app, args, catch_exceptions=False)
     assert result.exit_code == 1
     output = strip_ansi(result.stdout)
-    assert "--add-tool" in output and "mcp" in output
+    assert "--add-tool" in output
+    assert "mcp" in output
 
 
 def test_add_tool_requires_name_flag(mcp_project: Path) -> None:
@@ -857,7 +858,7 @@ def test_add_tool_requires_name_flag(mcp_project: Path) -> None:
 
 
 @pytest.mark.parametrize(
-    "name,expected_message_fragment",
+    ("name", "expected_message_fragment"),
     [
         ("CreateFile", "snake_case"),
         ("class", "keyword"),
@@ -886,7 +887,7 @@ def test_add_tool_accepts_soft_keywords(mcp_project: Path) -> None:
 
 
 @pytest.mark.parametrize(
-    "param,expected_fragment",
+    ("param", "expected_fragment"),
     [
         ("path", "Expected 'name:type' format"),
         ("Path:str", "snake_case"),
@@ -926,7 +927,8 @@ def test_add_tool_rejects_duplicate_param_names(mcp_project: Path) -> None:
     )
     assert result.exit_code == 1
     output = strip_ansi(result.stdout)
-    assert "Duplicate" in output and "path" in output
+    assert "Duplicate" in output
+    assert "path" in output
 
 
 def test_add_tool_validates_returns_type(mcp_project: Path) -> None:
@@ -1049,7 +1051,8 @@ def test_add_tool_fails_when_test_tools_py_missing(mcp_project: Path) -> None:
     output = strip_ansi(result.stdout)
     assert "test_tools.py" in output
     # Message spans multiple lines, check both parts
-    assert "missing" in output and "does not have" in output
+    assert "missing" in output
+    assert "does not have" in output
 
     # tools.py unchanged
     assert tools_py.read_text() == original_tools

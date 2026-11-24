@@ -259,7 +259,8 @@ def test_kebab_name_generates_snake_case_files(tmp_path: Path, monkeypatch: pyte
         stripped = line.strip()
         if stripped.endswith(".py"):
             stem = stripped.split("/")[-1][:-3]
-            assert stem == stem.lower() and "-" not in stem
+            assert stem == stem.lower()
+            assert "-" not in stem
 
 
 # : injection test — renderer and writer are used when injected
