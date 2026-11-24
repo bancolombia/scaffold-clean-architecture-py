@@ -12,6 +12,15 @@
     "src/tests/conftest.py",
     "src/tests/infrastructure/driven_adapters/rest_consumer/test_rest_consumer.py"
   ],
+  "gda:sqlalchemy": [
+    "src/my_app/infrastructure/driven_adapters/sqlalchemy/__init__.py",
+    "src/my_app/infrastructure/driven_adapters/sqlalchemy/sqlalchemy_config.py",
+    "src/my_app/infrastructure/driven_adapters/sqlalchemy/sqlalchemy_models.py",
+    "src/my_app/infrastructure/driven_adapters/sqlalchemy/sqlalchemy_repository.py",
+    "src/my_app/infrastructure/driven_adapters/sqlalchemy/sqlalchemy_settings.py",
+    "src/tests/conftest.py",
+    "src/tests/infrastructure/driven_adapters/sqlalchemy/test_sqlalchemy_adapter.py"
+  ],
   "gda:secrets": [
     "src/my_app/infrastructure/driven_adapters/secrets/__init__.py",
     "src/my_app/infrastructure/driven_adapters/secrets/secrets_adapter.py",

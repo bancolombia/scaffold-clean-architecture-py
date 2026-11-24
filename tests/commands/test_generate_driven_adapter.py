@@ -22,6 +22,39 @@ def test_rest_consumer_impl_contains_httpx(project_root: Path) -> None:
     assert "httpx" in content
 
 
+# sqlalchemy type
+
+
+def test_sqlalchemy_impl_contains_create_async_engine(project_root: Path) -> None:
+    runner.invoke(app, ["gda", "--type", "sqlalchemy"], catch_exceptions=False)
+    content = (
+        project_root / "src" / "my_app" / "infrastructure" / "driven_adapters" / "sqlalchemy" / "sqlalchemy_config.py"
+    ).read_text()
+    assert "create_async_engine" in content
+
+
+def test_sqlalchemy_injects_sqlalchemy_and_psycopg_binary(project_root: Path) -> None:
+    import tomllib
+
+    runner.invoke(app, ["gda", "--type", "sqlalchemy"], catch_exceptions=False)
+    with (project_root / "pyproject.toml").open("rb") as fh:
+        data = tomllib.load(fh)
+    runtime: list[str] = data.get("project", {}).get("dependencies", [])
+    test_group: list[str] = data.get("dependency-groups", {}).get("test", [])
+    assert any("sqlalchemy" in d and "asyncio" in d for d in runtime)
+    assert any("psycopg" in d for d in runtime), "psycopg[binary] must be in runtime for default driver"
+    assert not any("aiosqlite" in d for d in runtime), "aiosqlite must NOT be in runtime for default driver"
+    assert any("aiosqlite" in d for d in test_group if isinstance(d, str)), "aiosqlite must be in test group"
+
+
+def test_dry_run_prints_sqlalchemy_paths(project_root: Path) -> None:
+    result = runner.invoke(app, ["gda", "--type", "sqlalchemy", "--dry-run"], catch_exceptions=False)
+    assert result.exit_code == 0
+    out = strip_ansi(result.output)
+    assert "sqlalchemy_config" in out
+    assert "driven_adapters/sqlalchemy" in out
+
+
 # secrets type
 
 
@@ -176,3 +209,24 @@ def test_gda_help_contains_custom_adapter_description() -> None:
 
 
 # : no-args → help
+
+# dry-run shows sqlalchemy_models path
+
+
+def test_dry_run_prints_sqlalchemy_models_path(project_root: Path) -> None:
+    result = runner.invoke(app, ["gda", "--type", "sqlalchemy", "--dry-run"], catch_exceptions=False)
+    assert result.exit_code == 0
+    out = strip_ansi(result.output)
+    assert "sqlalchemy_models" in out
+
+
+# conftest idempotency
+
+
+def test_sqlalchemy_conftest_idempotent(project_root: Path) -> None:
+    """T012a: running gda --type sqlalchemy twice must not duplicate sqlalchemy_env."""
+    runner.invoke(app, ["gda", "--type", "sqlalchemy"], catch_exceptions=False)
+    # second invocation should fail (dir already exists) but conftest must still have only one fixture
+    runner.invoke(app, ["gda", "--type", "sqlalchemy"])
+    conftest = (project_root / "src" / "tests" / "conftest.py").read_text()
+    assert conftest.count("sqlalchemy_env") == 1

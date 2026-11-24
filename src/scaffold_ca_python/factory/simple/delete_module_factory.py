@@ -56,8 +56,12 @@ class DeleteModuleFactory(ModuleFactory):
                 source = remove_test_function(source, fn_name) or source
             wiring_test_path.write_text(source, encoding="utf-8")
         sync_wiring_marker(src_pkg_root, tests_root)
-        if snake_name == DrivenAdapterRestConsumer.fixed_name:
-            self._remove_rest_consumer_conftest_fixture(tests_root)
+        _CONFTEST_FIXTURE_NAMES = {
+            DrivenAdapterRestConsumer.fixed_name: "rest_consumer_env",
+            "sqlalchemy": "sqlalchemy_env",
+        }
+        if snake_name in _CONFTEST_FIXTURE_NAMES:
+            self._remove_conftest_fixture(tests_root, _CONFTEST_FIXTURE_NAMES[snake_name])
 
     @staticmethod
     def _delete_path(path: Path) -> None:
@@ -67,22 +71,18 @@ class DeleteModuleFactory(ModuleFactory):
             shutil.rmtree(path)
 
     @staticmethod
-    def _remove_rest_consumer_conftest_fixture(tests_root: Path) -> None:
-        """Remove rest_consumer_env autouse fixture from conftest.py if present."""
+    def _remove_conftest_fixture(tests_root: Path, fixture_name: str) -> None:
+        """Remove a named autouse fixture from conftest.py if present."""
         import re
 
         conftest_path = tests_root / "conftest.py"
         if not conftest_path.exists():
             return
         source = conftest_path.read_text(encoding="utf-8")
-        if "rest_consumer_env" not in source:
+        if fixture_name not in source:
             return
-        cleaned = re.sub(
-            r"\n@pytest\.fixture\(autouse=True\)\ndef rest_consumer_env\(.*?\) -> None:.*?(?=\n\n|\Z)",
-            "",
-            source,
-            flags=re.DOTALL,
-        )
+        pattern = rf"\n@pytest\.fixture\(autouse=True\)\ndef {re.escape(fixture_name)}\(.*?\) -> None:.*?(?=\n\n|\Z)"
+        cleaned = re.sub(pattern, "", source, flags=re.DOTALL)
         if cleaned != source:
             conftest_path.write_text(cleaned, encoding="utf-8")
         final = conftest_path.read_text(encoding="utf-8")

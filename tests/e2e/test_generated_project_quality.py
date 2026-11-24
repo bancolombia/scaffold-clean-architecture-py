@@ -125,6 +125,33 @@ def _scenario_10_delete_module_conftest(project: Path) -> None:
     )
 
 
+def _scenario_11_sqlalchemy_gateway(project: Path) -> None:
+    _run(project, "gm", "--name", "book")
+    _run(project, "guc", "--name", "get_book")
+    _run(project, "gda", "--type", "sqlalchemy", "--gateway", "book_repository")
+
+
+def _scenario_12_rest_consumer_and_sqlalchemy(project: Path) -> None:
+    _run(project, "gda", "--type", "rest-consumer")
+    _run(project, "gda", "--type", "sqlalchemy")
+    conftest = project / "src" / "tests" / "conftest.py"
+    content = conftest.read_text(encoding="utf-8")
+    assert content.count("from __future__ import annotations") == 1, "conftest.py must have exactly one header"
+    assert "rest_consumer_env" in content
+    assert "sqlalchemy_env" in content
+    _run(project, "dm", "--name", "sqlalchemy", "--confirm")
+    content_after = conftest.read_text(encoding="utf-8")
+    assert "sqlalchemy_env" not in content_after
+    assert "rest_consumer_env" in content_after
+
+
+def _scenario_13_sqlalchemy_sqlite_restapi(project: Path) -> None:
+    _run(project, "gm", "--name", "book")
+    _run(project, "guc", "--name", "book", "--uses", "book_repository")
+    _run(project, "gda", "--type", "sqlalchemy", "--gateway", "book_repository", "--driver", "sqlite")
+    _run(project, "gep", "--type", "restapi")
+
+
 _SCENARIOS: dict[str, Callable[..., None]] = {
     "01_restapi_swagger": _scenario_01_restapi_swagger,
     "02_agent": _scenario_02_agent,
@@ -136,6 +163,9 @@ _SCENARIOS: dict[str, Callable[..., None]] = {
     "08_mcp_full": _scenario_08_mcp_full,
     "09_mcp_add_tool": _scenario_09_mcp_add_tool,
     "10_delete_module_conftest": _scenario_10_delete_module_conftest,
+    "11_sqlalchemy_gateway": _scenario_11_sqlalchemy_gateway,
+    "12_rest_consumer_and_sqlalchemy": _scenario_12_rest_consumer_and_sqlalchemy,
+    "13_sqlalchemy_sqlite_restapi": _scenario_13_sqlalchemy_sqlite_restapi,
 }
 
 
