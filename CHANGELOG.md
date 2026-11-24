@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/bancolombia/scaffold-clean-architecture-py/compare/v1.1.0...v1.2.0) (2026-11-24)
+
+
+### Features
+
+* **gda:** add async SQLAlchemy driven adapter type ([cbf550b](https://github.com/bancolombia/scaffold-clean-architecture-py/commit/cbf550bc5244218fbfef171e9158787414c4fe43))
+
 ## [1.1.0](https://github.com/bancolombia/scaffold-clean-architecture-py/compare/v1.0.1...v1.1.0) (2026-11-23)
 
 
