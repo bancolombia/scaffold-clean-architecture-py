@@ -21,7 +21,7 @@ pytestmark = pytest.mark.benchmark
 # Fixtures
 
 
-@pytest.fixture()
+@pytest.fixture
 def bench_project(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["ca", "--name", "bench-app"], catch_exceptions=False)
@@ -96,7 +96,7 @@ def test_gh_performance(benchmark: pytest.fixture, bench_project: Path) -> None:
 # : vs under 5 s on a project with 200 Python files
 
 
-@pytest.fixture()
+@pytest.fixture
 def large_project(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Create a CA project with 200 Python source files for vs benchmark."""
     monkeypatch.chdir(tmp_path)

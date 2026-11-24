@@ -132,24 +132,14 @@ def _persist_with_restore(
         )
 
 
-def _report_add_tool(
-    modified_paths: list[Path],
-    tool_stub: str,
-    test_stub: str,
-    spec: mcp_tool_spec.ToolSpec,
-    project_root: Path,
-    dry_run: bool,
-) -> None:
-    if dry_run:
-        console.print("\n[yellow]Dry run:[/yellow] Would modify:\n")
-        for path in modified_paths:
-            console.print(f"  • {path.relative_to(project_root)}")
-        console.print("\n[yellow]Tool stub preview:[/yellow]")
-        console.print(Syntax(tool_stub, "python", theme="monokai", line_numbers=False))
-        console.print("\n[yellow]Test stub preview:[/yellow]")
-        console.print(Syntax(test_stub, "python", theme="monokai", line_numbers=False))
-    else:
-        console.print(f"[green]✓[/green] Added tool '{spec.name}' to MCP entry point.")
+def _print_add_tool_preview(modified_paths: list[Path], tool_stub: str, test_stub: str, project_root: Path) -> None:
+    console.print("\n[yellow]Dry run:[/yellow] Would modify:\n")
+    for path in modified_paths:
+        console.print(f"  • {path.relative_to(project_root)}")
+    console.print("\n[yellow]Tool stub preview:[/yellow]")
+    console.print(Syntax(tool_stub, "python", theme="monokai", line_numbers=False))
+    console.print("\n[yellow]Test stub preview:[/yellow]")
+    console.print(Syntax(test_stub, "python", theme="monokai", line_numbers=False))
 
 
 def add_mcp_tool(options: EntryPointOptions) -> None:
@@ -188,6 +178,8 @@ def add_mcp_tool(options: EntryPointOptions) -> None:
     builder.append_to_file(tools_py, tool_stub)
     builder.append_to_file(test_tools_py, test_stub)
     modified = _persist_with_restore(builder, (tools_py, tools_src, test_tools_py, test_tools_src))
-    if not options.dry_run:
-        auto_format_project(project_root)
-    _report_add_tool(modified, tool_stub, test_stub, spec, project_root, options.dry_run)
+    if options.dry_run:
+        _print_add_tool_preview(modified, tool_stub, test_stub, project_root)
+        return
+    auto_format_project(project_root)
+    console.print(f"[green]✓[/green] Added tool '{spec.name}' to MCP entry point.")

@@ -79,13 +79,14 @@ extend-exclude = ["tests/fixtures"]
 force-exclude = true
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "ANN", "B", "SIM", "C90"]
+select = ["E", "F", "I", "UP", "ANN", "B", "SIM", "C90", "ERA", "PT", "PLR0917", "ARG"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 10
 
-# Temporary: removed by the end of feature 022.
 [tool.ruff.lint.per-file-ignores]
+# Pytest fixtures are often requested only for their side effects.
+"tests/**" = ["ARG"]
 
 [tool.mypy]
 strict = true

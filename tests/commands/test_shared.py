@@ -19,8 +19,6 @@ from scaffold_ca_python.commands._shared import (
 from scaffold_ca_python.core.module_builder import ModuleBuilder
 from scaffold_ca_python.models.context import ModuleContext, ProjectContext
 
-# fail()
-
 
 def test_fail_exit_code_is_1() -> None:
     with pytest.raises(typer.Exit) as exc_info:
@@ -46,9 +44,6 @@ def test_fail_custom_exit_code() -> None:
     assert exc_info.value.exit_code == 2
 
 
-# require_project_root()
-
-
 def test_require_project_root_outside_project(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Outside a project, prints the standard message and exits 1."""
     monkeypatch.chdir(tmp_path)
@@ -63,9 +58,6 @@ def test_require_project_root_none_message_outside_project(tmp_path: Path, monke
     with pytest.raises(typer.Exit) as exc_info:
         require_project_root(not_found_message=None)
     assert exc_info.value.exit_code == 1
-
-
-# ensure_absent()
 
 
 def test_ensure_absent_file_already_exists(tmp_path: Path) -> None:
@@ -92,17 +84,11 @@ def test_ensure_absent_does_nothing_when_path_missing(tmp_path: Path) -> None:
     ensure_absent(missing, tmp_path, kind="File", hint="hint")
 
 
-# print_dry_run_tree()
-
-
 def test_print_dry_run_tree(tmp_path: Path) -> None:
     base = tmp_path
     paths: Iterable[Path] = [base / "b.py", base / "a.py", base / "sub" / "c.py"]
     # Should not raise
     print_dry_run_tree("my module", paths, base)
-
-
-# print_pending_dependencies()
 
 
 def test_print_pending_dependencies(tmp_path: Path) -> None:

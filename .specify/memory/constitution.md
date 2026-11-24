@@ -34,6 +34,32 @@ None — all placeholders resolved.
 
 ---
 
+### Amendment v2.2.0 (2026-11-24) — MINOR
+**Type**: MINOR — new principle added.
+
+**Changes**:
+- Added **Principle VIII. Clean Code & Fast Tests**: comment rules (ruff `ERA` + hygiene
+  tests), max 5 positional arguments (`PLR0917`), complexity ≤ 10 (`C90`), no unused
+  arguments in `src/` (`ARG`), pytest idioms (`PT`), and real `uv` invocations confined to
+  `tests/e2e/` behind `pytestmark = pytest.mark.e2e`. Every rule is backed by a tool;
+  unmeasurable metrics are explicitly rejected.
+- Argument-count rule uses `PLR0917` (positional only) instead of `PLR0913`: keyword-only
+  parameters cannot be passed in the wrong order, and Typer callbacks expose one parameter
+  per CLI option, so counting them all would force noqa exceptions.
+- Principle III: `gda` types row now lists `sqlalchemy` (drift fix after feature 030).
+
+**Templates updated**: None — `plan-template.md` derives its Constitution Check gates from this
+file at runtime.
+
+**Applied in the same branch** (`feature/031-clean-code-principle`):
+- `pyproject.toml`: `[tool.ruff.lint] select` += `ERA`, `PT`, `PLR0917`, `ARG`;
+  `per-file-ignores` `"tests/**" = ["ARG"]`; stale feature-022 comment removed.
+- `tests/test_source_hygiene.py`: `test_real_uv_commands_only_in_e2e` and
+  `test_e2e_modules_are_marked`.
+- All 62 surfaced violations fixed; none left as pre-existing debt.
+
+---
+
 ### Amendment v2.1.0 (2026-10-22) — MINOR
 **Type**: MINOR — new governance clause (materially expanded guidance).
 
@@ -88,7 +114,7 @@ or artifact structure was affected.
 
 # scaffold-ca-python Constitution
 
-**Version**: 2.1.0 | **Ratified**: 2026-03-25 | **Last amended**: 2026-10-22
+**Version**: 2.2.0 | **Ratified**: 2026-03-25 | **Last amended**: 2026-11-24
 
 ## Core Principles
 
@@ -150,7 +176,7 @@ for Python idioms:
 | `clean-architecture` | `ca` | Scaffold full CA project (async-only, pyproject.toml, Pydantic v2 domain models — no sync mode, no opt-out) |
 | `generate-model` | `gm` | Domain model class in `domain/model/` |
 | `generate-use-case` | `guc` | Use-case class in `domain/usecase/` |
-| `generate-driven-adapter` | `gda` | Driven adapter; types: `rest-consumer`, `secrets`, `generic` |
+| `generate-driven-adapter` | `gda` | Driven adapter; types: `rest-consumer`, `secrets`, `sqlalchemy`, `generic` |
 | `generate-entry-point` | `gep` | Entry point; types: `restapi` (FastAPI), `agent` (A2A), `mcp`, `generic` |
 | `generate-helper` | `gh` | Utility helper module in `infrastructure/helpers/` |
 | `generate-pipeline` | `gpipe` | CI/CD pipeline files (GitHub Actions or Azure Pipelines, via mandatory `--provider`) |
@@ -238,6 +264,38 @@ automation, and project board filters simple and predictable.
 
 ---
 
+### VIII. Clean Code & Fast Tests
+
+Applies to the CLI tool's own source (`src/`) and test suite (`tests/`). Every rule in this
+principle MUST be backed by an automated check; a rule without one MUST NOT be added here.
+
+- **Comments**: comments MUST explain *why* (hidden constraint, workaround, non-obvious
+  invariant), never restate *what* the code does. Commented-out code is FORBIDDEN (ruff
+  `ERA`). Banner comments and Spec Kit task or requirement IDs (e.g., `T012`, `FR-003`) are
+  FORBIDDEN in source, tests, and templates (`tests/test_source_hygiene.py`).
+- **Function size**: functions MUST NOT take more than 5 positional arguments (ruff
+  `PLR0917`); further parameters MUST be keyword-only (after `*`). Functions MUST stay at or
+  below cyclomatic complexity 10 (ruff `C90`). Typer command callbacks follow the same rule:
+  every CLI option after `ctx` is keyword-only.
+- **Unused arguments**: FORBIDDEN in `src/` (ruff `ARG`). `tests/` is exempt because pytest
+  fixtures are routinely requested only for their side effects.
+- **Pytest idioms**: tests MUST follow pytest conventions (ruff `PT`): no composite
+  assertions, no overly broad `pytest.raises`, tuple-style `parametrize` names.
+- **Fast default run**: tests that invoke `uv` for real (`sync`, `run`, `add`, `lock`) or run
+  quality toolchains on a generated project MUST live under `tests/e2e/`, and every test
+  module there MUST declare `pytestmark = pytest.mark.e2e`, so the default `uv run pytest`
+  excludes them. Enforced by `tests/test_source_hygiene.py`. Fast subprocess calls (e.g.,
+  `git init`, `python -c`) and mocked `subprocess.run` remain allowed in unit tests.
+- **Rejected metrics**: unmeasurable or arbitrary metrics (class-cohesion percentages, fixed
+  per-test millisecond budgets, line-count caps without a linter rule) MUST NOT be adopted
+  as MUST rules unless proposed together with an automated check.
+
+**Rationale**: Rules enforced by ruff and pytest fail in pre-commit and CI regardless of who,
+human or agent, wrote the code; prose-only rules drift. Keeping slow tests behind the `e2e`
+marker preserves the fast feedback loop that Test-First Development (Principle V) depends on.
+
+---
+
 ## Technology Stack
 
 The following stack applies to the CLI tool itself:
@@ -281,4 +339,4 @@ dependencies listed in Principle III, installed via `uv` at generation time.
 - Compliance reviews MUST occur at the start of each new feature branch and before
   merging to `main`.
 
-**Version**: 2.1.0 | **Ratified**: 2026-03-25 | **Last Amended**: 2026-10-22
+**Version**: 2.2.0 | **Ratified**: 2026-03-25 | **Last Amended**: 2026-11-24

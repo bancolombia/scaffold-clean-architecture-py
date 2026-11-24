@@ -352,4 +352,5 @@ def test_generated_config_and_factory_pass_ruff_format(project_with_order_model:
     src = project_with_order_model / "src" / "my_app" / "application" / "config"
     for path in (src / "config.py", src / "usecases" / "create_order_usecase.py"):
         lines = path.read_text().splitlines()
-        assert lines[0].startswith('"""') and lines[1] == "", path
+        assert lines[0].startswith('"""'), path
+        assert lines[1] == "", path

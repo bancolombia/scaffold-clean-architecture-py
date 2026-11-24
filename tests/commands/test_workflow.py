@@ -18,7 +18,7 @@ runner = CliRunner()
 # : quickstart.md workflow (ca → gm → guc → gda → gep → gpipe → vs)
 
 
-@pytest.fixture()
+@pytest.fixture
 def workflow_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.chdir(tmp_path)
     result = runner.invoke(app, ["ca", "--name", "order-service"], catch_exceptions=False)
@@ -76,7 +76,7 @@ def test_workflow_vs_exits_0_on_clean_project(workflow_root: Path) -> None:
 # : Full walkthrough (adds gh, dm --confirm, up --dry-run)
 
 
-@pytest.fixture()
+@pytest.fixture
 def full_walkthrough_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["ca", "--name", "my-app"], catch_exceptions=False)

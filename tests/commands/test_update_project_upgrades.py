@@ -34,7 +34,7 @@ class _UvOnly:
         return MagicMock(returncode=0)
 
 
-@pytest.fixture()
+@pytest.fixture
 def legacy(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     root = copy_project(LEGACY, tmp_path / "legacy")
     monkeypatch.chdir(root)

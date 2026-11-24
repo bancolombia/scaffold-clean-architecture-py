@@ -359,7 +359,7 @@ def test_param_spec_rejects_hard_keyword_name() -> None:
 
 @pytest.mark.parametrize("bad_type", ["int, str", "...", "foo().bar"])
 def test_invalid_type_expressions_rejected(bad_type: str) -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Invalid type"):
         ParamSpec(name="x", type=bad_type)
 
 

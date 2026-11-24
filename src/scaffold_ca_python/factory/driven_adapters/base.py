@@ -37,6 +37,7 @@ class DrivenAdapterFactory(ABC):
 
     def module_dir(self, builder: ModuleBuilder) -> str:
         """Directory name under infrastructure/driven_adapters/."""
+        del builder
         fixed = type(self).fixed_name
         if fixed is not None:
             return fixed
@@ -49,6 +50,7 @@ class DrivenAdapterFactory(ABC):
         return ctx
 
     def test_file_specs(self, builder: ModuleBuilder) -> tuple[FileSpec, ...]:
+        del builder
         return type(self).test_files
 
     @classmethod
@@ -84,7 +86,7 @@ class DrivenAdapterFactory(ABC):
 
     def build_extra(self, builder: ModuleBuilder, ctx: dict[str, Any]) -> None:
         """Hook for type-specific steps after the standard file queue."""
-        return
+        del builder, ctx
 
     @staticmethod
     def append_env_fixture(builder: ModuleBuilder, conftest_path: Path, fixture_name: str, fixture_body: str) -> None:
