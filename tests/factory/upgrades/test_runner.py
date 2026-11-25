@@ -77,7 +77,7 @@ class _BrokenAction(_SecondAction):
         raise ValueError("boom")
 
 
-@pytest.fixture()
+@pytest.fixture
 def demo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     root = _wireup_project(tmp_path / "demo")
     (root / "src" / "demo" / "marker.txt").write_text("MARKER\n", encoding="utf-8")

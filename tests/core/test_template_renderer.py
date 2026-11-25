@@ -11,17 +11,17 @@ from scaffold_ca_python.models.context import ModuleContext, ProjectContext
 # Fixtures
 
 
-@pytest.fixture()
+@pytest.fixture
 def renderer() -> TemplateRenderer:
     return TemplateRenderer()
 
 
-@pytest.fixture()
+@pytest.fixture
 def project_ctx() -> ProjectContext:
     return ProjectContext(name="my-app")
 
 
-@pytest.fixture()
+@pytest.fixture
 def module_ctx(project_ctx: ProjectContext) -> ModuleContext:
     return ModuleContext(name="order", project=project_ctx)
 

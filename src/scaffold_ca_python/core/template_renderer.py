@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import importlib.resources
-from typing import Any
+from typing import Any, override
 
 from jinja2 import BaseLoader, Environment, TemplateNotFound
 from pydantic import BaseModel
@@ -16,6 +16,7 @@ class _ResourceLoader(BaseLoader):
 
     _PACKAGE = "scaffold_ca_python.templates"
 
+    @override
     def get_source(
         self,
         environment: Environment,

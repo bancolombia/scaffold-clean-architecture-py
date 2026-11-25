@@ -35,7 +35,7 @@ def test_contract_lists_every_kind() -> None:
 
 
 def test_unknown_kinds_are_rejected() -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Unknown pending kind"):
         PendingItem(kind="factory_provider", file="x.py", line=1)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Unknown automated kind"):
         AppliedItem(kind="something_else", file="x.py")

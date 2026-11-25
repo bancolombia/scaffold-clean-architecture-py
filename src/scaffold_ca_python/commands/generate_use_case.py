@@ -46,7 +46,7 @@ def _is_helper_or_adapter(pkg_root: Path, name: str) -> bool:
     return False
 
 
-def _validate_gateways(project_root: Path, project_ctx: ProjectContext, uses: str) -> list[dict[str, str]]:
+def _validate_gateways(project_ctx: ProjectContext, uses: str) -> list[dict[str, str]]:
     """Parse and validate the --uses value; return list of gateway context dicts."""
     gateway_names = [g.strip() for g in uses.split(",") if g.strip()]
     result = []
@@ -95,7 +95,7 @@ def _generate_use_case_impl(name: str, dry_run: bool, uses: str | None) -> None:
             hint="Choose a different name or remove the existing file first.",
         )
 
-    gateways = _validate_gateways(project_root, project_ctx, uses) if uses else []
+    gateways = _validate_gateways(project_ctx, uses) if uses else []
 
     builder = ModuleBuilder(project_root=project_root, project_ctx=project_ctx, module_ctx=module_ctx, dry_run=dry_run)
     if gateways:

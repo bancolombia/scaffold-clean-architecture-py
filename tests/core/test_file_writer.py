@@ -100,7 +100,7 @@ def test_no_partial_files_on_failure(tmp_path: Path) -> None:
     bad = blocker_file / "nested.py"  # parent is a file → mkdir fails
 
     writer = FileWriter()
-    with pytest.raises(OSError):
+    with pytest.raises(FileExistsError):
         writer.execute([_create_op(good), _create_op(bad)], dry_run=False)
 
     # The good file should NOT be left behind (atomicity)

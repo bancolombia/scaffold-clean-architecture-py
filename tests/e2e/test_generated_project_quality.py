@@ -43,7 +43,8 @@ def _scenario_01_restapi_swagger(project: Path, tmp_path: Path) -> None:
     _run(project, "gep", "--type", "restapi", "--swagger", str(spec))
     controller = _src_pkg(project) / "infrastructure" / "entry_points" / "api" / "v1" / "rest_controller.py"
     body = controller.read_text(encoding="utf-8")
-    assert '"/items"' in body and '"/health"' in body
+    assert '"/items"' in body
+    assert '"/health"' in body
 
 
 def _scenario_02_agent(project: Path) -> None:
@@ -67,7 +68,8 @@ def _scenario_04_module_usecase_adapter(project: Path) -> None:
     assert wiring_test.exists(), "project must include test_wiring.py"
     wiring_src = wiring_test.read_text(encoding="utf-8")
     # MISSING_ADAPTERS + module pytestmark xfail until an adapter implements the gateway.
-    assert "OrderRepository" in wiring_src and "MISSING_ADAPTERS" in wiring_src
+    assert "OrderRepository" in wiring_src
+    assert "MISSING_ADAPTERS" in wiring_src
     assert "pytest.mark.xfail" in wiring_src
     _run(
         project,

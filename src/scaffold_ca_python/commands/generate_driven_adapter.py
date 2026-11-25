@@ -135,6 +135,7 @@ def _generate_driven_adapter_impl(
 def register(app: typer.Typer) -> None:
     def generate_driven_adapter(
         ctx: typer.Context,
+        *,
         type_: Annotated[
             str | None,
             typer.Option(

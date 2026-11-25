@@ -25,7 +25,7 @@ def _dir_hash(root: Path) -> str:
     return h.hexdigest()
 
 
-@pytest.fixture()
+@pytest.fixture
 def project_with_model(project_root: Path) -> Path:
     runner.invoke(app, ["gm", "--name", "order"], catch_exceptions=False)
     return project_root

@@ -14,7 +14,7 @@ runner = CliRunner()
 # Fixtures
 
 
-@pytest.fixture()
+@pytest.fixture
 def project_with_violation(project_root: Path) -> Path:
     """Return a project_root where one domain/model file has a bad import."""
     model_dir = project_root / "src" / "my_app" / "domain" / "model"
@@ -71,7 +71,8 @@ def test_violation_output_contains_import_statement(project_with_violation: Path
 
 def test_violation_count_shown_in_output(project_with_violation: Path) -> None:
     result = runner.invoke(app, ["vs"])
-    assert "1" in result.output and ("violation" in result.output.lower())
+    assert "1" in result.output
+    assert "violation" in result.output.lower()
 
 
 # --dry-run is a no-op (read-only; same output, always exits 0)
