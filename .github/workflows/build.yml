@@ -8,6 +8,14 @@ on:
       - master
       - feature/*
       - fix/*
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.python-version'
+      - '.pre-commit-config.yaml'
+      - '.github/workflows/build.yml'
   pull_request:
     branches:
       - trunk
@@ -16,6 +24,14 @@ on:
     types:
       - opened
       - synchronize
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.python-version'
+      - '.pre-commit-config.yaml'
+      - '.github/workflows/build.yml'
 
 env:
   UV_NO_SYNC: true
