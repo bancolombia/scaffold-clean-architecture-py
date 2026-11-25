@@ -1,6 +1,6 @@
 <p align="center">
   <img
-    src="assets/logo/logo-icon-cli.png"
+    src="assets/logo/logo-icon-hex.png"
     width="144"
     height="144"
     alt="scaffold-ca-python logo"
