@@ -106,7 +106,7 @@
 ## Phase 6: Polish & Cross-Cutting Concerns
 
 - [X] T024 [P] Update `README.md`: add `psycopg` to the Features list, the `gda` row of the command table and the generated-projects tech-stack table; add a `#### psycopg async adapter` subsection after the SQLAlchemy one covering when to choose it over `sqlalchemy`, `PSYCOPG_DATABASE_URL`/`PSYCOPG_MIN_SIZE`/`PSYCOPG_MAX_SIZE`/`PSYCOPG_TIMEOUT`, the lazily opened pool, and a `%s`-parameter example
-- [X] T025 [P] Update `.specify/memory/constitution.md`: add `psycopg` to the `gda` row of the Principle III table, bump to v2.2.1 (PATCH) with an amendment entry and today's date in both version lines
+- [X] T025 [P] Update `.specify/memory/constitution.md` (v2.2.1, PATCH): stop enumerating `gda`/`gep` types in the Principle III table, point to `scaffold gda --help` / `scaffold gep --help`, and name `DRIVEN_ADAPTER_FACTORIES` / `ENTRY_POINT_FACTORIES` as the single source of truth, so `psycopg` and future types need no amendment
 - [X] T026 Run `uv run ruff check src tests`, `uv run ruff format --check src tests`, `uv run mypy --strict src`; fix any finding
 - [X] T027 Run `uv run pytest` (coverage ≥ 80 %); fix regressions
 - [X] T028 Run `UV_SYSTEM_CERTS=1 uv run pytest -m e2e --no-cov -rs`; all scenarios, including 14 and 15, pass

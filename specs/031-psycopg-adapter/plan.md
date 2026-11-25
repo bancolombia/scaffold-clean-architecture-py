@@ -36,7 +36,7 @@ Add `--type psycopg` to `scaffold gda` to generate an async PostgreSQL adapter t
 |-----------|--------|-------|
 | I. Clean Architecture | ✅ Pass | All generated code lives in `infrastructure/driven_adapters/psycopg/`; the gateway import goes inward (infrastructure → domain); the commented example maps rows to the domain model inside the adapter |
 | II. Template-Driven Code Generation | ✅ Pass | Every generated file comes from `templates/driven_adapter/psycopg/*.jinja2`; rendering tests added to `tests/templates/test_driven_adapter_templates.py` (one block per template group, as for sqlalchemy) |
-| III. Full Command Parity | ✅ Pass (PATCH) | `gda` gains the `psycopg` type; the Principle III table is updated in the same branch (documentation-only PATCH, as done for `sqlalchemy`) |
+| III. Full Command Parity | ✅ Pass (PATCH) | `gda` gains the `psycopg` type. The Principle III table stops enumerating types and points to the factory registries, so this and future types need no amendment (v2.2.1) |
 | IV. Python-First Idioms | ✅ Pass | Native async psycopg 3 API; psycopg and psycopg-pool ship `py.typed`, so mypy --strict needs no stubs (verified in research R-3) |
 | V. Test-First Development | ✅ Pass | tasks.md orders failing tests before implementation; the generated project ships `test_psycopg_adapter.py` |
 | VI. Developer Experience | ✅ Pass | `--dry-run` tree and pending deps, `--help` example, existing `--driver` misuse error with hint |
@@ -91,7 +91,7 @@ tests/
 └── e2e/test_generated_project_quality.py          # scenarios 14 and 15
 
 README.md                                          # psycopg section + tables
-.specify/memory/constitution.md                    # Principle III table (PATCH)
+.specify/memory/constitution.md                    # Principle III: types → registries (PATCH v2.2.1)
 ```
 
 **Structure Decision**: Single project. The new factory mirrors `da_sqlalchemy.py`; everything else is a registry or list entry.
