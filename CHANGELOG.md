@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/bancolombia/scaffold-clean-architecture-py/compare/v1.2.0...v1.2.1) (2026-11-25)
+
+
+### Documentation
+
+* add the code of conduct and the security policy ([#42](https://github.com/bancolombia/scaffold-clean-architecture-py/issues/42)) ([f4befa7](https://github.com/bancolombia/scaffold-clean-architecture-py/commit/f4befa78ed6269cb395eb5b1b9b9493bce73582c))
+
 ## [1.2.0](https://github.com/bancolombia/scaffold-clean-architecture-py/compare/v1.1.0...v1.2.0) (2026-11-24)
 
 
