@@ -230,3 +230,36 @@ def test_sqlalchemy_conftest_idempotent(project_root: Path) -> None:
     runner.invoke(app, ["gda", "--type", "sqlalchemy"])
     conftest = (project_root / "src" / "tests" / "conftest.py").read_text()
     assert conftest.count("sqlalchemy_env") == 1
+
+
+# psycopg type
+
+
+def test_dry_run_prints_psycopg_paths_and_pool_dependency(project_root: Path) -> None:
+    result = runner.invoke(app, ["gda", "--type", "psycopg", "--dry-run"], catch_exceptions=False)
+    assert result.exit_code == 0
+    out = strip_ansi(result.output)
+    assert "driven_adapters/psycopg" in out
+    assert "psycopg_config" in out
+    assert "psycopg-pool" in out
+
+
+def test_driver_flag_rejected_for_psycopg(project_root: Path) -> None:
+    result = runner.invoke(app, ["gda", "--type", "psycopg", "--driver", "sqlite"])
+    assert result.exit_code == 1
+    assert "only valid with --type sqlalchemy" in strip_ansi(result.output)
+
+
+def test_psycopg_conftest_idempotent(project_root: Path) -> None:
+    runner.invoke(app, ["gda", "--type", "psycopg"], catch_exceptions=False)
+    runner.invoke(app, ["gda", "--type", "psycopg"])
+    conftest = (project_root / "src" / "tests" / "conftest.py").read_text()
+    assert conftest.count("def psycopg_env(") == 1
+
+
+def test_gda_help_lists_psycopg_with_example() -> None:
+    result = runner.invoke(app, ["gda", "--help"])
+    assert result.exit_code == 0
+    out = strip_ansi(result.output)
+    assert "psycopg" in out
+    assert "--type psycopg --gateway" in out

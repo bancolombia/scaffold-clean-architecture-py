@@ -15,6 +15,9 @@ A2A_SDK_HTTP_SERVER = "a2a-sdk[http-server]~=1.1.4"
 SQLALCHEMY = "sqlalchemy[asyncio]~=2.1.8"
 AIOSQLITE = "aiosqlite~=0.22.1"
 PSYCOPG_BINARY = "psycopg[binary]~=3.3.9"
+# Separate requirement, not the [pool] extra: dependency dedupe ignores extras, so an existing
+# psycopg[binary] entry would silently swallow psycopg[binary,pool].
+PSYCOPG_POOL = "psycopg-pool~=3.3.3"
 MYPY = "mypy~=1.16.1"
 
 RESTAPI_RUNTIME = (FASTAPI_STANDARD, UVICORN_STANDARD, WIREUP, PYDANTIC_SETTINGS)

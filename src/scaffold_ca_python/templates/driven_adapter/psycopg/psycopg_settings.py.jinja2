@@ -1,0 +1,36 @@
+"""Settings for the psycopg adapter — loaded from environment."""
+
+from __future__ import annotations
+
+import wireup
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class PsycopgSettings(BaseSettings):
+    """Environment-sourced settings for the psycopg adapter.
+
+    Fields without defaults are required; a missing env var fails at startup.
+
+    Set the PSYCOPG_DATABASE_URL environment variable, e.g.:
+
+    * postgresql://user:password@localhost:5432/mydb
+
+    ``timeout`` (seconds) bounds both opening the pool and waiting for a free connection.
+    """
+
+    database_url: str
+    min_size: int = 1
+    max_size: int = 10
+    timeout: float = 30.0
+
+    model_config = SettingsConfigDict(
+        env_prefix="{{ module_name | upper }}_",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+
+@wireup.injectable
+def psycopg_settings_factory() -> PsycopgSettings:
+    return PsycopgSettings()

@@ -27,7 +27,7 @@ def test_entry_point_registry_keys() -> None:
 
 
 def test_driven_adapter_registry_keys() -> None:
-    assert set(DRIVEN_ADAPTER_FACTORIES) == {"rest-consumer", "secrets", "generic", "sqlalchemy"}
+    assert set(DRIVEN_ADAPTER_FACTORIES) == {"rest-consumer", "secrets", "generic", "sqlalchemy", "psycopg"}
 
 
 def test_simple_commands_have_no_registry() -> None:
@@ -98,6 +98,7 @@ def test_driven_adapter_descriptors() -> None:
     assert da["secrets"].fixed_name == "secrets"
     assert da["generic"].fixed_name is None
     assert da["sqlalchemy"].fixed_name == "sqlalchemy"
+    assert da["psycopg"].fixed_name == "psycopg"
 
 
 def test_pipeline_providers_keys_in_order() -> None:

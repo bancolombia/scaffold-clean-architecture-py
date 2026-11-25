@@ -39,6 +39,7 @@ _GDA_EPILOG = (
     "  * scaffold generate-driven-adapter --type generic --name my_adapter\n\n"
     "  * scaffold gda --type sqlalchemy --gateway book_repository\n\n"
     "  * scaffold gda --type sqlalchemy --driver sqlite\n\n"
+    "  * scaffold gda --type psycopg --gateway book_repository\n\n"
 )
 
 
@@ -140,7 +141,7 @@ def register(app: typer.Typer) -> None:
             str | None,
             typer.Option(
                 "--type",
-                help="Adapter type: rest-consumer, secrets, generic, sqlalchemy.",
+                help="Adapter type: rest-consumer, secrets, generic, sqlalchemy, psycopg.",
                 rich_help_panel="Required",
             ),
         ] = None,

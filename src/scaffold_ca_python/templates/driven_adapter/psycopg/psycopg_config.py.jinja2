@@ -1,0 +1,62 @@
+"""psycopg 3 async connection pool, opened on first use (wireup resource)."""
+
+from __future__ import annotations
+
+import asyncio
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from typing import Any
+
+import wireup
+from psycopg import AsyncConnection
+from psycopg_pool import AsyncConnectionPool
+
+from {{ project.python_package }}.infrastructure.driven_adapters.psycopg.psycopg_settings import (
+    PsycopgSettings,
+)
+
+
+class PsycopgConnectionPool:
+    """Async connection pool that connects on first use, not when the container is built."""
+
+    def __init__(self, settings: PsycopgSettings) -> None:
+        self._settings = settings
+        self._lock = asyncio.Lock()
+        self._pool: AsyncConnectionPool[AsyncConnection[tuple[Any, ...]]] | None = None
+
+    @asynccontextmanager
+    async def connection(self) -> AsyncIterator[AsyncConnection[tuple[Any, ...]]]:
+        """Yield a pooled connection; it commits on success and rolls back on error."""
+        pool = await self._ensure_open()
+        async with pool.connection() as conn:
+            yield conn
+
+    async def close(self) -> None:
+        if self._pool is not None:
+            await self._pool.close()
+            self._pool = None
+
+    async def _ensure_open(self) -> AsyncConnectionPool[AsyncConnection[tuple[Any, ...]]]:
+        async with self._lock:
+            if self._pool is None:
+                # A pool whose open() failed can never be reopened, so every attempt builds a new one.
+                pool: AsyncConnectionPool[AsyncConnection[tuple[Any, ...]]] = AsyncConnectionPool(
+                    self._settings.database_url,
+                    min_size=self._settings.min_size,
+                    max_size=self._settings.max_size,
+                    timeout=self._settings.timeout,
+                    open=False,
+                )
+                await pool.open(wait=True, timeout=self._settings.timeout)
+                self._pool = pool
+            return self._pool
+
+
+@wireup.injectable
+async def psycopg_pool(settings: PsycopgSettings) -> AsyncIterator[PsycopgConnectionPool]:
+    """Provide the shared pool; close it when the container closes."""
+    pool = PsycopgConnectionPool(settings)
+    try:
+        yield pool
+    finally:
+        await pool.close()

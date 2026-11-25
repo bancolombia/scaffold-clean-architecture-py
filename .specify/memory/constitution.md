@@ -34,6 +34,19 @@ None — all placeholders resolved.
 
 ---
 
+### Amendment v2.2.1 (2026-11-25) — PATCH
+**Type**: PATCH — the command table stops enumerating types; no semantic change to governance.
+
+**Changes**:
+- Principle III: the `gda` and `gep` rows no longer list their types; they point to
+  `scaffold gda --help` / `scaffold gep --help`. A new paragraph names the registries
+  `DRIVEN_ADAPTER_FACTORIES` and `ENTRY_POINT_FACTORIES` as the single source of truth, so new
+  adapter or entry-point types (e.g. `psycopg`, feature 031) need no amendment.
+
+**Templates updated**: None.
+
+---
+
 ### Amendment v2.2.0 (2026-11-24) — MINOR
 **Type**: MINOR — new principle added.
 
@@ -114,7 +127,7 @@ or artifact structure was affected.
 
 # scaffold-ca-python Constitution
 
-**Version**: 2.2.0 | **Ratified**: 2026-03-25 | **Last amended**: 2026-11-24
+**Version**: 2.2.1 | **Ratified**: 2026-03-25 | **Last amended**: 2026-11-25
 
 ## Core Principles
 
@@ -176,8 +189,8 @@ for Python idioms:
 | `clean-architecture` | `ca` | Scaffold full CA project (async-only, pyproject.toml, Pydantic v2 domain models — no sync mode, no opt-out) |
 | `generate-model` | `gm` | Domain model class in `domain/model/` |
 | `generate-use-case` | `guc` | Use-case class in `domain/usecase/` |
-| `generate-driven-adapter` | `gda` | Driven adapter; types: `rest-consumer`, `secrets`, `sqlalchemy`, `generic` |
-| `generate-entry-point` | `gep` | Entry point; types: `restapi` (FastAPI), `agent` (A2A), `mcp`, `generic` |
+| `generate-driven-adapter` | `gda` | Driven adapter; supported types: `scaffold gda --help` |
+| `generate-entry-point` | `gep` | Entry point; supported types: `scaffold gep --help` |
 | `generate-helper` | `gh` | Utility helper module in `infrastructure/helpers/` |
 | `generate-pipeline` | `gpipe` | CI/CD pipeline files (GitHub Actions or Azure Pipelines, via mandatory `--provider`) |
 | `validate-structure` | `vs` | Validate CA layer boundaries and dependency rule |
@@ -186,6 +199,12 @@ for Python idioms:
 
 Every command MUST support a `--dry-run` flag that previews all file changes without
 writing to disk.
+
+The adapter and entry-point types are not listed here: the registries
+`DRIVEN_ADAPTER_FACTORIES` (`factory/driven_adapters/__init__.py`) and
+`ENTRY_POINT_FACTORIES` (`factory/entry_points/__init__.py`) are the single source of truth.
+They feed `--help`, `--type` validation and the tests, so adding a type MUST NOT require a
+constitution amendment.
 
 **Rationale**: Feature parity with the canonical Java/Gradle plugin ensures Python
 teams can adopt the same architectural discipline with equivalent tooling.
@@ -339,4 +358,4 @@ dependencies listed in Principle III, installed via `uv` at generation time.
 - Compliance reviews MUST occur at the start of each new feature branch and before
   merging to `main`.
 
-**Version**: 2.2.0 | **Ratified**: 2026-03-25 | **Last Amended**: 2026-11-24
+**Version**: 2.2.1 | **Ratified**: 2026-03-25 | **Last Amended**: 2026-11-25

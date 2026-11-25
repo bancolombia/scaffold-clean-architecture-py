@@ -66,7 +66,7 @@ def test_gep_dry_run_parity(project_root: Path, type_: str) -> None:
 
 @pytest.mark.parametrize(
     ("type_", "name"),
-    [("rest-consumer", None), ("secrets", None), ("sqlalchemy", None), ("generic", "my-adapter")],
+    [("rest-consumer", None), ("secrets", None), ("sqlalchemy", None), ("psycopg", None), ("generic", "my-adapter")],
 )
 def test_gda_dry_run_parity(project_root: Path, type_: str, name: str | None) -> None:
     proj = ProjectContext(name="my-app")
@@ -76,6 +76,8 @@ def test_gda_dry_run_parity(project_root: Path, type_: str, name: str | None) ->
         module_ctx = ModuleContext(name="secrets", project=proj)
     elif type_ == "sqlalchemy":
         module_ctx = ModuleContext(name="sqlalchemy", project=proj)
+    elif type_ == "psycopg":
+        module_ctx = ModuleContext(name="psycopg", project=proj)
     else:
         assert name is not None
         module_ctx = ModuleContext(name=name, project=proj)
