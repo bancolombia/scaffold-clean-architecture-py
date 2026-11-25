@@ -34,6 +34,17 @@ None — all placeholders resolved.
 
 ---
 
+### Amendment v2.2.1 (2026-11-25) — PATCH
+**Type**: PATCH — command table update; no semantic change to governance.
+
+**Changes**:
+- Principle III: `gda` types row now lists `psycopg` (feature 031, async PostgreSQL with
+  plain SQL).
+
+**Templates updated**: None.
+
+---
+
 ### Amendment v2.2.0 (2026-11-24) — MINOR
 **Type**: MINOR — new principle added.
 
@@ -114,7 +125,7 @@ or artifact structure was affected.
 
 # scaffold-ca-python Constitution
 
-**Version**: 2.2.0 | **Ratified**: 2026-03-25 | **Last amended**: 2026-11-24
+**Version**: 2.2.1 | **Ratified**: 2026-03-25 | **Last amended**: 2026-11-25
 
 ## Core Principles
 
@@ -176,7 +187,7 @@ for Python idioms:
 | `clean-architecture` | `ca` | Scaffold full CA project (async-only, pyproject.toml, Pydantic v2 domain models — no sync mode, no opt-out) |
 | `generate-model` | `gm` | Domain model class in `domain/model/` |
 | `generate-use-case` | `guc` | Use-case class in `domain/usecase/` |
-| `generate-driven-adapter` | `gda` | Driven adapter; types: `rest-consumer`, `secrets`, `sqlalchemy`, `generic` |
+| `generate-driven-adapter` | `gda` | Driven adapter; types: `rest-consumer`, `secrets`, `sqlalchemy`, `psycopg`, `generic` |
 | `generate-entry-point` | `gep` | Entry point; types: `restapi` (FastAPI), `agent` (A2A), `mcp`, `generic` |
 | `generate-helper` | `gh` | Utility helper module in `infrastructure/helpers/` |
 | `generate-pipeline` | `gpipe` | CI/CD pipeline files (GitHub Actions or Azure Pipelines, via mandatory `--provider`) |
@@ -339,4 +350,4 @@ dependencies listed in Principle III, installed via `uv` at generation time.
 - Compliance reviews MUST occur at the start of each new feature branch and before
   merging to `main`.
 
-**Version**: 2.2.0 | **Ratified**: 2026-03-25 | **Last Amended**: 2026-11-24
+**Version**: 2.2.1 | **Ratified**: 2026-03-25 | **Last Amended**: 2026-11-25

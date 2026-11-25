@@ -154,6 +154,23 @@ def _scenario_13_sqlalchemy_sqlite_restapi(project: Path) -> None:
     _run(project, "gep", "--type", "restapi")
 
 
+def _scenario_14_psycopg_gateway(project: Path) -> None:
+    _run(project, "gm", "--name", "book")
+    _run(project, "guc", "--name", "get_book", "--uses", "book_repository")
+    _run(project, "gda", "--type", "psycopg", "--gateway", "book_repository")
+    _run(project, "gep", "--type", "restapi")
+
+
+def _scenario_15_psycopg_with_sqlalchemy(project: Path) -> None:
+    _run(project, "gda", "--type", "sqlalchemy")
+    _run(project, "gda", "--type", "psycopg")
+    assert "psycopg-pool" in (project / "pyproject.toml").read_text(encoding="utf-8")
+    _run(project, "dm", "--name", "psycopg", "--confirm")
+    conftest = (project / "src" / "tests" / "conftest.py").read_text(encoding="utf-8")
+    assert "psycopg_env" not in conftest
+    assert "sqlalchemy_env" in conftest
+
+
 _SCENARIOS: dict[str, Callable[..., None]] = {
     "01_restapi_swagger": _scenario_01_restapi_swagger,
     "02_agent": _scenario_02_agent,
@@ -168,6 +185,8 @@ _SCENARIOS: dict[str, Callable[..., None]] = {
     "11_sqlalchemy_gateway": _scenario_11_sqlalchemy_gateway,
     "12_rest_consumer_and_sqlalchemy": _scenario_12_rest_consumer_and_sqlalchemy,
     "13_sqlalchemy_sqlite_restapi": _scenario_13_sqlalchemy_sqlite_restapi,
+    "14_psycopg_gateway": _scenario_14_psycopg_gateway,
+    "15_psycopg_with_sqlalchemy": _scenario_15_psycopg_with_sqlalchemy,
 }
 
 

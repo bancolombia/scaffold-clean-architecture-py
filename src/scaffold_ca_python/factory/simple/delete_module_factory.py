@@ -59,6 +59,7 @@ class DeleteModuleFactory(ModuleFactory):
         _CONFTEST_FIXTURE_NAMES = {
             DrivenAdapterRestConsumer.fixed_name: "rest_consumer_env",
             "sqlalchemy": "sqlalchemy_env",
+            "psycopg": "psycopg_env",
         }
         if snake_name in _CONFTEST_FIXTURE_NAMES:
             self._remove_conftest_fixture(tests_root, _CONFTEST_FIXTURE_NAMES[snake_name])

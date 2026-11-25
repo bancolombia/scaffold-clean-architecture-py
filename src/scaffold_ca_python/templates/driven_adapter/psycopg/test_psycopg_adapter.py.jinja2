@@ -1,0 +1,107 @@
+"""Tests for the psycopg adapter — no database server required."""
+
+from __future__ import annotations
+
+import asyncio
+from collections.abc import AsyncGenerator
+from typing import Any, cast
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+from psycopg_pool import PoolTimeout
+
+from {{ project.python_package }}.infrastructure.driven_adapters.psycopg.psycopg_config import (
+    PsycopgConnectionPool,
+    psycopg_pool,
+)
+from {{ project.python_package }}.infrastructure.driven_adapters.psycopg.psycopg_repository import (
+    PsycopgRepository,
+)
+from {{ project.python_package }}.infrastructure.driven_adapters.psycopg.psycopg_settings import (
+    PsycopgSettings,
+)
+
+_POOL_CLASS = "{{ project.python_package }}.infrastructure.driven_adapters.psycopg.psycopg_config.AsyncConnectionPool"
+
+
+def _settings() -> PsycopgSettings:
+    return PsycopgSettings(database_url="postgresql://user:password@localhost:5432/test")
+
+
+def _fake_pool() -> MagicMock:
+    pool = MagicMock(name="AsyncConnectionPool")
+    pool.open = AsyncMock()
+    pool.close = AsyncMock()
+    return pool
+
+
+async def _use(wrapper: PsycopgConnectionPool) -> None:
+    async with wrapper.connection():
+        pass
+
+
+async def test_ping_runs_select_one() -> None:
+    cursor = MagicMock()
+    cursor.execute = AsyncMock()
+    cursor.fetchone = AsyncMock(return_value=(1,))
+    conn = MagicMock()
+    conn.cursor.return_value.__aenter__.return_value = cursor
+    pool = MagicMock()
+    pool.connection.return_value.__aenter__.return_value = conn
+
+    assert await PsycopgRepository(pool).ping() is True
+    cursor.execute.assert_awaited_once_with("SELECT 1")
+
+
+def test_pool_is_not_created_until_first_use() -> None:
+    with patch(_POOL_CLASS) as pool_cls:
+        PsycopgConnectionPool(_settings())
+    pool_cls.assert_not_called()
+
+
+async def test_concurrent_first_use_opens_a_single_pool() -> None:
+    async def slow_open(*_args: Any, **_kwargs: Any) -> None:
+        await asyncio.sleep(0)
+
+    pool = _fake_pool()
+    pool.open = AsyncMock(side_effect=slow_open)
+    with patch(_POOL_CLASS, return_value=pool) as pool_cls:
+        wrapper = PsycopgConnectionPool(_settings())
+        await asyncio.gather(_use(wrapper), _use(wrapper))
+
+    pool_cls.assert_called_once()
+    pool.open.assert_awaited_once()
+    assert pool.connection.call_count == 2
+
+
+async def test_failed_open_is_retried_with_a_new_pool() -> None:
+    failing, healthy = _fake_pool(), _fake_pool()
+    failing.open = AsyncMock(side_effect=PoolTimeout("database unreachable"))
+    with patch(_POOL_CLASS, side_effect=[failing, healthy]) as pool_cls:
+        wrapper = PsycopgConnectionPool(_settings())
+        with pytest.raises(PoolTimeout):
+            await _use(wrapper)
+        await _use(wrapper)
+
+    assert pool_cls.call_count == 2
+    healthy.connection.assert_called_once()
+
+
+async def test_close_is_a_noop_until_the_pool_is_opened() -> None:
+    pool = _fake_pool()
+    with patch(_POOL_CLASS, return_value=pool):
+        wrapper = PsycopgConnectionPool(_settings())
+        await wrapper.close()
+        pool.close.assert_not_awaited()
+        await _use(wrapper)
+        await wrapper.close()
+
+    pool.close.assert_awaited_once()
+
+
+async def test_resource_closes_the_pool_on_shutdown() -> None:
+    resource = cast(AsyncGenerator[PsycopgConnectionPool], psycopg_pool(_settings()))
+    wrapper = await anext(resource)
+    with patch.object(wrapper, "close", AsyncMock()) as close:
+        await resource.aclose()
+    close.assert_awaited_once()

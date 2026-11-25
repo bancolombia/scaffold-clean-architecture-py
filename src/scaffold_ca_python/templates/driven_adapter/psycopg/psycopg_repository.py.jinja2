@@ -1,0 +1,48 @@
+"""psycopg driven adapter — async PostgreSQL access with plain SQL."""
+
+from __future__ import annotations
+
+import wireup
+
+{% if gateway -%}
+from {{ project.python_package }}.domain.model.{{ gateway.model_module }}.gateways.{{ gateway.name }} import {{ gateway.class_name }}
+{% endif -%}
+from {{ project.python_package }}.infrastructure.driven_adapters.psycopg.psycopg_config import (
+    PsycopgConnectionPool,
+)
+
+{% if gateway %}
+@wireup.injectable(as_type={{ gateway.class_name }})
+class PsycopgRepository({{ gateway.class_name }}):
+    """psycopg adapter implementing {{ gateway.class_name }}.
+
+    Uses the shared connection pool from DI (see psycopg_config).
+    Replace :meth:`ping` and add gateway methods as you implement the port.
+    """
+{% else %}
+@wireup.injectable
+class PsycopgRepository:
+    """Async psycopg driven adapter.
+
+    Uses the shared connection pool from DI (see psycopg_config).
+    Use @wireup.injectable(as_type=<GatewayABC>) when implementing a domain gateway.
+    """
+{% endif %}
+    def __init__(self, pool: PsycopgConnectionPool) -> None:
+        self._pool = pool
+
+    async def ping(self) -> bool:
+        """Lightweight DB connectivity check (SELECT 1)."""
+        async with self._pool.connection() as conn, conn.cursor() as cur:
+            await cur.execute("SELECT 1")
+            return await cur.fetchone() == (1,)
+
+    # Example method — uncomment and adapt (requires: from psycopg.rows import dict_row).
+    # Values always travel as query parameters (%s) and are never formatted into the SQL
+    # string: the server receives them separately, which rules out SQL injection.
+    #
+    # async def find_by_id(self, item_id: int) -> Book | None:
+    #     async with self._pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+    #         await cur.execute("SELECT id, title FROM books WHERE id = %s", (item_id,))
+    #         row = await cur.fetchone()
+    #     return Book(**row) if row else None

@@ -7,6 +7,7 @@ contracts/cli-behavior.md.
 
 from __future__ import annotations
 
+import ast
 from pathlib import Path
 
 import pytest
@@ -99,7 +100,7 @@ def test_gda_unknown_type(project_root: Path) -> None:
     assert result.exit_code == 1
     out = strip_ansi(result.output)
     assert "Unknown type 'x'." in out
-    for allowed in ("rest-consumer", "secrets", "generic", "sqlalchemy"):
+    for allowed in ("rest-consumer", "secrets", "generic", "sqlalchemy", "psycopg"):
         assert allowed in out
 
 
@@ -120,6 +121,27 @@ def test_dm_sqlalchemy_removes_fixture_leaves_rest_consumer(project_root: Path) 
     conftest = (project_root / "src" / "tests" / "conftest.py").read_text()
     assert "sqlalchemy_env" not in conftest
     assert "rest_consumer_env" in conftest
+
+
+def test_three_db_and_http_adapters_share_one_conftest_header(project_root: Path) -> None:
+    for type_ in ("rest-consumer", "sqlalchemy", "psycopg"):
+        runner.invoke(app, ["gda", "--type", type_], catch_exceptions=False)
+    conftest = (project_root / "src" / "tests" / "conftest.py").read_text()
+    ast.parse(conftest)
+    assert conftest.count("from __future__ import annotations") == 1
+    for fixture in ("rest_consumer_env", "sqlalchemy_env", "psycopg_env"):
+        assert f"def {fixture}(" in conftest
+
+
+def test_dm_psycopg_removes_only_its_fixture(project_root: Path) -> None:
+    for type_ in ("rest-consumer", "sqlalchemy", "psycopg"):
+        runner.invoke(app, ["gda", "--type", type_], catch_exceptions=False)
+    result = runner.invoke(app, ["dm", "--name", "psycopg", "--confirm"], catch_exceptions=False)
+    assert result.exit_code == 0
+    conftest = (project_root / "src" / "tests" / "conftest.py").read_text()
+    assert "psycopg_env" not in conftest
+    assert "def rest_consumer_env(" in conftest
+    assert "def sqlalchemy_env(" in conftest
 
 
 def test_driver_flag_on_rest_consumer_exits_1(project_root: Path) -> None:

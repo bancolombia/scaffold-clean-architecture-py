@@ -99,3 +99,60 @@ def test_sqlalchemy_test_adapter_uses_staticpool() -> None:
     tpl = _tmpl("driven_adapter/sqlalchemy/test_sqlalchemy_adapter.py.jinja2")
     out = renderer.render_string(tpl, _ctx().model_dump())
     assert "StaticPool" in out
+
+
+# psycopg
+
+
+def _render_psycopg(template: str, gateway: dict[str, str] | None = None) -> str:
+    ctx = _ctx("psycopg").model_dump()
+    ctx["gateway"] = gateway
+    return renderer.render_string(_tmpl(f"driven_adapter/psycopg/{template}"), ctx)
+
+
+def test_psycopg_settings_fields_and_prefix() -> None:
+    out = _render_psycopg("psycopg_settings.py.jinja2")
+    assert "class PsycopgSettings(BaseSettings)" in out
+    assert 'env_prefix="PSYCOPG_"' in out
+    for field in ("database_url: str", "min_size: int = 1", "max_size: int = 10", "timeout: float = 30.0"):
+        assert field in out
+
+
+def test_psycopg_config_opens_pool_lazily() -> None:
+    out = _render_psycopg("psycopg_config.py.jinja2")
+    assert "_pool: AsyncConnectionPool[AsyncConnection[tuple[Any, ...]]] | None = None" in out
+    assert "asyncio.Lock()" in out
+    assert "open=False" in out
+    assert "open(wait=True" in out
+    assert "pool.connection()" in out
+    init_body = out.split("def __init__", 1)[1].split("\n\n", 1)[0]
+    assert "AsyncConnectionPool(" not in init_body
+
+
+def test_psycopg_config_resource_closes_pool() -> None:
+    out = _render_psycopg("psycopg_config.py.jinja2")
+    assert "async def psycopg_pool(settings: PsycopgSettings) -> AsyncIterator[PsycopgConnectionPool]" in out
+    assert "await pool.close()" in out
+
+
+def test_psycopg_repository_uses_parameters_never_formatted_sql() -> None:
+    out = _render_psycopg("psycopg_repository.py.jinja2")
+    assert "SELECT 1" in out
+    assert "dict_row" in out
+    assert "%s" in out
+    for forbidden in ('f"SELECT', "f'SELECT", ".format(", '" % ('):
+        assert forbidden not in out
+
+
+def test_psycopg_repository_binds_gateway() -> None:
+    gateway = {"name": "book_repository", "class_name": "BookRepository", "model_module": "book"}
+    out = _render_psycopg("psycopg_repository.py.jinja2", gateway)
+    assert "@wireup.injectable(as_type=BookRepository)" in out
+    assert "class PsycopgRepository(BookRepository)" in out
+
+
+def test_psycopg_test_template_covers_pool_lifecycle() -> None:
+    out = _render_psycopg("test_psycopg_adapter.py.jinja2")
+    assert "my_app.infrastructure.driven_adapters.psycopg.psycopg_config.AsyncConnectionPool" in out
+    assert "asyncio.gather" in out
+    assert "PoolTimeout" in out
