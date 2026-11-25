@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/bancolombia/scaffold-clean-architecture-py/compare/v1.2.1...v1.3.0) (2026-11-25)
+
+
+### Features
+
+* **gda:** add async psycopg driven adapter type ([2f468b8](https://github.com/bancolombia/scaffold-clean-architecture-py/commit/2f468b80d7cb2feef8b6135ea3574c6694262f9f))
+
 ## [1.2.1](https://github.com/bancolombia/scaffold-clean-architecture-py/compare/v1.2.0...v1.2.1) (2026-11-25)
 
 
