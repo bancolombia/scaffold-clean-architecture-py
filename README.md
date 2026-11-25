@@ -44,10 +44,6 @@ It is the Python counterpart of Bancolombia's [scaffold-clean-architecture](http
 - [Security](#security)
 - [License](#license)
 
-<<<<<<< HEAD
-
-=======
->>>>>>> e393850 (chore(docs): improve README file)
 ## Supported versions
 
 Releases are cut from `main` and there are no maintenance branches, so security fixes ship in a new release of the latest minor version.
