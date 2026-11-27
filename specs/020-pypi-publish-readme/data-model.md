@@ -53,12 +53,13 @@ classifiers = [
 
 ```toml
 authors = [
-    { name = "Santiago Calle", email = "santiagocalleg@gmail.com" }
+    { name = "<display name>", email = "<email>" }
 ]
 ```
 
 - Type: list\[inline table\] with `name` and `email` keys
 - Change: add `name` key alongside the existing `email` key
+- Source of truth: use the values in the repository root `pyproject.toml`; specs do not duplicate maintainer contact details
 
 ---
 
@@ -66,15 +67,14 @@ authors = [
 
 ```toml
 [project.urls]
-Homepage = "https://github.com/bancolombia/scaffold-clean-architecture-py"
-Repository = "https://github.com/bancolombia/scaffold-clean-architecture-py"
-Issues = "https://github.com/bancolombia/scaffold-clean-architecture-py/issues"
+Homepage = "https://github.com/<ORG>/scaffold-clean-architecture-py"
+Repository = "https://github.com/<ORG>/scaffold-clean-architecture-py"
+Issues = "https://github.com/<ORG>/scaffold-clean-architecture-py/issues"
 ```
 
 - Type: TOML table; keys are display labels on the PyPI sidebar; values are absolute URLs
 - Constraint: URLs must be reachable; PyPI does not validate them but crawlers will
-
-> **Note**: Replace with the actual GitHub repository URL if it differs.
+- Replace `<ORG>` with the GitHub organization or user that hosts this repository (must match the remote configured for the project)
 
 ---
 

@@ -36,7 +36,7 @@
 - [X] T003 [US1] Add `license = "MIT"` field to `[project]` table in `pyproject.toml`
 - [X] T004 [P] [US1] Add `keywords` list to `[project]` table in `pyproject.toml` (values from data-model.md §1)
 - [X] T005 [P] [US1] Add `classifiers` list to `[project]` table in `pyproject.toml` (10 Trove classifiers from data-model.md §1)
-- [X] T006 [P] [US1] Update `authors` entry to add `name = "Santiago Calle"` alongside existing email in `pyproject.toml`
+- [X] T006 [P] [US1] Update `authors` entry to add a display `name` alongside existing email in `pyproject.toml`
 - [X] T007 [US1] Add `[project.urls]` table with `Homepage`, `Repository`, and `Issues` keys to `pyproject.toml` (URLs from data-model.md §2)
 - [X] T008 [US1] Smoke-test: run `uv build` and confirm `dist/scaffold_ca_python-*.whl` and `dist/scaffold_ca_python-*.tar.gz` are produced
 

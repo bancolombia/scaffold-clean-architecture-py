@@ -1,0 +1,11 @@
+# Code owners (CODEOWNERS)
+#
+# Pattern `*` — applies to the entire repository.
+# Team: @bancolombia/ingenieria-de-software (Software Engineering).
+#
+# When branch protection requires code owner review, pull requests need at
+# least one approval from a member of that team before they can be merged.
+#
+# Documentation: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/repository-ownership-and-automation/about-code-owners
+
+* @bancolombia/ingenieria-de-software

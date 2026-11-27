@@ -8,7 +8,7 @@ End-to-end validation guide. Design details are in [data-model.md](data-model.md
 export SSL_CERT_FILE=/etc/ssl/cert.pem   # only if uv fails with a TLS error
 uv sync
 git switch feature/022-solid-code-cleanup
-REPO=~/projects/ingsw/scaffold-clean-architecture-py
+REPO=/path/to/scaffold-clean-architecture-py
 ```
 
 ## 1. Reference tree (before the refactor)

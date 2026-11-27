@@ -21,7 +21,7 @@ project page (Homepage, Repository, Issues).
 | `keywords` | absent | Add `["clean architecture", "scaffold", "code generation", "cli", "python"]` |
 | `classifiers` | absent | Add standard Trove classifiers (see data-model.md) |
 | `[project.urls]` | absent | Add Homepage, Repository, Issues |
-| `authors[0].name` | absent (email-only) | Add `name = "Santiago Calle"` alongside existing email |
+| `authors[0].name` | absent (email-only) | Add a display `name` alongside existing email in `pyproject.toml` |
 | `description` | ✅ present | "Scaffolder to generate Clean Architecture apps" — keep as-is |
 | `readme` | ✅ present | `README.md` — keep as-is |
 | `requires-python` | ✅ present | `>=3.13` — keep as-is |
